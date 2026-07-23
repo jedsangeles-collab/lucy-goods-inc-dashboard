@@ -3477,13 +3477,6 @@ function hideMagLens() { if (magLensEl) magLensEl.style.display = 'none'; }
 // STORE PERFORMANCE & FIELD EXECUTION — added module (Overview/Analytics/Visit Planning/Action Center)
 // ══════════════════════════════════════════════════════════════════════════
 
-const STATE_REGION = {
-  CT:'Northeast',ME:'Northeast',MA:'Northeast',NH:'Northeast',RI:'Northeast',VT:'Northeast',NJ:'Northeast',NY:'Northeast',PA:'Northeast',
-  IL:'Midwest',IN:'Midwest',MI:'Midwest',OH:'Midwest',WI:'Midwest',IA:'Midwest',KS:'Midwest',MN:'Midwest',MO:'Midwest',NE:'Midwest',ND:'Midwest',SD:'Midwest',
-  DE:'South',FL:'South',GA:'South',MD:'South',NC:'South',SC:'South',VA:'South',DC:'South',WV:'South',AL:'South',KY:'South',MS:'South',TN:'South',AR:'South',LA:'South',OK:'South',TX:'South',
-  AZ:'West',CO:'West',ID:'West',MT:'West',NV:'West',NM:'West',UT:'West',WY:'West',AK:'West',CA:'West',HI:'West',OR:'West',WA:'West',
-};
-
 // Populated by buildDerivedIndexes() once data has loaded (async, from Supabase or an
 // embedded snapshot) -- was a synchronous top-level forEach when data was always already
 // present in module scope; now it must wait until loadAllData() resolves.
@@ -3533,31 +3526,24 @@ function chainSales(chainName) {
 // ══════════════════════════════════════════════════════════════════════════
 // OVERVIEW / DRILL-DOWN
 // ══════════════════════════════════════════════════════════════════════════
-let ovPath = { region: null, city: null, chain: null };
+// Chain is the dashboard's primary organizational hierarchy -- Region/City are no longer
+// navigation levels (Region removed as a filter/nav concept entirely; City remains available
+// as a display-only grouping in Analytics' City Comparison card, but not as a drill-down step).
+let ovPath = { chain: null };
 
 function ovGo(level) {
-  if (level === 'national') ovPath = { region:null, city:null, chain:null };
-  else if (level === 'region') { ovPath.city = null; ovPath.chain = null; }
-  else if (level === 'city') { ovPath.chain = null; }
+  if (level === 'national') ovPath = { chain: null };
   renderOverview();
 }
-function ovDrillRegion(r) { ovPath.region = r; ovPath.city = null; ovPath.chain = null; renderOverview(); }
-function ovDrillCity(c) { ovPath.city = c; ovPath.chain = null; renderOverview(); }
 function ovDrillChain(ch) { ovPath.chain = ch; renderOverview(); }
 
 function ovBreadcrumbHtml() {
-  if (!ovPath.region) return '<div class="breadcrumb"></div>';
-  const parts = [`<span class="bc-link" onclick="ovGo('national')">All Regions</span>`];
-  parts.push(`<span class="bc-sep">/</span><span class="${!ovPath.city?'bc-current':'bc-link'}" onclick="ovGo('region')">${escHtml(ovPath.region)}</span>`);
-  if (ovPath.city) parts.push(`<span class="bc-sep">/</span><span class="${!ovPath.chain?'bc-current':'bc-link'}" onclick="ovGo('city')">${escHtml(ovPath.city)}</span>`);
-  if (ovPath.chain) parts.push(`<span class="bc-sep">/</span><span class="bc-current">${escHtml(ovPath.chain)}</span>`);
-  return `<div class="breadcrumb">${parts.join('')}</div>`;
+  if (!ovPath.chain) return '<div class="breadcrumb"></div>';
+  return `<div class="breadcrumb"><span class="bc-link" onclick="ovGo('national')">All Chains</span><span class="bc-sep">/</span><span class="bc-current">${escHtml(ovPath.chain)}</span></div>`;
 }
 
 function ovScopedDoors() {
   let list = DOORS;
-  if (ovPath.region) list = list.filter(d => d.region === ovPath.region);
-  if (ovPath.city) list = list.filter(d => d.city === ovPath.city);
   if (ovPath.chain) list = list.filter(d => d.chain === ovPath.chain);
   return list;
 }
@@ -3758,20 +3744,14 @@ function renderOverview() {
 
   let showChainMap = false;
   if (ovPath.chain) {
-    // most specific first: a chain has been selected (directly or via drill-down), regardless of region/city
-    html += `<div class="section-title">Stores — ${escHtml(ovPath.chain)}${ovPath.city ? ', ' + escHtml(ovPath.city) : ''}</div>`;
+    html += `<div class="section-title">Stores — ${escHtml(ovPath.chain)}</div>`;
     html += renderChainMapAndTable(doors);
     showChainMap = true;
-  } else if (!ovPath.region) {
-    // Regions drill-grid intentionally not shown at the national root level.
-  } else if (!ovPath.city) {
-    const cities = [...new Set(doors.map(d => d.city).filter(Boolean))].sort();
-    html += `<div class="section-title">Cities in ${escHtml(ovPath.region)}</div><div class="drill-grid">${
-      cities.map(c => drillCardHtml(c, doors.filter(d => d.city === c), `ovDrillCity('${esc(c)}')`)).join('')
-    }</div>`;
   } else {
+    // Root view: a flat grid of every chain -- Chain is the primary drill-down entry point
+    // (Region/City are no longer intermediate levels here).
     const chains = [...new Set(doors.map(d => d.chain))].sort();
-    html += `<div class="section-title">Chains in ${escHtml(ovPath.city)}</div><div class="drill-grid">${
+    html += `<div class="section-title">Chains</div><div class="drill-grid">${
       chains.map(ch => drillCardHtml(ch, doors.filter(d => d.chain === ch), `ovDrillChain('${esc(ch)}')`)).join('')
     }</div>`;
   }
@@ -4471,13 +4451,13 @@ function setReportStatus(rec, status) {
     .then(({ error }) => { if (error) console.error('report_status upsert failed', error); });
 }
 
-let rrFilters = { chain:'', storeSearch:'', region:'', state:'', territory:'', rep:'', dateFrom:'', dateTo:'', status:'', minScore:'', maxScore:'', minVelocity:'', maxVelocity:'' };
+let rrFilters = { chain:'', storeSearch:'', state:'', territory:'', rep:'', dateFrom:'', dateTo:'', status:'', minScore:'', maxScore:'', minVelocity:'', maxVelocity:'' };
 let rrSort = { col:'date', dir:'desc' };
 let rrPage = 1;
 const RR_PAGE_SIZE = 25;
 
 function rrResetFilters() {
-  rrFilters = { chain:'', storeSearch:'', region:'', state:'', territory:'', rep:'', dateFrom:'', dateTo:'', status:'', minScore:'', maxScore:'', minVelocity:'', maxVelocity:'' };
+  rrFilters = { chain:'', storeSearch:'', state:'', territory:'', rep:'', dateFrom:'', dateTo:'', status:'', minScore:'', maxScore:'', minVelocity:'', maxVelocity:'' };
   rrPage = 1;
   renderReportReview();
 }
@@ -4494,7 +4474,6 @@ function rrReportValue(rec, col) {
     case 'date': return parseVisitTimestamp(rec);
     case 'store': return (rec.a||'').toLowerCase();
     case 'chain': return (rec.ch||'').toLowerCase();
-    case 'region': return door ? (door.region||'Unknown') : (STATE_REGION[(rec.st||'').toUpperCase()] || 'Unknown');
     case 'rep': return (rec.rep||'Unknown').toLowerCase();
     case 'score': return (rec.sc===null||rec.sc===undefined) ? null : rec.sc;
     case 'velocity': return door && door.realVelocity!==null && door.realVelocity!==undefined ? door.realVelocity : null;
@@ -4511,7 +4490,6 @@ function rrFilteredReports() {
     const s = rrFilters.storeSearch.toLowerCase();
     list = list.filter(r => (r.a||'').toLowerCase().includes(s) || (r.ci||'').toLowerCase().includes(s));
   }
-  if (rrFilters.region) list = list.filter(r => rrReportValue(r,'region') === rrFilters.region);
   if (rrFilters.state) list = list.filter(r => (r.st||'') === rrFilters.state);
   if (rrFilters.territory) list = list.filter(r => (r.ci||'') === rrFilters.territory);
   if (rrFilters.rep) { const s = rrFilters.rep.toLowerCase(); list = list.filter(r => (r.rep||'Unknown').toLowerCase().includes(s)); }
@@ -4539,7 +4517,6 @@ function renderRrFilterPanel() {
   const el = document.getElementById('rr-filter-panel');
   if (!el) return;
   const chains = [...new Set(RR_ALL_REPORTS.map(r=>r.ch).filter(Boolean))].sort();
-  const regions = [...new Set(RR_ALL_REPORTS.map(r=>rrReportValue(r,'region')))].sort();
   const states = [...new Set(RR_ALL_REPORTS.map(r=>r.st).filter(Boolean))].sort();
   const territories = [...new Set(RR_ALL_REPORTS.map(r=>r.ci).filter(Boolean))].sort();
 
@@ -4552,12 +4529,6 @@ function renderRrFilterPanel() {
 
     <h4>Store Search</h4>
     <input type="text" placeholder="Address or city…" value="${esc(rrFilters.storeSearch)}" oninput="rrSetFilter('storeSearch', this.value)">
-
-    <h4>Region</h4>
-    <select onchange="rrSetFilter('region', this.value)">
-      <option value="">All Regions</option>
-      ${regions.map(r=>`<option value="${esc(r)}" ${rrFilters.region===r?'selected':''}>${escHtml(r)}</option>`).join('')}
-    </select>
 
     <h4>State</h4>
     <select onchange="rrSetFilter('state', this.value)">
@@ -4635,7 +4606,7 @@ function rrSummaryCards(reports) {
 }
 
 const RR_COLS = [
-  ['date','Visit Date'], ['store','Store'], ['chain','Chain'], ['region','Region'],
+  ['date','Visit Date'], ['store','Store'], ['chain','Chain'],
   ['rep','Rep'], ['score','Score'], ['velocity','Velocity'], ['status','Status'], ['updated','Last Updated'],
 ];
 
@@ -4653,14 +4624,12 @@ function rrTableHtml(pageReports, sort) {
   }).join('');
   const bodyHtml = pageReports.map(r => {
     const door = reportDoor(r);
-    const region = rrReportValue(r,'region');
     const status = getReportStatus(r);
     const updatedAt = getReportStatusUpdatedAt(r);
     return `<tr class="rr-report-row" onclick="rrOpenReport('${esc(r.src)}', ${JSON.stringify(r.id)})">
       <td>${escHtml(r.vd||r.month||'—')}</td>
       <td>${escHtml(r.a||'—')}</td>
       <td>${escHtml(r.ch||'—')}</td>
-      <td>${escHtml(region)}</td>
       <td>${escHtml(r.rep||'Unknown')}</td>
       <td>${r.sc!==null&&r.sc!==undefined?r.sc+'/4':'—'}</td>
       <td>${door&&door.realVelocity!==null&&door.realVelocity!==undefined?door.realVelocity.toFixed(1)+' u/wk':'—'}</td>
@@ -4677,7 +4646,7 @@ function exportRrCSV() {
     const door = reportDoor(r);
     return {
       VisitDate: r.vd||r.month||'', Store: r.a||'', City: r.ci||'', State: r.st||'',
-      Chain: r.ch||'', Region: rrReportValue(r,'region'), Rep: r.rep||'Unknown',
+      Chain: r.ch||'', Rep: r.rep||'Unknown',
       Score: r.sc, Velocity: door?door.realVelocity:'', Status: getReportStatus(r),
       LastUpdated: getReportStatusUpdatedAt(r) || ''
     };
@@ -4724,8 +4693,8 @@ function renderAnalytics() {
   const el = document.getElementById('view-analytics');
   const scopedDoors = ovScopedDoors();
   const scopeChains = [...new Set(scopedDoors.map(d => d.chain))];
-  const isScoped = !!(ovPath.region || ovPath.city || ovPath.chain);
-  const scopeLabel = ovPath.chain || ovPath.city || ovPath.region || 'National';
+  const isScoped = !!ovPath.chain;
+  const scopeLabel = ovPath.chain || 'National';
 
   // Monthly trend: scoped to chains in the current drill-down scope (or all, if national)
   const relevantChains = isScoped ? scopeChains : Object.keys(SALES);
@@ -4734,16 +4703,8 @@ function renderAnalytics() {
   const months = Object.keys(monthMap).sort();
   const trendPoints = months.map(m => ({ label: m, y: monthMap[m] }));
 
-  // Regional comparison (always national context, for orientation)
-  const regions = ['Northeast','Midwest','South','West','Unknown'];
-  const regionRows = regions.map(r => {
-    const rd = DOORS.filter(d => d.region === r);
-    const k = computeKPIs(rd);
-    return { region: r, count: rd.length, avgScore: k.avgScore, units: k.totalUnits };
-  }).filter(r => r.count > 0);
-
-  // City comparison — scoped to current region if set, else national top 15
-  const cityPool = ovPath.region ? DOORS.filter(d => d.region === ovPath.region) : DOORS;
+  // City comparison — scoped to current chain if set, else national top 15
+  const cityPool = ovPath.chain ? DOORS.filter(d => d.chain === ovPath.chain) : DOORS;
   const cityMap = {};
   cityPool.forEach(d => { if (d.city) { cityMap[d.city] = cityMap[d.city] || { city: d.city, doors: [] }; cityMap[d.city].doors.push(d); } });
   const cityRows = Object.values(cityMap).map(c => ({ city: c.city, count: c.doors.length, avgScore: computeKPIs(c.doors).avgScore }))
@@ -4768,15 +4729,17 @@ function renderAnalytics() {
   const bottom10 = rankedChains.slice(-10).reverse();
   const peerAvg = rankedChains.length ? rankedChains.reduce((s,c)=>s+c.avg_score,0)/rankedChains.length : null;
 
-  // Not Visited Within [threshold] Months, by region — driven by the global recency filter
+  // Not Visited Within [threshold] Months, by chain — driven by the global recency filter
   const recencyPool = scopedDoors.length ? scopedDoors : DOORS;
-  const recencyByRegion = regions.map(r => {
-    const rd = recencyPool.filter(d => d.region === r);
-    const notVisited = rd.filter(isNotVisitedWithinThreshold).length;
-    return { region: r, total: rd.length, notVisited };
-  }).filter(r => r.total > 0);
-  const recencyTotalNotVisited = recencyByRegion.reduce((s,r) => s+r.notVisited, 0);
-  const recencyMaxNotVisited = Math.max(...recencyByRegion.map(r => r.notVisited), 1);
+  const recencyChainList = isScoped ? scopeChains : [...new Set(DOORS.map(d => d.chain))];
+  const recencyByChainAll = recencyChainList.map(ch => {
+    const cd = recencyPool.filter(d => d.chain === ch);
+    const notVisited = cd.filter(isNotVisitedWithinThreshold).length;
+    return { chain: ch, total: cd.length, notVisited };
+  }).filter(r => r.total > 0 && r.notVisited > 0);
+  const recencyTotalNotVisited = recencyByChainAll.reduce((s,r) => s+r.notVisited, 0);
+  const recencyByChain = [...recencyByChainAll].sort((a,b) => b.notVisited - a.notVisited).slice(0, 15);
+  const recencyMaxNotVisited = Math.max(...recencyByChain.map(r => r.notVisited), 1);
 
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -4792,21 +4755,17 @@ function renderAnalytics() {
     <div class="analytics-grid">
       <div class="chart-card"><div class="section-title">Monthly Sales Trend (units)</div>${svgLineChart(trendPoints)}</div>
       <div class="chart-card"><div class="section-title">Visit Completion Trend (visits/month)</div>${svgLineChart(visitTrendPoints)}</div>
-      <div class="chart-card"><div class="section-title">Regional Comparison</div>
-        <table class="ranked-table"><thead><tr><th>Region</th><th>Stores</th><th>Avg Score</th><th>Units</th></tr></thead>
-        <tbody>${regionRows.map(r => `<tr onclick="switchTab('overview');ovDrillRegion('${esc(r.region)}')"><td>${escHtml(r.region)}</td><td>${fmtNum(r.count)}</td><td>${fmtScore(r.avgScore)}</td><td>${fmtNum(r.units)}</td></tr>`).join('')}</tbody></table>
-      </div>
-      <div class="chart-card"><div class="section-title">Not Visited Within ${notVisitedThresholdMonths} Months, by Region (${fmtNum(recencyTotalNotVisited)} total)</div>
+      <div class="chart-card"><div class="section-title">Not Visited Within ${notVisitedThresholdMonths} Months, by Chain (${fmtNum(recencyTotalNotVisited)} total${recencyByChainAll.length>15?', top 15 shown':''})</div>
         ${recencyTotalNotVisited === 0 ? `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">No stores in this scope have gone unvisited for over ${notVisitedThresholdMonths} months — try a shorter window in the topbar filter.</div>` : `
         <div style="display:flex;flex-direction:column;gap:8px;">
-          ${recencyByRegion.map(r => `
+          ${recencyByChain.map(r => `
             <div>
-              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span>${escHtml(r.region)}</span><span style="color:var(--muted);font-family:'IBM Plex Mono',monospace;">${fmtNum(r.notVisited)} / ${fmtNum(r.total)}</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;"><span>${escHtml(r.chain)}</span><span style="color:var(--muted);font-family:'IBM Plex Mono',monospace;">${fmtNum(r.notVisited)} / ${fmtNum(r.total)}</span></div>
               <div style="background:var(--surface2);border-radius:4px;height:8px;overflow:hidden;"><div style="background:var(--red);height:100%;width:${(r.notVisited/recencyMaxNotVisited*100).toFixed(1)}%;"></div></div>
             </div>`).join('')}
         </div>`}
       </div>
-      <div class="chart-card"><div class="section-title">City Comparison (top 15${ovPath.region?', in '+escHtml(ovPath.region):''})</div>
+      <div class="chart-card"><div class="section-title">City Comparison (top 15${ovPath.chain?', in '+escHtml(ovPath.chain):''})</div>
         <table class="ranked-table"><thead><tr><th>City</th><th>Stores</th><th>Avg Score</th></tr></thead>
         <tbody>${cityRows.map(r => `<tr><td>${escHtml(r.city)}</td><td>${fmtNum(r.count)}</td><td>${fmtScore(r.avgScore)}</td></tr>`).join('')}</tbody></table>
       </div>
@@ -5097,7 +5056,7 @@ function renderActionCenter() {
 
 // ── Fix: allow jumping straight to a chain without region/city set ─────────
 function ovJumpToChain(chainName) {
-  ovPath = { region: null, city: null, chain: chainName };
+  ovPath = { chain: chainName };
   switchTab('overview');
   renderOverview();
 }
@@ -5477,7 +5436,7 @@ ACTION_TYPES.splice(ACTION_TYPES.length - 1, 0, 'Product restocked', 'Out-of-sto
 let chainPanelState = { chain: null };
 let cpCollapsed = { summary: false, map: false, actions: false, velocity: true };
 let cpMapView = false;
-let cpVelocityFilters = { minDeclinePct: '', belowChainAvg: false, region: '', rep: '' };
+let cpVelocityFilters = { minDeclinePct: '', belowChainAvg: false, rep: '' };
 
 function drillChain(chain) {
   chainPanelState.chain = chain;
@@ -5527,7 +5486,7 @@ function cpKpiGrid(chainName, doors) {
 // ══════════════════════════════════════════════════════════════════════════
 let cvaMonthRange = 6;
 // Territory = City, same mapping already established elsewhere in this project (round 4).
-let cvaFilters = { region: '', state: '', city: '', door: '' };
+let cvaFilters = { state: '', city: '', door: '' };
 let cvaTargetVelocity = '';
 let cvaCache = {};
 
@@ -5546,7 +5505,6 @@ function cvaSetTarget(val) { cvaTargetVelocity = val; renderStoresTab(); }
 
 function cvaComputeChainDoors(chainName) {
   let doors = DOORS.filter(d => d.chain === chainName);
-  if (cvaFilters.region) doors = doors.filter(d => d.region === cvaFilters.region);
   if (cvaFilters.state) doors = doors.filter(d => d.state === cvaFilters.state);
   if (cvaFilters.city) doors = doors.filter(d => d.city === cvaFilters.city);
   if (cvaFilters.door) doors = doors.filter(d => d.key === cvaFilters.door);
@@ -5582,7 +5540,7 @@ function cvaMonthlySeriesFromDoors(doors, monthsBack) {
 // Memoized per chain/range/filter combo -- avoids recomputing stats/bins when flipping
 // back to a chain already viewed this session.
 function cvaAnalytics(chainName) {
-  const cacheKey = `${chainName}|${cvaMonthRange}|${cvaFilters.region}|${cvaFilters.state}|${cvaFilters.city}|${cvaFilters.door}`;
+  const cacheKey = `${chainName}|${cvaMonthRange}|${cvaFilters.state}|${cvaFilters.city}|${cvaFilters.door}`;
   if (cvaCache[cacheKey]) return cvaCache[cacheKey];
 
   const chainDoors = cvaComputeChainDoors(chainName);
@@ -5711,13 +5669,11 @@ function renderChainVelocityAnalyticsPanel(chainName) {
   }
 
   const allChainDoors = DOORS.filter(d => d.chain === chainName);
-  const regions = [...new Set(allChainDoors.map(d=>d.region).filter(Boolean))].sort();
   const states = [...new Set(allChainDoors.map(d=>d.state).filter(Boolean))].sort();
   // Territory = City (same mapping used across this project since round 4). Cities/doors listed
-  // here are scoped by Region/State but NOT by the Territory/Store filters themselves, so picking
+  // here are scoped by State but NOT by the Territory/Store filters themselves, so picking
   // one doesn't shrink its own dropdown down to a single remaining option.
   let doorsForCityScope = allChainDoors;
-  if (cvaFilters.region) doorsForCityScope = doorsForCityScope.filter(d => d.region === cvaFilters.region);
   if (cvaFilters.state) doorsForCityScope = doorsForCityScope.filter(d => d.state === cvaFilters.state);
   const territories = [...new Set(doorsForCityScope.map(d=>d.city).filter(Boolean))].sort();
   let doorsForStoreScope = doorsForCityScope;
@@ -5742,9 +5698,6 @@ function renderChainVelocityAnalyticsPanel(chainName) {
     <div class="cp-section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <span>📈 Chain Velocity Analytics — ${escHtml(chainName)}</span>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;">
-        <label>Region <select onchange="cvaSetFilter('region', this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:3px 6px;">
-          <option value="">All</option>${regions.map(r=>`<option value="${esc(r)}" ${cvaFilters.region===r?'selected':''}>${escHtml(r)}</option>`).join('')}
-        </select></label>
         <label>State <select onchange="cvaSetFilter('state', this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:3px 6px;">
           <option value="">All</option>${states.map(s=>`<option value="${esc(s)}" ${cvaFilters.state===s?'selected':''}>${escHtml(s)}</option>`).join('')}
         </select></label>
@@ -5784,7 +5737,6 @@ function cpSectionHeader(name, label) {
 
 function cpVelocityLossDoors(chainName, doors) {
   let list = doors;
-  if (cpVelocityFilters.region) list = list.filter(d => d.region === cpVelocityFilters.region);
   if (cpVelocityFilters.belowChainAvg) {
     const avg = avgScoreForChain(chainName);
     list = list.filter(d => avg !== null && d.latestScore !== null && d.latestScore !== undefined && d.latestScore < avg);
@@ -5853,7 +5805,6 @@ function renderStoresTab() {
   }
 
   const doors = DOORS.filter(d => d.chain === chainName);
-  const regionsInChain = [...new Set(doors.map(d => d.region).filter(Boolean))];
 
   const mapSectionBody = cpMapView
     ? `<div id="cp-chain-map" style="height:320px;border-radius:10px;overflow:hidden;border:1px solid var(--border);"></div>`
@@ -5913,9 +5864,6 @@ function renderStoresTab() {
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;">
           <label>Min chain decline % <input type="number" min="0" max="100" value="${cpVelocityFilters.minDeclinePct}" style="width:50px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 5px;color:var(--text);" onchange="cpVlSetFilter('minDeclinePct', this.value)"></label>
           <label><input type="checkbox" ${cpVelocityFilters.belowChainAvg?'checked':''} onchange="cpVlSetFilter('belowChainAvg', this.checked)"> Below chain avg score</label>
-          <label>Region <select onchange="cpVlSetFilter('region', this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);">
-            <option value="">All</option>${regionsInChain.map(r => `<option value="${esc(r)}" ${cpVelocityFilters.region===r?'selected':''}>${escHtml(r)}</option>`).join('')}
-          </select></label>
           <label>Rep <input type="text" placeholder="name contains…" value="${esc(cpVelocityFilters.rep)}" style="width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 5px;color:var(--text);" onchange="cpVlSetFilter('rep', this.value)"></label>
         </div>
         ${(() => {
@@ -5942,7 +5890,7 @@ function renderStoresTab() {
 // ROUND 6 — Chains Overview redesign: filter panel, search, sort, richer cards
 // ══════════════════════════════════════════════════════════════════════════
 
-let chainsFilterState = { region: '', health: '', minVelocity: '', minDoors: '' };
+let chainsFilterState = { health: '', minVelocity: '', minDoors: '' };
 let chainsSearchTerm = '';
 let chainsSortMode = 'health_desc';
 
@@ -5950,7 +5898,7 @@ function chainsSetSearch(v) { chainsSearchTerm = v.toLowerCase(); renderChains()
 function chainsSetSort(v) { chainsSortMode = v; renderChains(); }
 function chainsSetFilter(key, val) { chainsFilterState[key] = val; renderChains(); }
 function chainsResetFilters() {
-  chainsFilterState = { region: '', health: '', minVelocity: '', minDoors: '' };
+  chainsFilterState = { health: '', minVelocity: '', minDoors: '' };
   document.getElementById('chains-search').value = '';
   chainsSearchTerm = '';
   renderChains();
@@ -5988,14 +5936,7 @@ function chainSparklineSVG(chainName) {
 
 function renderChainsFilterPanel() {
   const el = document.getElementById('chains-filter-panel');
-  const regions = ['Northeast','Midwest','South','West','Unknown'];
   el.innerHTML = `
-    <h4>Region</h4>
-    <select onchange="chainsSetFilter('region', this.value)">
-      <option value="">All Regions</option>
-      ${regions.map(r => `<option value="${esc(r)}" ${chainsFilterState.region===r?'selected':''}>${escHtml(r)}</option>`).join('')}
-    </select>
-
     <h4>Health Status</h4>
     ${['Healthy','Warning','Critical'].map(h => `
       <label><input type="radio" name="cf-health" value="${h}" ${chainsFilterState.health===h?'checked':''} onchange="chainsSetFilter('health','${h}')"> ${h}</label>
@@ -6024,7 +5965,6 @@ function renderChains() {
   });
 
   if (chainsSearchTerm) list = list.filter(x => x.c.chain.toLowerCase().includes(chainsSearchTerm));
-  if (chainsFilterState.region) list = list.filter(x => DOORS.some(d => d.chain === x.c.chain && d.region === chainsFilterState.region));
   if (chainsFilterState.health) list = list.filter(x => x.status.label === chainsFilterState.health);
   if (chainsFilterState.minVelocity) {
     // Same total-door-count denominator convention as cpKpiGrid() -- a chain's average velocity
