@@ -6123,7 +6123,13 @@ function applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, do
   doorVisitsRows.forEach(v => {
     (doorVisitsByKey[v.door_key] = doorVisitsByKey[v.door_key] || []).push({
       vd: v.vd, month: v.month, sc: v.sc, src: v.src, rep: v.rep,
-      ooCount: v.oo_count, hasPhotos: v.has_photos, ciId: v.ci_id
+      ooCount: v.oo_count, hasPhotos: v.has_photos, ciId: v.ci_id,
+      // July 2026 POP Marketing Check fields (src:'poppromo' only -- null on every other src).
+      kit: v.kit, outcome: v.outcome, refusalManager: v.refusal_manager, refusalReason: v.refusal_reason,
+      promoRunning: v.promo_running, promoCorrect: v.promo_correct,
+      shelfStripPresent: v.shelf_strip_present, shelfStripMatchesPromo: v.shelf_strip_matches_promo,
+      shelfStripSizes: v.shelf_strip_sizes, skuFacings: v.sku_facings,
+      observedPrice: v.observed_price, orderingIssue: v.ordering_issue, weekendRestricted: v.weekend_restricted
     });
   });
   const doorSalesByKey = {};
