@@ -2807,9 +2807,9 @@ const PHOTO_BASE = "https://shopwitheileen.com/";
 
 const SCORE_COLORS = ['#DC2626','#EA580C','#CA8A04','#16A34A','#059669'];
 const SCORE_LABELS = ['Not Carrying','Needs Work','Partial','Good','Full'];
-// Shared cap for every Leaflet map instance in this dashboard -- one level of headroom above the
-// default flyTo-to-a-store zoom (15), so a selected store's immediate few blocks stay visible
-// without letting users zoom in to the point where neighboring stores scroll off screen.
+// Shared manual-zoom ceiling for every Leaflet map instance in this dashboard -- prevents
+// zooming in so far that neighboring stores scroll off screen. Purely a ceiling on user-driven
+// zoom (wheel/pinch/+- control); the main Map tab has no auto-zoom-to-selection behavior.
 const MAX_STORE_MAP_ZOOM = 16;
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -3213,9 +3213,9 @@ function openDetail(s, source) {
 
   panel.classList.add('open');
   startPanelInactivityTimer();
-  if (s && s.la && leafletMap && currentTab === 'map') {
-    leafletMap.flyTo([s.la, s.lo], 15, { duration: 0.8 });
-  }
+  // Map tab: selecting a pin opens its detail panel only -- no auto flyTo/re-center, so the
+  // user's own pan/zoom position is never overridden (see MAX_STORE_MAP_ZOOM's comment for the
+  // scroll/pinch/+- zoom controls, which stay fully manual and untouched by this).
 }
 
 function dpSetReportStatus(source, id, status) {
@@ -3934,7 +3934,7 @@ function openDoorDetail(doorKey) {
   `;
   panel.classList.add('open');
   startPanelInactivityTimer();
-  if (d.la && leafletMap && currentTab === 'map') { leafletMap.flyTo([d.la, d.lo], 15, { duration: 0.8 }); }
+  // Map tab: no auto flyTo/re-center on selection here either -- see openDetail()'s matching note.
 }
 
 function openVisitFromDoor(ciId, src) {
