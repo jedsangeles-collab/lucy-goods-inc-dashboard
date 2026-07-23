@@ -3652,10 +3652,12 @@ function renderBottomPerformers(doors) {
   `;
 }
 
-// Per-table sort state, keyed by an explicit tableId (NOT mapContainerId -- two of this
+// Per-table sort/page state, keyed by an explicit tableId (NOT mapContainerId -- two of this
 // function's call sites inside the Stores tab both share the same map container id, but
-// need to sort independently of one another).
+// need to sort/page independently of one another).
 let doorsTableSort = {};
+let doorsTablePage = {};
+const DOORS_TABLE_PAGE_SIZE = 100;
 const DOORS_TABLE_COLS = [
   ['address', 'Address'], ['city', 'City'], ['state', 'State'],
   ['visited', 'Visited'], ['score', 'Score'], ['lastVisit', 'Last Visit'],
@@ -3690,28 +3692,60 @@ function doorsTableSortBy(tableId, col) {
   const cur = doorsTableSort[tableId] || { col: 'score', dir: 'asc' };
   const dir = (cur.col === col && cur.dir === 'asc') ? 'desc' : 'asc';
   doorsTableSort[tableId] = { col, dir };
+  doorsTablePage[tableId] = 1;
   if (currentTab === 'overview') renderOverview();
   else if (currentTab === 'stores') renderStoresTab();
 }
 
+function doorsTableChangePage(tableId, delta) {
+  doorsTablePage[tableId] = Math.max(1, (doorsTablePage[tableId] || 1) + delta);
+  if (currentTab === 'overview') renderOverview();
+  else if (currentTab === 'stores') renderStoresTab();
+}
+
+// Paginates through the FULL door list rather than silently truncating it -- a chain like Wawa
+// (1,315 doors) previously only ever showed its first 100-300 doors with no way to reach the
+// rest, and no visible total, which read as "the list is missing stores" (it was).
 function renderDoorsTable(doors, mapContainerId, tableId) {
   tableId = tableId || mapContainerId || 'doors-table-default';
   const state = doorsTableSort[tableId] || { col: 'score', dir: 'asc' };
-  const sorted = [...doors].sort((a,b) => compareDoorsForSort(a, b, state.col, state.dir)).slice(0, 300);
+  const sorted = [...doors].sort((a,b) => compareDoorsForSort(a, b, state.col, state.dir));
+
+  const visitedCount = doors.filter(d => d.visited).length;
+  const notVisitedCount = doors.length - visitedCount;
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / DOORS_TABLE_PAGE_SIZE));
+  let page = doorsTablePage[tableId] || 1;
+  if (page > totalPages) page = totalPages;
+  if (page < 1) page = 1;
+  doorsTablePage[tableId] = page;
+  const pageStart = (page - 1) * DOORS_TABLE_PAGE_SIZE;
+  const pageRows = sorted.slice(pageStart, pageStart + DOORS_TABLE_PAGE_SIZE);
+
   const headerHtml = DOORS_TABLE_COLS.map(([key,label]) => {
     const active = state.col === key;
     const arrow = active ? (state.dir === 'asc' ? ' ▲' : ' ▼') : '';
     return `<th onclick="doorsTableSortBy('${tableId}','${key}')" style="cursor:pointer;user-select:none;">${label}${arrow}</th>`;
   }).join('');
-  return `<table class="ranked-table"><thead><tr>${headerHtml}</tr></thead>
-    <tbody>${sorted.map(d => `<tr onclick="openDoorDetail('${esc(d.key)}'); highlightOnChainMap('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''});">
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">
+      <strong style="color:var(--text);">${fmtNum(doors.length)}</strong> total stores &middot;
+      <span style="color:var(--green);">${fmtNum(visitedCount)} visited</span> &middot;
+      <span>${fmtNum(notVisitedCount)} not visited</span>
+    </div>
+    <table class="ranked-table"><thead><tr>${headerHtml}</tr></thead>
+    <tbody>${pageRows.map(d => `<tr onclick="openDoorDetail('${esc(d.key)}'); highlightOnChainMap('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''});">
       <td>${escHtml(d.address)}</td><td>${escHtml(d.city)}</td><td>${escHtml(d.state)}</td>
       <td>${d.visited ? '<span class="badge badge-good">Visited</span>' : '<span class="badge badge-muted">Not visited</span>'}</td>
       <td>${d.latestScore!==null&&d.latestScore!==undefined ? d.latestScore+'/4' : '—'}</td>
       <td>${escHtml(d.lastVisitMonth||'—')}</td>
       <td>${d.realVelocity!==null&&d.realVelocity!==undefined ? d.realVelocity.toFixed(1)+' u/wk' : 'N/A'}</td>
     </tr>`).join('')}</tbody></table>
-    ${doors.length>300 ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;">Showing 300 of ${fmtNum(doors.length)} stores, sorted by ${DOORS_TABLE_COLS.find(c=>c[0]===state.col)[1]} (${state.dir==='asc'?'ascending':'descending'}).</div>` : ''}`;
+    <div class="pg-row">
+      <button class="pg-btn" onclick="doorsTableChangePage('${tableId}',-1)" ${page<=1?'disabled':''}>‹ Prev</button>
+      <span>Page ${page} of ${totalPages} &middot; showing ${pageRows.length ? fmtNum(pageStart+1) : 0}-${fmtNum(pageStart+pageRows.length)} of ${fmtNum(sorted.length)}, sorted by ${DOORS_TABLE_COLS.find(c=>c[0]===state.col)[1]} (${state.dir==='asc'?'ascending':'descending'})</span>
+      <button class="pg-btn" onclick="doorsTableChangePage('${tableId}',1)" ${page>=totalPages?'disabled':''}>Next ›</button>
+    </div>`;
 }
 
 function renderOverview() {
@@ -5448,6 +5482,7 @@ let cpVelocityFilters = { minDeclinePct: '', belowChainAvg: false, region: '', r
 function drillChain(chain) {
   chainPanelState.chain = chain;
   cpMapView = false;
+  doorsTablePage['stores-main'] = 1;
   switchTab('stores');
 }
 function cpToggleSection(name) { cpCollapsed[name] = !cpCollapsed[name]; renderStoresTab(); }
@@ -5796,6 +5831,7 @@ function cpQuickAddAction(chainName) {
 function cpSelectChain(chainName) {
   chainPanelState.chain = chainName || null;
   cpMapView = false;
+  doorsTablePage['stores-main'] = 1;
   renderStoresTab();
 }
 
@@ -5821,7 +5857,7 @@ function renderStoresTab() {
 
   const mapSectionBody = cpMapView
     ? `<div id="cp-chain-map" style="height:320px;border-radius:10px;overflow:hidden;border:1px solid var(--border);"></div>`
-    : renderDoorsTable(doors.slice(0, 100), 'cp-chain-map', 'stores-main');
+    : renderDoorsTable(doors, 'cp-chain-map', 'stores-main');
 
   const actionsForChain = loadActions().filter(a => doors.some(d => d.key === a.doorKey));
 
