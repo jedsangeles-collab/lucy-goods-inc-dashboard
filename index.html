@@ -1285,8 +1285,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   border-radius:8px;overflow:hidden;aspect-ratio:4/3;background:var(--surface2);
   cursor:pointer;position:relative;
 }
-.photo-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .2s;}
-.photo-thumb:hover img{transform:scale(1.05);}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;}
 .photo-placeholder{
   width:100%;height:100%;display:flex;align-items:center;justify-content:center;
   color:var(--muted);font-size:28px;
@@ -3115,7 +3114,7 @@ function openDetail(s, source) {
           const escapedP = p.replace(/'/g, "\\'");
           return `
           <div class="photo-thumb" onclick="openLightbox('${escapedUrl}', ${allUrlsLit}, ${i})">
-            <img src="${fullUrl}" alt="Store photo" onload="attachMagnifierTo(this)"
+            <img src="${fullUrl}" alt="Store photo"
               onerror="this.style.display='none';this.parentElement.classList.add('photo-link-fallback');this.parentElement.innerHTML='<a href=\\'${escapedUrl}\\' target=\\'_blank\\' rel=\\'noopener\\' style=\\'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:6px;color:var(--blue);text-decoration:none;font-size:11px;padding:8px;word-break:break-all;\\'>📷<span style=\\'font-size:9px;opacity:.7;text-align:center;\\'>${escapedP}</span></a>'">
           </div>`;
         }).join('')}
@@ -3134,7 +3133,7 @@ function openDetail(s, source) {
             const esc = url.replace(/'/g, "\'");
             return `<div style="display:flex;flex-direction:column;gap:4px;">
               <div class="photo-thumb" onclick="openLightbox('${esc}', ${ciUrlsLit}, ${i})">
-                <img src="${url}" alt="${label}" onload="attachMagnifierTo(this)"
+                <img src="${url}" alt="${label}"
                   onerror="this.style.display='none';this.parentElement.innerHTML='<a href=\'${esc}\' target=\'_blank\' rel=\'noopener\' style=\'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:5px;color:var(--blue);text-decoration:none;font-size:11px;padding:6px;\'>📷 ${label}</a>'">
               </div>
               <div style="font-size:10px;color:var(--muted);text-align:center;">${label}</div>
@@ -3421,7 +3420,9 @@ function renderLightboxNav() {
 function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); hideMagLens(); }
 
 // ══════════════════════════════════════════════════════════════════════════
-// PHOTO MAGNIFIER (circular zoom-on-hover, shared by all photo thumbnails + the lightbox)
+// PHOTO MAGNIFIER (circular zoom-on-hover) -- lightbox (detailed image view) ONLY.
+// Thumbnails are plain preview elements: no hover zoom, click just opens the lightbox.
+// attachMagnifierTo() is only ever called on the lightbox's own <img>, never on a thumbnail.
 // ══════════════════════════════════════════════════════════════════════════
 let magnifierEnabled = true;
 let magZoomLevel = 2.5;
@@ -3438,7 +3439,7 @@ function ensureMagLens() {
 
 function toggleMagnifierEnabled(v) {
   magnifierEnabled = v;
-  document.querySelectorAll('#lb-zoom-checkbox, .vh-zoom-checkbox').forEach(cb => { cb.checked = v; });
+  document.querySelectorAll('#lb-zoom-checkbox').forEach(cb => { cb.checked = v; });
   if (!v) hideMagLens();
 }
 
@@ -3816,7 +3817,7 @@ function visitPhotoGridHtml(ciId, src) {
     return `<div class="photo-thumb">
       <div class="photo-skeleton"></div>
       <img src="${escUrl}" alt="Visit photo ${i+1}" loading="lazy"
-        onload="this.previousElementSibling.style.display='none';attachMagnifierTo(this);"
+        onload="this.previousElementSibling.style.display='none';"
         onerror="this.style.display='none';this.previousElementSibling.style.display='none';this.parentElement.innerHTML='<a href=\\'${escUrl}\\' target=\\'_blank\\' rel=\\'noopener\\' style=\\'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:5px;color:var(--blue);text-decoration:none;font-size:11px;\\'>📷 View</a>'"
         onclick="openLightbox(this.src, ${urlsLit}, ${i});">
     </div>`;
@@ -3880,11 +3881,8 @@ function openDoorDetail(doorKey) {
 
   const visitsForHistory = (d.visits && d.visits.length) ? [...d.visits].sort((a,b) => parseVisitTimestamp(b) - parseVisitTimestamp(a)).slice(0,20) : [];
   const visitsHtml = visitsForHistory.length ? `<div class="dp-section">
-    <div class="dp-section-title" style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="dp-section-title">
       <span>Visit History (${d.visits.length})</span>
-      <label style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;display:flex;align-items:center;gap:4px;cursor:pointer;">
-        <input type="checkbox" class="vh-zoom-checkbox" ${magnifierEnabled?'checked':''} onchange="toggleMagnifierEnabled(this.checked)"> 🔍 Zoom on hover
-      </label>
     </div>
     <div class="vh-card-list">
       ${visitsForHistory.map((v,i) => `
