@@ -1492,6 +1492,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div class="tab" onclick="switchTab(&#39;analytics&#39;)" id="tab-analytics"><span class="tab-icon">📊</span> Analytics</div>
     <div class="tab" onclick="switchTab(&#39;visitplan&#39;)" id="tab-visitplan"><span class="tab-icon">🧭</span> Visit Planning</div>
     <div class="tab" onclick="switchTab(&#39;actioncenter&#39;)" id="tab-actioncenter"><span class="tab-icon">✅</span> Action Center</div>
+    <div class="tab" onclick="switchTab(&#39;chainreport&#39;)" id="tab-chainreport"><span class="tab-icon">📄</span> Chain Reports</div>
   </div>
   <div class="topbar-right">
     <div class="recency-filter">
@@ -1517,6 +1518,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div id="view-analytics" style="display:none;flex-direction:column;"></div>
     <div id="view-visitplan" style="display:none;flex-direction:column;"></div>
     <div id="view-actioncenter" style="display:none;flex-direction:column;"></div>
+    <div id="view-chainreport" style="display:none;flex-direction:column;overflow:auto;"></div>
     <div id="view-map" style="display: none; flex-direction: column;">
       <div id="map" style="flex: 1 1 0%; position: relative;"></div>
       <div class="map-source-toggle">
@@ -2842,6 +2844,7 @@ let EILEEN = [];  // populated async by loadAllData() -- see below
 let CHAINS = [];  // populated async by loadAllData() -- see below
 let SALES = {};  // populated async by loadAllData() -- see below
 let DOORS = [];  // populated async by loadAllData() -- see below
+let CHAIN_PROGRAMS = [];  // real chain-level POP target/completed counts; [] until loaded (or on the embedded snapshot until it's rebuilt) -- every consumer treats an empty/missing match as "Not Tracked", never an error.
 // True on the Claude Artifact build (embedded snapshot, no live Supabase connection available)
 // -- Actions/Report Status/Reviews fall back to localStorage there instead of trying (and
 // failing) to reach Supabase; set inside loadAllData().
@@ -3411,7 +3414,7 @@ function switchTab(tab) {
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  const views = ['overview','map','chains','stores','velocity','reportreview','oos','analytics','visitplan','actioncenter'];
+  const views = ['overview','map','chains','stores','velocity','reportreview','oos','analytics','visitplan','actioncenter','chainreport'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
   if (tab === 'velocity') renderVelocityDistribution();
@@ -3423,6 +3426,7 @@ function switchTab(tab) {
   if (tab === 'analytics') renderAnalytics();
   if (tab === 'visitplan') renderVisitPlanning();
   if (tab === 'actioncenter') renderActionCenter();
+  if (tab === 'chainreport') renderChainReport();
 }
 
 // ── LIGHTBOX ──────────────────────────────────────────────────────────────────
@@ -3564,6 +3568,17 @@ function chainSales(chainName) {
   const nk = normChain(chainName);
   for (const k of Object.keys(SALES)) { if (normChain(k) === nk) return SALES[k]; }
   return null;
+}
+
+// Real chain-level POP target/completed LOCATION COUNTS from a promo cycle (e.g. the July 2026
+// POP Marketing Check) -- not a per-store figure. Returns the most recent cycle's row, or null
+// if this chain has no chain_programs row at all (Chain Report Generator shows "Not Tracked").
+function chainProgramFor(chainName, cycle) {
+  const nk = normChain(chainName);
+  const rows = CHAIN_PROGRAMS.filter(p => normChain(p.chain) === nk);
+  if (!rows.length) return null;
+  if (cycle) return rows.find(p => p.cycle === cycle) || null;
+  return rows.slice().sort((a, b) => b.cycle.localeCompare(a.cycle))[0];
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -4474,6 +4489,7 @@ function buildDerivedIndexes() {
   DOORS.forEach(d => { DOORS_BY_KEY[d.key] = d; });
   REPORT_TO_DOOR = {};
   DOORS.forEach(d => (d.visits||[]).forEach(v => { REPORT_TO_DOOR[v.src+'|'+v.ciId] = d; }));
+  CR_CACHE = {}; // Chain Report Generator's memoized reports -- never survive a fresh data load
 
   POPPROMO_REPORTS = [];
   DOORS.forEach(d => (d.visits||[]).forEach(v => {
@@ -5686,6 +5702,126 @@ function downloadCSV(filename, rows) {
   URL.revokeObjectURL(url);
 }
 
+// ── Minimal, self-contained .xlsx (OOXML) writer -- no library, no CDN, no build step ──────────
+// This app has no Excel export capability anywhere; every existing export is CSV via
+// downloadCSV() above. Hand-rolling a real (not renamed-CSV) .xlsx requires: a ZIP container, a
+// CRC32 per entry, and a worksheet XML per sheet. Two deliberate simplifications keep this small
+// and dependency-free, consistent with this project's precedent of inlining external libraries
+// (Leaflet, leaflet.markercluster) to survive the Claude Artifact's strict CSP: (1) ZIP entries
+// use STORE (method 0, uncompressed) instead of DEFLATE -- Excel/LibreOffice read stored ZIP
+// entries just fine, and this avoids needing any compression code; (2) cells use inline strings
+// (t="inlineStr") instead of a shared-strings table -- slightly larger file, zero indexing
+// bookkeeping. The result is a genuinely valid .xlsx, not a CSV wearing a different extension.
+
+function crc32(bytes) {
+  if (!crc32.table) {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    crc32.table = t;
+  }
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = crc32.table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function zipStore(entries) {
+  const DOS_DATE = 0x0021, DOS_TIME = 0; // fixed valid DOS date (1980-01-01) -- file timestamps aren't meaningful here
+  const enc = new TextEncoder();
+  const localParts = [], centralParts = [];
+  let offset = 0;
+  entries.forEach(entry => {
+    const nameBytes = enc.encode(entry.name);
+    const data = entry.data;
+    const crc = crc32(data);
+
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(localHeader.buffer);
+    lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true); lv.setUint16(6, 0, true);
+    lv.setUint16(8, 0, true); lv.setUint16(10, DOS_TIME, true); lv.setUint16(12, DOS_DATE, true);
+    lv.setUint32(14, crc, true); lv.setUint32(18, data.length, true); lv.setUint32(22, data.length, true);
+    lv.setUint16(26, nameBytes.length, true); lv.setUint16(28, 0, true);
+    localHeader.set(nameBytes, 30);
+    localParts.push(localHeader, data);
+
+    const centralHeader = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(centralHeader.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0, true); cv.setUint16(10, 0, true); cv.setUint16(12, DOS_TIME, true); cv.setUint16(14, DOS_DATE, true);
+    cv.setUint32(16, crc, true); cv.setUint32(20, data.length, true); cv.setUint32(24, data.length, true);
+    cv.setUint16(28, nameBytes.length, true); cv.setUint16(30, 0, true); cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true); cv.setUint16(36, 0, true); cv.setUint32(38, 0, true); cv.setUint32(42, offset, true);
+    centralHeader.set(nameBytes, 46);
+    centralParts.push(centralHeader);
+
+    offset += localHeader.length + data.length;
+  });
+
+  const centralStart = offset;
+  const centralSize = centralParts.reduce((s,p) => s+p.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(4, 0, true); ev.setUint16(6, 0, true);
+  ev.setUint16(8, entries.length, true); ev.setUint16(10, entries.length, true);
+  ev.setUint32(12, centralSize, true); ev.setUint32(16, centralStart, true); ev.setUint16(20, 0, true);
+
+  const allParts = [...localParts, ...centralParts, eocd];
+  const totalLen = allParts.reduce((s,p) => s+p.length, 0);
+  const out = new Uint8Array(totalLen);
+  let pos = 0;
+  allParts.forEach(p => { out.set(p, pos); pos += p.length; });
+  return out;
+}
+
+function xlsxColLetter(n) {
+  let s = ''; n = n + 1;
+  while (n > 0) { const rem = (n - 1) % 26; s = String.fromCharCode(65 + rem) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+function xlsxEscapeXml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function xlsxWorksheetXml(rows) {
+  const rowsXml = rows.map((row, rIdx) => {
+    const cellsXml = row.map((cell, cIdx) => {
+      const ref = xlsxColLetter(cIdx) + (rIdx + 1);
+      if (typeof cell === 'number' && isFinite(cell)) return `<c r="${ref}"><v>${cell}</v></c>`;
+      const text = (cell === null || cell === undefined) ? '' : String(cell);
+      return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xlsxEscapeXml(text)}</t></is></c>`;
+    }).join('');
+    return `<row r="${rIdx+1}">${cellsXml}</row>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rowsXml}</sheetData></worksheet>`;
+}
+
+function buildXlsx(sheets) {
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`;
+  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${xlsxEscapeXml(s.name.slice(0,31))}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`;
+  const workbookRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}</Relationships>`;
+
+  const enc = new TextEncoder();
+  const entries = [
+    { name: '[Content_Types].xml', data: enc.encode(contentTypes) },
+    { name: '_rels/.rels', data: enc.encode(rootRels) },
+    { name: 'xl/workbook.xml', data: enc.encode(workbookXml) },
+    { name: 'xl/_rels/workbook.xml.rels', data: enc.encode(workbookRels) },
+  ];
+  sheets.forEach((s, i) => entries.push({ name: `xl/worksheets/sheet${i+1}.xml`, data: enc.encode(xlsxWorksheetXml(s.rows)) }));
+
+  return new Blob([zipStore(entries)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+function downloadXLSX(filename, sheets) {
+  const blob = buildXlsx(sheets);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function exportChainGridCSV() {
   const rows = CHAINS.filter(c => c.total >= 1).map(c => {
     const vel = chainVelocityStats(c.chain);
@@ -5709,8 +5845,8 @@ function printCurrentView() { window.print(); }
   style.textContent = `
     .topbar, .detail-panel, .ac-toolbar, .action-form, .breadcrumb .bc-link, select, .ac-btn { display:none !important; }
     .body, .content { display:block !important; overflow:visible !important; height:auto !important; }
-    #view-overview, #view-analytics, #view-visitplan, #view-actioncenter, #view-velocity, #view-reportreview { display:block !important; overflow:visible !important; padding:0 !important; }
-    .vd-filter-panel, .rr-filter-panel { display:none !important; }
+    #view-overview, #view-analytics, #view-visitplan, #view-actioncenter, #view-velocity, #view-reportreview, #view-chainreport { display:block !important; overflow:visible !important; padding:0 !important; }
+    .vd-filter-panel, .rr-filter-panel, .cr-filter-panel { display:none !important; }
     .chart-card, .kpi-card, .drill-card { break-inside:avoid; }
     body { background:#fff !important; overflow:visible !important; height:auto !important; }
     /* When a report detail is open, print only the report: show .detail-panel in normal flow
@@ -5857,6 +5993,481 @@ function cvaAnalytics(chainName) {
   const result = { chainDoors, realVelDoors, trendSeries, stats, binData, outlier };
   cvaCache[cacheKey] = result;
   return result;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CHAIN REPORT GENERATOR — standardized chain-level report w/ store/inventory/POP detail
+// ══════════════════════════════════════════════════════════════════════════
+// Real data reality check (confirmed by reading the ETL/schema, not assumed): there is no SKU ID
+// or on-hand-quantity concept ANYWHERE in this project's data, for any source. CI visits only
+// carry out-of-stock SKU NAMES (oo, presence-only) + a single present/absent POP flag (sp) + a
+// coarse door-level stock bucket (ss, 0/1/2). Poppromo visits carry a kit label, present/absent/
+// matches-promo POP booleans, and a real per-SKU shelf-facings count (skuFacings) -- facings, not
+// on-hand units. Eileen visits carry none of this. Every cell this module can't back with real
+// data renders the literal 'Not Tracked' (via crNT() in the render layer) rather than a guess.
+
+let crChain = null;
+let crPeriodEnd = null;       // 'YYYY-MM', defaults to the latest month with any real visit data
+let crMonthsBack = 6;
+let crFilters = { store:'', dateFrom:'', dateTo:'', visitStatus:'', popStatus:'', inventoryStatus:'', minVelocity:'', maxVelocity:'' };
+let crCollapsed = { summary:false, stores:true, inventory:true, pop:true, exceptions:false };
+let crPage = { stores:1, inventory:1, pop:1 };
+const CR_PAGE_SIZE = 100;
+let CR_CACHE = {};
+
+function crLatestAvailableMonth() {
+  let latest = null;
+  DOORS.forEach(d => (d.visits||[]).forEach(v => { if (v.month && (!latest || v.month > latest)) latest = v.month; }));
+  return latest || new Date().toISOString().slice(0,7);
+}
+
+// Arbitrary-end-month window (not just "trailing from today") -- the spec wants any historical
+// six-month period to be regeneratable, not only the most recent one.
+function crPeriodMonthKeys(endMonth, monthsBack) {
+  const parts = (endMonth||'').split('-').map(Number);
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return [];
+  const [y, m] = parts;
+  const keys = [];
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const d = new Date(y, m - 1 - i, 1);
+    keys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  return keys;
+}
+
+// Pulls the latest in-period CI visit (door_visits row), latest in-period poppromo visit
+// (door_visits row, already carries its own full field set), and the matching flat CI record
+// (needed for si/ss/sp/oo, which live ONLY on the flat CI array -- door.visits[] entries only
+// carry ciId + ooCount, not the real oo/ss/sp fields themselves).
+function crLatestVisitsForDoor(door, periodKeys) {
+  const ciVisits = (door.visits||[]).filter(v => v.src==='ci' && periodKeys.includes(v.month)).sort((a,b)=>(a.month||'').localeCompare(b.month||''));
+  const promoVisits = (door.visits||[]).filter(v => v.src==='poppromo' && periodKeys.includes(v.month)).sort((a,b)=>(a.month||'').localeCompare(b.month||''));
+  const latestCiVisit = ciVisits.length ? ciVisits[ciVisits.length-1] : null;
+  const latestPromo = promoVisits.length ? promoVisits[promoVisits.length-1] : null;
+  const ciRec = latestCiVisit ? CI.find(v => v.id === latestCiVisit.ciId) : null;
+  return { latestCiVisit, latestPromo, ciRec };
+}
+
+function crDoorPopStatus(door, periodKeys) {
+  const { latestPromo, ciRec } = crLatestVisitsForDoor(door, periodKeys);
+  if (latestPromo) {
+    if (latestPromo.shelfStripPresent === null || latestPromo.shelfStripPresent === undefined) return 'Not Tracked';
+    if (!latestPromo.shelfStripPresent) return 'Missing';
+    return latestPromo.shelfStripMatchesPromo ? 'Complete' : 'Partial';
+  }
+  if (ciRec) {
+    if (ciRec.sp === 1) return 'Complete';
+    if (ciRec.sp === 0) return 'Missing';
+  }
+  return 'Not Tracked';
+}
+
+function crDoorInventoryStatus(door, periodKeys) {
+  const { ciRec } = crLatestVisitsForDoor(door, periodKeys);
+  if (ciRec && Array.isArray(ciRec.oo) && ciRec.oo.length) return 'OOS';
+  if (ciRec && ciRec.ss !== null && ciRec.ss !== undefined) return ciRec.ss === 0 ? 'Critical' : ciRec.ss === 1 ? 'Low' : 'Good';
+  return 'Not Tracked';
+}
+
+function crApplyFilters(doors, filters, periodKeys) {
+  let list = doors;
+  if (filters.store) {
+    const s = filters.store.toLowerCase();
+    list = list.filter(d => (d.address||'').toLowerCase().includes(s) || (d.city||'').toLowerCase().includes(s));
+  }
+  if (filters.dateFrom) { const from = new Date(filters.dateFrom).getTime(); list = list.filter(d => d.lastVisitDate && new Date(d.lastVisitDate).getTime() >= from); }
+  if (filters.dateTo) { const to = new Date(filters.dateTo).getTime() + 86399999; list = list.filter(d => d.lastVisitDate && new Date(d.lastVisitDate).getTime() <= to); }
+  if (filters.visitStatus) list = list.filter(d => (d.visited ? 'Visited' : 'Not Visited') === filters.visitStatus);
+  if (filters.popStatus) list = list.filter(d => crDoorPopStatus(d, periodKeys) === filters.popStatus);
+  if (filters.inventoryStatus) list = list.filter(d => crDoorInventoryStatus(d, periodKeys) === filters.inventoryStatus);
+  if (filters.minVelocity !== '') { const m = parseFloat(filters.minVelocity); list = list.filter(d => d.realVelocity !== null && d.realVelocity !== undefined && d.realVelocity >= m); }
+  if (filters.maxVelocity !== '') { const m = parseFloat(filters.maxVelocity); list = list.filter(d => d.realVelocity !== null && d.realVelocity !== undefined && d.realVelocity <= m); }
+  return list;
+}
+
+function crStoreRow(door) {
+  return {
+    doorKey: door.key, chain: door.chain, address: door.address, city: door.city, state: door.state,
+    mostRecentVisitDate: door.lastVisitDate || 'Not Tracked',
+    mostRecentVisitMonth: door.lastVisitMonth || 'Not Tracked',
+    doorStatus: door.visited ? 'Visited' : 'Not Visited',
+    assignedRep: door.lastVisitedBy || 'Not Tracked',
+    mostRecentVelocity: (door.realVelocity !== null && door.realVelocity !== undefined) ? door.realVelocity : 'Not Tracked',
+    latestScore: (door.latestScore !== null && door.latestScore !== undefined) ? door.latestScore : 'Not Tracked'
+  };
+}
+
+function crInventoryRowsForDoor(door, periodKeys) {
+  const { latestPromo, ciRec } = crLatestVisitsForDoor(door, periodKeys);
+  const oosNames = new Set((ciRec && ciRec.oo) || []);
+  const facings = (latestPromo && latestPromo.skuFacings) || {};
+  const skuNames = new Set([...oosNames, ...Object.keys(facings)]);
+  const base = { doorKey: door.key, chain: door.chain, address: door.address, city: door.city, state: door.state };
+  if (!skuNames.size) {
+    return [Object.assign({}, base, {
+      skuName: 'Not Tracked', skuId: 'Not Tracked', qtyOnHand: 'Not Tracked', qtyFaced: 'Not Tracked',
+      oosIndicator: false, lowInventoryIndicator: false, inventoryStatus: 'Not Tracked'
+    })];
+  }
+  return [...skuNames].map(name => {
+    const oos = oosNames.has(name);
+    const qtyFaced = facings[name] !== undefined ? facings[name] : 'Not Tracked';
+    let status = 'Not Tracked';
+    if (oos) status = 'OOS';
+    else if (ciRec && ciRec.ss !== null && ciRec.ss !== undefined) status = ciRec.ss === 0 ? 'Critical' : ciRec.ss === 1 ? 'Low' : 'Good';
+    return Object.assign({}, base, {
+      skuName: name, skuId: 'Not Tracked', qtyOnHand: 'Not Tracked', qtyFaced,
+      oosIndicator: oos, lowInventoryIndicator: (status==='Low'||status==='Critical'), inventoryStatus: status
+    });
+  });
+}
+
+function crPopRowForDoor(door, periodKeys) {
+  const { latestPromo, ciRec } = crLatestVisitsForDoor(door, periodKeys);
+  const base = { doorKey: door.key, chain: door.chain, address: door.address, city: door.city, state: door.state };
+  if (latestPromo) {
+    const installed = (latestPromo.shelfStripPresent === null || latestPromo.shelfStripPresent === undefined) ? 'Not Tracked' : (latestPromo.shelfStripPresent ? 'Yes' : 'No');
+    const compliance = (latestPromo.shelfStripMatchesPromo === null || latestPromo.shelfStripMatchesPromo === undefined) ? 'Not Tracked' : (latestPromo.shelfStripMatchesPromo ? 'Yes' : 'No');
+    return Object.assign({}, base, {
+      popMaterialsExpected: latestPromo.kit || 'Not Tracked',
+      popMaterialsInstalled: installed,
+      popComplianceStatus: compliance,
+      missingPOPItems: (latestPromo.shelfStripPresent === false && latestPromo.kit) ? latestPromo.kit : 'Not Tracked',
+      popCompletionPct: 'Not Tracked',
+      popStatus: crDoorPopStatus(door, periodKeys)
+    });
+  }
+  if (ciRec) {
+    return Object.assign({}, base, {
+      popMaterialsExpected: 'Not Tracked',
+      popMaterialsInstalled: ciRec.sp === 1 ? 'Yes' : ciRec.sp === 0 ? 'No' : 'Not Tracked',
+      popComplianceStatus: 'Not Tracked',
+      missingPOPItems: 'Not Tracked',
+      popCompletionPct: 'Not Tracked',
+      popStatus: crDoorPopStatus(door, periodKeys)
+    });
+  }
+  return Object.assign({}, base, {
+    popMaterialsExpected:'Not Tracked', popMaterialsInstalled:'Not Tracked', popComplianceStatus:'Not Tracked',
+    missingPOPItems:'Not Tracked', popCompletionPct:'Not Tracked', popStatus:'Not Tracked'
+  });
+}
+
+function crBuildExceptions(doors, inventoryRows, popRows) {
+  const notVisited = doors.filter(isNotVisitedWithinThreshold).map(d => ({
+    doorKey: d.key, chain: d.chain, address: d.address, city: d.city, state: d.state,
+    lastVisitMonth: d.lastVisitMonth || 'Never'
+  }));
+  const lowOosSkus = inventoryRows.filter(r => r.inventoryStatus === 'OOS' || r.inventoryStatus === 'Critical');
+  const missingPop = popRows.filter(r => r.popStatus === 'Missing');
+  const doorKeys = new Set(doors.map(d => d.key));
+  const followUps = loadActions().filter(a => doorKeys.has(a.doorKey) && a.status !== 'Done').map(a => {
+    const d = DOORS_BY_KEY[a.doorKey];
+    return { doorKey: a.doorKey, chain: a.chain, address: d?d.address:a.doorKey, type: a.type, priority: a.priority, dueDate: a.dueDate||'Not Tracked', status: a.status };
+  });
+  return { notVisited, lowOosSkus, missingPop, followUps };
+}
+
+function crBuildReport(chainName, endMonth, monthsBack, filters) {
+  const periodKeys = crPeriodMonthKeys(endMonth, monthsBack);
+  const allDoors = DOORS.filter(d => d.chain === chainName);
+  const doors = crApplyFilters(allDoors, filters, periodKeys);
+
+  const storeRows = doors.map(crStoreRow);
+  const inventoryRows = doors.flatMap(d => crInventoryRowsForDoor(d, periodKeys));
+  const popRows = doors.map(d => crPopRowForDoor(d, periodKeys));
+  const exceptions = crBuildExceptions(doors, inventoryRows, popRows);
+
+  const vel = chainVelocityStats(chainName);
+  const avgScore = avgScoreForChain(chainName);
+  const health = chainHealthStatus(avgScore);
+  const program = chainProgramFor(chainName);
+
+  return {
+    chainName, generatedAt: new Date().toISOString(),
+    periodLabel: periodKeys.length ? `${periodKeys[0]} to ${periodKeys[periodKeys.length-1]}` : 'Not Tracked',
+    periodKeys,
+    summary: {
+      totalStores: allDoors.length,
+      filteredStores: doors.length,
+      visited: allDoors.filter(d=>d.visited).length,
+      unvisited: allDoors.filter(d=>!d.visited).length,
+      avgScore, health, velocity: vel,
+      popTarget: program ? program.targetLocations : 'Not Tracked',
+      popCompleted: program ? program.completedLocations : 'Not Tracked',
+      popCompletionPct: (program && program.targetLocations) ? (program.completedLocations / program.targetLocations * 100) : 'Not Tracked',
+      popKit: program ? program.kit : 'Not Tracked'
+    },
+    storeRows, inventoryRows, popRows, exceptions
+  };
+}
+
+// Pure in-memory memoization, same shape as cvaAnalytics()'s cache above -- avoids recomputing
+// the same chain/period/filter combo repeatedly in one session. Never persisted (unlike
+// REPORT_STATUS_CACHE/REPORT_VERDICT_CACHE) -- this data is fully re-derivable from DOORS/CI/etc,
+// so there's nothing here that needs to survive a reload or be shared across devices.
+function crGetOrBuildReport(chainName, endMonth, monthsBack, filters) {
+  const key = [chainName, endMonth, monthsBack, JSON.stringify(filters)].join('|');
+  if (CR_CACHE[key]) return CR_CACHE[key];
+  const report = crBuildReport(chainName, endMonth, monthsBack, filters);
+  CR_CACHE[key] = report;
+  return report;
+}
+
+// ── Chain Report Generator UI ──────────────────────────────────────────────────
+// A bare dash ('—', via fmtNum/fmtScore) already means "no data because there's genuinely no
+// number here" elsewhere in this app -- reusing it for "this field isn't tracked in this system
+// AT ALL" would read as a bug, not an honest disclosure. crNT() renders the literal string
+// distinctly (muted italic) so the two kinds of "empty" never look the same.
+function crNT(val) {
+  return (val === 'Not Tracked' || val === null || val === undefined || val === '')
+    ? '<span style="color:var(--muted);font-style:italic;">Not Tracked</span>'
+    : escHtml(String(val));
+}
+function crFmtVelocity(v) { return v === 'Not Tracked' ? crNT(v) : v.toFixed(1) + ' u/wk'; }
+function crFmtScore(v) { return v === 'Not Tracked' ? crNT(v) : v + '/4'; }
+function crFmtPct(v) { return v === 'Not Tracked' ? crNT(v) : v.toFixed(1) + '%'; }
+function crFmtBool(v) { return v === true ? 'Yes' : v === false ? 'No' : crNT(v); }
+
+function crSelectChain(name) { crChain = name || null; crPeriodEnd = crPeriodEnd || crLatestAvailableMonth(); crPage = { stores:1, inventory:1, pop:1 }; renderChainReport(); }
+function crSetPeriodEnd(v) { crPeriodEnd = v; crPage = { stores:1, inventory:1, pop:1 }; renderChainReport(); }
+function crSetMonthRange(n) { crMonthsBack = n; crPage = { stores:1, inventory:1, pop:1 }; renderChainReport(); }
+function crSetFilter(key, val) { crFilters[key] = val; crPage = { stores:1, inventory:1, pop:1 }; renderChainReport(); }
+function crResetFilters() {
+  crFilters = { store:'', dateFrom:'', dateTo:'', visitStatus:'', popStatus:'', inventoryStatus:'', minVelocity:'', maxVelocity:'' };
+  crPage = { stores:1, inventory:1, pop:1 };
+  renderChainReport();
+}
+function crToggleSection(name) { crCollapsed[name] = !crCollapsed[name]; renderChainReport(); }
+function crChangePage(section, dir) { crPage[section] += dir; renderChainReport(); }
+function crSectionHeader(name, label, count) {
+  return `<div class="cp-section-title" onclick="crToggleSection('${name}')">${escHtml(label)}${count!==undefined?` (${fmtNum(count)})`:''} <span class="cp-collapse-icon">${crCollapsed[name]?'▸ expand':'▾ collapse'}</span></div>`;
+}
+function crPagedSlice(rows, section) {
+  const totalPages = Math.max(1, Math.ceil(rows.length / CR_PAGE_SIZE));
+  if (crPage[section] > totalPages) crPage[section] = totalPages;
+  if (crPage[section] < 1) crPage[section] = 1;
+  const start = (crPage[section]-1) * CR_PAGE_SIZE;
+  return { pageRows: rows.slice(start, start+CR_PAGE_SIZE), totalPages };
+}
+function crPaginationHtml(section, totalPages) {
+  return `<div class="pg-row">
+    <button class="pg-btn" onclick="crChangePage('${section}',-1)" ${crPage[section]<=1?'disabled':''}>‹ Prev</button>
+    <span>Page ${crPage[section]} of ${totalPages}</span>
+    <button class="pg-btn" onclick="crChangePage('${section}',1)" ${crPage[section]>=totalPages?'disabled':''}>Next ›</button>
+  </div>`;
+}
+function crGenericTableHtml(cols, rows) {
+  const head = cols.map(c => `<th>${escHtml(c[0])}</th>`).join('');
+  const body = rows.map(r => `<tr>${cols.map(c => `<td>${c[1](r)}</td>`).join('')}</tr>`).join('')
+    || `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--muted);padding:20px;">No rows match the current filters.</td></tr>`;
+  return `<table class="ranked-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+const CR_STORE_COLS = [
+  ['Address', r => escHtml(r.address||'—')], ['City', r => escHtml(r.city||'—')], ['State', r => escHtml(r.state||'—')],
+  ['Last Visit', r => crNT(r.mostRecentVisitDate)], ['Status', r => escHtml(r.doorStatus)],
+  ['Rep', r => crNT(r.assignedRep)], ['Velocity', r => crFmtVelocity(r.mostRecentVelocity)], ['Score', r => crFmtScore(r.latestScore)]
+];
+const CR_INVENTORY_COLS = [
+  ['Address', r => escHtml(r.address||'—')], ['SKU Name', r => escHtml(r.skuName)], ['SKU ID', r => crNT(r.skuId)],
+  ['Qty On Hand', r => crNT(r.qtyOnHand)], ['Qty Faced', r => crNT(r.qtyFaced)],
+  ['OOS', r => r.oosIndicator?'Yes':'No'], ['Status', r => crNT(r.inventoryStatus)]
+];
+const CR_POP_COLS = [
+  ['Address', r => escHtml(r.address||'—')], ['POP Expected', r => crNT(r.popMaterialsExpected)], ['POP Installed', r => crNT(r.popMaterialsInstalled)],
+  ['Compliance', r => crNT(r.popComplianceStatus)], ['Missing Items', r => crNT(r.missingPOPItems)], ['Status', r => crNT(r.popStatus)]
+];
+
+function crExecSummaryHtml(report) {
+  const s = report.summary;
+  const cards = [
+    ['Total Stores', fmtNum(s.totalStores)],
+    ['Matching Current Filters', fmtNum(s.filteredStores)],
+    ['Visited', fmtNum(s.visited)],
+    ['Not Visited', fmtNum(s.unvisited)],
+    ['Avg Health Score', fmtScore(s.avgScore) + ' (' + s.health.label + ')'],
+    ['Recent Velocity', s.velocity && s.velocity.recentUnits!==null&&s.velocity.recentUnits!==undefined ? fmtNum(s.velocity.recentUnits)+' units' : '—'],
+    ['POP Completion (chain-level)', crFmtPct(s.popCompletionPct)],
+    ['Assigned Kit', crNT(s.popKit)],
+  ];
+  return `<div class="cp-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">${cards.map(([label,val]) => `
+    <div class="cp-kpi" style="cursor:default;">
+      <div class="cp-kpi-label">${escHtml(label)}</div>
+      <div class="cp-kpi-value">${val}</div>
+    </div>`).join('')}</div>`;
+}
+
+function crExceptionsHtml(report) {
+  const ex = report.exceptions;
+  const block = (title, rows, cols) => `
+    <div class="section-title" style="font-size:13px;margin-top:14px;">${escHtml(title)} (${fmtNum(rows.length)})</div>
+    ${crGenericTableHtml(cols, rows.slice(0,50))}
+    ${rows.length>50?`<div style="font-size:11px;color:var(--muted);margin-top:4px;">Showing first 50 of ${fmtNum(rows.length)} — export the full report for the complete list.</div>`:''}`;
+  return `
+    ${block('Stores Not Visited Recently', ex.notVisited, [['Address',r=>escHtml(r.address||'—')],['City',r=>escHtml(r.city||'—')],['Last Visit Month',r=>crNT(r.lastVisitMonth)]])}
+    ${block('Low / Out-of-Stock SKUs', ex.lowOosSkus, [['Address',r=>escHtml(r.address||'—')],['SKU',r=>escHtml(r.skuName)],['Status',r=>crNT(r.inventoryStatus)]])}
+    ${block('Missing POP Installations', ex.missingPop, [['Address',r=>escHtml(r.address||'—')],['POP Expected',r=>crNT(r.popMaterialsExpected)],['Status',r=>crNT(r.popStatus)]])}
+    ${block('Stores Requiring Follow-Up (open actions)', ex.followUps, [['Address',r=>escHtml(r.address||'—')],['Type',r=>escHtml(r.type||'—')],['Priority',r=>escHtml(r.priority||'—')],['Due',r=>crNT(r.dueDate)],['Status',r=>escHtml(r.status||'—')]])}
+  `;
+}
+
+function renderCrFilterPanel() {
+  const f = crFilters;
+  return `<div class="cr-filter-panel" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Store Search</label>
+      <input type="text" placeholder="Address or city…" value="${esc(f.store)}" oninput="crSetFilter('store', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
+    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Last Visit From</label>
+      <input type="date" value="${esc(f.dateFrom)}" onchange="crSetFilter('dateFrom', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
+    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Last Visit To</label>
+      <input type="date" value="${esc(f.dateTo)}" onchange="crSetFilter('dateTo', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
+    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Visit Status</label>
+      <select onchange="crSetFilter('visitStatus', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
+        <option value="">All</option><option value="Visited" ${f.visitStatus==='Visited'?'selected':''}>Visited</option><option value="Not Visited" ${f.visitStatus==='Not Visited'?'selected':''}>Not Visited</option>
+      </select></div>
+    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">POP Status</label>
+      <select onchange="crSetFilter('popStatus', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
+        <option value="">All</option>
+        ${['Complete','Partial','Missing','Not Tracked'].map(v=>`<option value="${v}" ${f.popStatus===v?'selected':''}>${v}</option>`).join('')}
+      </select></div>
+    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Inventory Status</label>
+      <select onchange="crSetFilter('inventoryStatus', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
+        <option value="">All</option>
+        ${['Good','Low','Critical','OOS','Not Tracked'].map(v=>`<option value="${v}" ${f.inventoryStatus===v?'selected':''}>${v}</option>`).join('')}
+      </select></div>
+    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Min Velocity</label>
+      <input type="number" placeholder="Min" value="${esc(f.minVelocity)}" onchange="crSetFilter('minVelocity', this.value)" style="width:80px;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
+    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Max Velocity</label>
+      <input type="number" placeholder="Max" value="${esc(f.maxVelocity)}" onchange="crSetFilter('maxVelocity', this.value)" style="width:80px;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
+    <div class="vd-reset" onclick="crResetFilters()">Reset filters</div>
+  </div>`;
+}
+
+function renderChainReport() {
+  const el = document.getElementById('view-chainreport');
+  if (!crPeriodEnd) crPeriodEnd = crLatestAvailableMonth();
+
+  const picker = `<div class="section-title" style="margin-top:0;">Chain Report Generator</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;">
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Chain</label>
+        <select onchange="crSelectChain(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;min-width:260px;">
+          <option value="">— Select a chain —</option>
+          ${[...CHAINS].sort((a,b)=>a.chain.localeCompare(b.chain)).map(c => `<option value="${esc(c.chain)}" ${crChain===c.chain?'selected':''}>${escHtml(c.chain)} (${fmtNum(c.total)} stores)</option>`).join('')}
+        </select></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Period Ending</label>
+        <input type="month" value="${esc(crPeriodEnd)}" onchange="crSetPeriodEnd(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;"></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Reporting Window</label>
+        <div class="rr-view-toggle">${[3,6,12].map(n=>`<button class="${crMonthsBack===n?'active':''}" onclick="crSetMonthRange(${n})">${n} mo</button>`).join('')}</div></div>
+    </div>`;
+
+  if (!crChain) {
+    el.innerHTML = picker + `<div style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center;">Select a chain above to generate its report.</div>`;
+    return;
+  }
+
+  const report = crGetOrBuildReport(crChain, crPeriodEnd, crMonthsBack, crFilters);
+  const storePaged = crPagedSlice(report.storeRows, 'stores');
+  const invPaged = crPagedSlice(report.inventoryRows, 'inventory');
+  const popPaged = crPagedSlice(report.popRows, 'pop');
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+      ${picker}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="ac-btn secondary" onclick="crExportCSV()">⬇ Export CSV</button>
+        <button class="ac-btn secondary" onclick="crExportXLSX()">⬇ Export Excel</button>
+        <button class="ac-btn secondary" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
+      </div>
+    </div>
+    ${renderCrFilterPanel()}
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">
+      Generated ${escHtml(new Date(report.generatedAt).toLocaleString())} · Reporting period: ${escHtml(report.periodLabel)}
+    </div>
+
+    ${crSectionHeader('summary','Executive Summary')}
+    ${!crCollapsed.summary ? crExecSummaryHtml(report) : ''}
+
+    ${crSectionHeader('stores','Store Details', report.storeRows.length)}
+    ${!crCollapsed.stores ? crGenericTableHtml(CR_STORE_COLS, storePaged.pageRows) + crPaginationHtml('stores', storePaged.totalPages) : ''}
+
+    ${crSectionHeader('inventory','Inventory Details', report.inventoryRows.length)}
+    ${!crCollapsed.inventory ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">SKU ID and Qty on Hand are not tracked in this system — shown as Not Tracked. Qty Faced reflects shelf facings observed during a POP visit where available.</div>` + crGenericTableHtml(CR_INVENTORY_COLS, invPaged.pageRows) + crPaginationHtml('inventory', invPaged.totalPages) : ''}
+
+    ${crSectionHeader('pop','POP Details', report.popRows.length)}
+    ${!crCollapsed.pop ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">POP tracking is presence/absence only in this system — itemized checklists and per-store completion percentages are not tracked.</div>` + crGenericTableHtml(CR_POP_COLS, popPaged.pageRows) + crPaginationHtml('pop', popPaged.totalPages) : ''}
+
+    ${crSectionHeader('exceptions','Exceptions & Action Items')}
+    ${!crCollapsed.exceptions ? crExceptionsHtml(report) : ''}
+  `;
+}
+
+// CSV has no "sheet" concept -- one file per section (splitting Exceptions further into its 4
+// sub-categories, since they have different column shapes and forcing them into a single CSV
+// would produce inconsistent headers) is the honest way to "preserve all sections." Named
+// crExport* (not exportChainReportCSV, which is a different, pre-existing feature: the Action
+// Center's chain-scoped action-log export).
+function crExportCSV() {
+  if (!crChain) { console.warn('Select a chain first.'); return; }
+  const report = crGetOrBuildReport(crChain, crPeriodEnd, crMonthsBack, crFilters);
+  const prefix = crChain.replace(/[^A-Za-z0-9]/g,'_') + '_chain_report';
+  const s = report.summary;
+  downloadCSV(prefix + '_executive_summary.csv', [{
+    Chain: report.chainName, GeneratedAt: report.generatedAt, ReportingPeriod: report.periodLabel,
+    TotalStores: s.totalStores, MatchingFilters: s.filteredStores, Visited: s.visited, NotVisited: s.unvisited,
+    AvgHealthScore: s.avgScore, HealthStatus: s.health.label,
+    RecentVelocityUnits: s.velocity ? s.velocity.recentUnits : '',
+    POPTarget: s.popTarget, POPCompleted: s.popCompleted, POPCompletionPct: s.popCompletionPct, AssignedKit: s.popKit
+  }]);
+  downloadCSV(prefix + '_store_details.csv', report.storeRows);
+  downloadCSV(prefix + '_inventory_details.csv', report.inventoryRows);
+  downloadCSV(prefix + '_pop_details.csv', report.popRows);
+  if (report.exceptions.notVisited.length) downloadCSV(prefix + '_exceptions_not_visited.csv', report.exceptions.notVisited);
+  if (report.exceptions.lowOosSkus.length) downloadCSV(prefix + '_exceptions_low_oos_skus.csv', report.exceptions.lowOosSkus);
+  if (report.exceptions.missingPop.length) downloadCSV(prefix + '_exceptions_missing_pop.csv', report.exceptions.missingPop);
+  if (report.exceptions.followUps.length) downloadCSV(prefix + '_exceptions_followups.csv', report.exceptions.followUps);
+}
+
+function crRowsToAoA(rows, cols) {
+  return [cols.map(c => c[0]), ...rows.map(r => cols.map(c => r[c[1]]))];
+}
+
+// Real 5-sheet .xlsx export, reading from the same currently-active report (chain/period/filters)
+// as what's rendered on screen -- never re-derives from raw unfiltered data, matching how
+// exportRrCSV() sources from rrFilteredReports() rather than the raw dataset.
+function crExportXLSX() {
+  if (!crChain) { console.warn('Select a chain first.'); return; }
+  const report = crGetOrBuildReport(crChain, crPeriodEnd, crMonthsBack, crFilters);
+  const s = report.summary;
+
+  const execRows = [
+    ['Field','Value'],
+    ['Chain', report.chainName], ['Generated At', report.generatedAt], ['Reporting Period', report.periodLabel],
+    ['Total Stores', s.totalStores], ['Matching Current Filters', s.filteredStores],
+    ['Visited', s.visited], ['Not Visited', s.unvisited],
+    ['Avg Health Score', s.avgScore], ['Health Status', s.health.label],
+    ['Recent Velocity (units)', s.velocity ? s.velocity.recentUnits : 'Not Tracked'],
+    ['POP Target Locations', s.popTarget], ['POP Completed Locations', s.popCompleted],
+    ['POP Completion %', s.popCompletionPct], ['Assigned Kit', s.popKit]
+  ];
+
+  const storeCols = [['Address','address'],['City','city'],['State','state'],['Last Visit Date','mostRecentVisitDate'],['Last Visit Month','mostRecentVisitMonth'],['Status','doorStatus'],['Assigned Rep','assignedRep'],['Velocity','mostRecentVelocity'],['Score','latestScore']];
+  const inventoryCols = [['Address','address'],['City','city'],['State','state'],['SKU Name','skuName'],['SKU ID','skuId'],['Qty On Hand','qtyOnHand'],['Qty Faced','qtyFaced'],['OOS','oosIndicator'],['Low Inventory','lowInventoryIndicator'],['Status','inventoryStatus']];
+  const popCols = [['Address','address'],['City','city'],['State','state'],['POP Expected','popMaterialsExpected'],['POP Installed','popMaterialsInstalled'],['Compliance Status','popComplianceStatus'],['Missing Items','missingPOPItems'],['Completion %','popCompletionPct'],['Status','popStatus']];
+  const exceptionRows = [
+    ['Exception Type','Address','City','State','Detail'],
+    ...report.exceptions.notVisited.map(r=>['Not Visited Recently', r.address, r.city, r.state, 'Last visit: '+r.lastVisitMonth]),
+    ...report.exceptions.lowOosSkus.map(r=>['Low/OOS SKU', r.address, r.city, r.state, r.skuName+' — '+r.inventoryStatus]),
+    ...report.exceptions.missingPop.map(r=>['Missing POP', r.address, r.city, r.state, r.popMaterialsExpected]),
+    ...report.exceptions.followUps.map(r=>['Follow-Up', r.address, '', '', r.type+' ('+r.priority+', due '+r.dueDate+')'])
+  ];
+
+  downloadXLSX(crChain.replace(/[^A-Za-z0-9]/g,'_') + '_chain_report.xlsx', [
+    { name: 'Executive Summary', rows: execRows },
+    { name: 'Store Details', rows: crRowsToAoA(report.storeRows, storeCols) },
+    { name: 'Inventory Details', rows: crRowsToAoA(report.inventoryRows, inventoryCols) },
+    { name: 'POP Details', rows: crRowsToAoA(report.popRows, popCols) },
+    { name: 'Exceptions', rows: exceptionRows }
+  ]);
 }
 
 // Auto-scaled "nice number" Y-axis ticks (readable intervals like 5/10/25/50, not raw
@@ -6385,7 +6996,11 @@ async function sbFetchAll(table, orderCol) {
 // Reconstructs the exact same in-memory shapes the rest of this file has always used, whether
 // the source was Supabase or an embedded snapshot -- every existing render function keeps
 // reading CI/EILEEN/CHAINS/SALES/DOORS exactly as before; only this function's internals differ.
-function applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows) {
+function applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows, chainProgramsRows) {
+  CHAIN_PROGRAMS = (chainProgramsRows || []).map(r => ({
+    chain: r.chain, cycle: r.cycle, kit: r.kit, promoTerms: r.promo_terms,
+    targetLocations: r.target_locations, completedLocations: r.completed_locations
+  }));
   CHAINS = chainsRows.map(c => ({
     chain: c.chain, total: c.total, avg_score: c.avg_score, health_pct: c.health_pct,
     score_4: c.score_4, score_3: c.score_3, score_2: c.score_2, score_1: c.score_1, score_0: c.score_0,
@@ -6459,6 +7074,7 @@ async function loadAllData() {
     usingEmbeddedSnapshot = true;
     const snap = window.__EMBEDDED_SNAPSHOT__;
     CI = snap.CI; EILEEN = snap.EILEEN; CHAINS = snap.CHAINS; SALES = snap.SALES; DOORS = snap.DOORS;
+    CHAIN_PROGRAMS = snap.CHAIN_PROGRAMS || []; // absent from older snapshots until the next artifact rebuild -- degrades to "Not Tracked" everywhere, never an error
     buildDerivedIndexes();
     // No live Supabase connection on this build -- Actions/Report Status/Reviews fall back to
     // this browser's own localStorage, same as the whole dashboard did before this migration.
@@ -6469,7 +7085,7 @@ async function loadAllData() {
     return;
   }
   const [chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows,
-         actionsRows, reviewsRows, reportStatusRows, reportVerdictsRows] = await Promise.all([
+         actionsRows, reviewsRows, reportStatusRows, reportVerdictsRows, chainProgramsRows] = await Promise.all([
     sbFetchAll('chains', 'chain'),
     sbFetchAll('sales', 'chain'),
     sbFetchAll('sales_monthly', 'chain'),
@@ -6480,9 +7096,10 @@ async function loadAllData() {
     sbFetchAll('actions', 'created_at'),
     sbFetchAll('reviews', 'reviewed_at'),
     sbFetchAll('report_status', 'updated_at'),
-    sbFetchAll('report_verdicts', 'updated_at')
+    sbFetchAll('report_verdicts', 'updated_at'),
+    sbFetchAll('chain_programs', 'chain')
   ]);
-  applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows);
+  applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows, chainProgramsRows);
 
   ACTIONS_CACHE = actionsRows.map(a => ({
     id: a.id, doorKey: a.door_key, chain: a.chain, type: a.type, priority: a.priority,
