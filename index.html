@@ -1401,7 +1401,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .vh-card-photos{flex:1;min-width:0;}
 
 /* -- OVERVIEW / DRILL-DOWN / ANALYTICS / VISIT PLANNING / ACTION CENTER -- */
-#view-overview,#view-analytics,#view-visitplan,#view-actioncenter{flex:1;overflow-y:auto;padding:20px 24px;}
+#view-overview,#view-analytics,#view-visitplan{flex:1;overflow-y:auto;padding:20px 24px;}
 .breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:16px;flex-wrap:wrap;}
 .breadcrumb span.bc-link{color:var(--orange);cursor:pointer;font-weight:600;}
 .breadcrumb span.bc-link:hover{text-decoration:underline;}
@@ -1446,10 +1446,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .ac-btn{background:var(--orange);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;}
 .ac-btn:hover{background:var(--orange2);}
 .ac-btn.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
-.action-form{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
-.action-form label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;}
-.action-form select,.action-form input,.action-form textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;}
-.action-form .full{grid-column:1/-1;}
 .review-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:8px;font-size:12px;}
 
 /* -- STORES TAB: chain insights workspace -- */
@@ -1491,7 +1487,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div class="tab" onclick="switchTab(&#39;oos&#39;)" id="tab-oos"><span class="tab-icon">⚠</span> Needs Attention</div>
     <div class="tab" onclick="switchTab(&#39;analytics&#39;)" id="tab-analytics"><span class="tab-icon">📊</span> Analytics</div>
     <div class="tab" onclick="switchTab(&#39;visitplan&#39;)" id="tab-visitplan"><span class="tab-icon">🧭</span> Visit Planning</div>
-    <div class="tab" onclick="switchTab(&#39;actioncenter&#39;)" id="tab-actioncenter"><span class="tab-icon">✅</span> Action Center</div>
     <div class="tab" onclick="switchTab(&#39;chainreport&#39;)" id="tab-chainreport"><span class="tab-icon">📄</span> Chain Reports</div>
   </div>
   <div class="topbar-right">
@@ -1517,7 +1512,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div id="view-overview" style="display:flex;flex-direction:column;"></div>
     <div id="view-analytics" style="display:none;flex-direction:column;"></div>
     <div id="view-visitplan" style="display:none;flex-direction:column;"></div>
-    <div id="view-actioncenter" style="display:none;flex-direction:column;"></div>
     <div id="view-chainreport" style="display:none;flex-direction:column;overflow:auto;"></div>
     <div id="view-map" style="display: none; flex-direction: column;">
       <div id="map" style="flex: 1 1 0%; position: relative;"></div>
@@ -3414,7 +3408,7 @@ function switchTab(tab) {
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  const views = ['overview','map','chains','stores','velocity','reportreview','oos','analytics','visitplan','actioncenter','chainreport'];
+  const views = ['overview','map','chains','stores','velocity','reportreview','oos','analytics','visitplan','chainreport'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
   if (tab === 'velocity') renderVelocityDistribution();
@@ -3425,7 +3419,6 @@ function switchTab(tab) {
   if (tab === 'stores') renderStoresTab();
   if (tab === 'analytics') renderAnalytics();
   if (tab === 'visitplan') renderVisitPlanning();
-  if (tab === 'actioncenter') renderActionCenter();
   if (tab === 'chainreport') renderChainReport();
 }
 
@@ -5175,9 +5168,7 @@ const ACTION_TYPES = ['Ship new shelf strip','Force out product','Schedule merch
 // synchronous for every existing call site, writes update the cache immediately then persist
 // to Supabase in the background.
 let ACTIONS_CACHE = [];
-let REVIEWS_CACHE = [];
 function loadActions() { return ACTIONS_CACHE; }
-function loadReviews() { return REVIEWS_CACHE; }
 
 function sbActionRow(a) {
   return { id: a.id, door_key: a.doorKey, chain: a.chain, type: a.type, priority: a.priority,
@@ -5193,6 +5184,12 @@ function addAction(doorKey, chain, type, priority, dueDate, assignedRep, notes) 
   if (usingEmbeddedSnapshot) { persistActionsLocal(); return; }
   sb.from('actions').insert(sbActionRow(action)).then(({ error }) => { if (error) console.error('actions insert failed', error); });
 }
+// actionRowHtml() (whose <select>/<button> call these) renders inside 3 different places --
+// the visit detail panel's Follow-up Actions list, the door detail panel's Actions list, and
+// the Stores tab's chain-workspace Action Tracker -- so there's no single "refresh the view
+// this came from" call. Re-render Stores tab when it's the active tab (its Action Tracker is
+// the primary place these controls get used); the detail-panel cases already didn't reliably
+// refresh themselves before this function existed elsewhere either, so this isn't a regression.
 function updateActionStatus(id, status) {
   const a = ACTIONS_CACHE.find(x => x.id === id);
   if (a) {
@@ -5200,14 +5197,13 @@ function updateActionStatus(id, status) {
     if (usingEmbeddedSnapshot) { persistActionsLocal(); }
     else { sb.from('actions').update({ status }).eq('id', id).then(({ error }) => { if (error) console.error('actions update failed', error); }); }
   }
-  renderActionCenter();
-  if (document.getElementById('detail-panel').classList.contains('open')) { /* refresh if open */ }
+  if (currentTab === 'stores') renderStoresTab();
 }
 function deleteAction(id) {
   ACTIONS_CACHE = ACTIONS_CACHE.filter(a => a.id !== id);
   if (usingEmbeddedSnapshot) { persistActionsLocal(); }
   else { sb.from('actions').delete().eq('id', id).then(({ error }) => { if (error) console.error('actions delete failed', error); }); }
-  renderActionCenter();
+  if (currentTab === 'stores') renderStoresTab();
 }
 
 function actionRowHtml(a) {
@@ -5233,137 +5229,6 @@ function quickAddAction(doorKey, chain) {
   addAction(doorKey, chain, type, 'Medium', '', '', '');
   openDoorDetail(doorKey);
 }
-
-let acFilterStatus = '';
-function acSetFilter(v) { acFilterStatus = v; renderActionCenter(); }
-
-function acSubmitForm(e) {
-  e.preventDefault();
-  const f = e.target;
-  addAction(f.doorKey.value, f.chain.value, f.type.value, f.priority.value, f.dueDate.value, f.assignedRep.value, f.notes.value);
-  renderActionCenter();
-  return false;
-}
-
-function reviewApprove(actionId, status) {
-  const review = { id: 'r'+Date.now(), actionId, managerComment: document.getElementById('rv-comment-'+actionId).value, status, reviewedAt: new Date().toISOString(), reviewedBy: 'Manager' };
-  REVIEWS_CACHE.push(review);
-  if (usingEmbeddedSnapshot) {
-    localStorage.setItem('lucyReviews_v1', JSON.stringify(REVIEWS_CACHE));
-  } else {
-    sb.from('reviews').insert({
-      id: review.id, action_id: review.actionId, manager_comment: review.managerComment,
-      status: review.status, reviewed_at: review.reviewedAt, reviewed_by: review.reviewedBy
-    }).then(({ error }) => { if (error) console.error('reviews insert failed', error); });
-  }
-  renderActionCenter();
-}
-
-// One-time upgrade path: this browser may already have Actions/Report Status/Reviews sitting
-// in localStorage from before this Supabase migration. There's no way to bulk-collect data
-// already sitting in OTHER users' browsers, but this at least rescues whatever's in THIS one --
-// checks against the already-loaded cache (server state) so a second click never duplicates.
-async function syncLocalDataToDatabase() {
-  if (usingEmbeddedSnapshot) return;
-  const btn = document.getElementById('sync-local-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
-  let synced = 0;
-  try {
-    let localActions = [];
-    try { localActions = JSON.parse(localStorage.getItem('lucyActions_v1') || '[]'); } catch(e) {}
-    const existingActionIds = new Set(ACTIONS_CACHE.map(a => a.id));
-    for (const a of localActions.filter(a => !existingActionIds.has(a.id))) {
-      ACTIONS_CACHE.push(a);
-      const { error } = await sb.from('actions').insert(sbActionRow(a));
-      if (error) { console.error('sync action failed', error); continue; }
-      synced++;
-    }
-
-    let localReportStatus = {};
-    try { localReportStatus = JSON.parse(localStorage.getItem('lucyReportStatus_v1') || '{}'); } catch(e) {}
-    for (const key of Object.keys(localReportStatus)) {
-      if (REPORT_STATUS_CACHE[key]) continue; // server already has this one -- server wins
-      const [src, reportIdStr] = key.split('|');
-      const entry = localReportStatus[key];
-      REPORT_STATUS_CACHE[key] = entry;
-      const { error } = await sb.from('report_status').upsert({ src, report_id: Number(reportIdStr), status: entry.status, updated_at: entry.updatedAt });
-      if (error) { console.error('sync report_status failed', error); continue; }
-      synced++;
-    }
-
-    let localReviews = [];
-    try { localReviews = JSON.parse(localStorage.getItem('lucyReviews_v1') || '[]'); } catch(e) {}
-    const existingReviewIds = new Set(REVIEWS_CACHE.map(r => r.id));
-    for (const r of localReviews.filter(r => !existingReviewIds.has(r.id))) {
-      REVIEWS_CACHE.push(r);
-      const { error } = await sb.from('reviews').insert({ id: r.id, action_id: r.actionId, manager_comment: r.managerComment, status: r.status, reviewed_at: r.reviewedAt, reviewed_by: r.reviewedBy });
-      if (error) { console.error('sync review failed', error); continue; }
-      synced++;
-    }
-  } finally {
-    console.log(`Synced ${synced} local record(s) to the database.`);
-    renderActionCenter();
-  }
-}
-
-function renderActionCenter() {
-  const el = document.getElementById('view-actioncenter');
-  let actions = loadActions();
-  if (acFilterStatus) actions = actions.filter(a => a.status === acFilterStatus);
-  const reviews = loadReviews();
-
-  const doorOptions = DOORS.filter(d => d.visited).slice(0, 500);
-
-  el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <div class="section-title" style="margin-top:0;">Action Center</div>
-      <div style="display:flex;gap:8px;">
-        ${!usingEmbeddedSnapshot ? `<button class="ac-btn secondary" id="sync-local-btn" onclick="syncLocalDataToDatabase()">⇪ Sync local data to database</button>` : ''}
-        <button class="ac-btn secondary" onclick="exportActionsCSV()">⬇ Export Action Summary CSV</button>
-        <button class="ac-btn secondary" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
-      </div>
-    </div>
-    <form class="action-form" onsubmit="return acSubmitForm(event)">
-      <div>
-        <label>Store</label>
-        <select name="doorKey" required onchange="this.form.chain.value = this.selectedOptions[0].dataset.chain">
-          ${doorOptions.map(d => `<option value="${esc(d.key)}" data-chain="${esc(d.chain)}">${escHtml(d.chain)} — ${escHtml(d.address)}</option>`).join('')}
-        </select>
-      </div>
-      <input type="hidden" name="chain" value="${doorOptions.length ? esc(doorOptions[0].chain) : ''}">
-      <div><label>Action Type</label><select name="type">${ACTION_TYPES.map(t => `<option>${t}</option>`).join('')}</select></div>
-      <div><label>Priority</label><select name="priority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
-      <div><label>Due Date</label><input type="date" name="dueDate"></div>
-      <div><label>Assigned Rep</label><input type="text" name="assignedRep" placeholder="Rep name"></div>
-      <div class="full"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
-      <div class="full"><button class="ac-btn" type="submit">+ Create Action</button></div>
-    </form>
-
-    <div class="ac-toolbar">
-      <span style="font-size:12px;color:var(--muted);">Filter:</span>
-      ${['', 'Open', 'In Progress', 'Done'].map(s => `<button class="ac-btn ${acFilterStatus===s?'':'secondary'}" onclick="acSetFilter('${s}')">${s||'All'}</button>`).join('')}
-    </div>
-
-    <div class="section-title">Actions (${actions.length})</div>
-    ${actions.length ? actions.map(a => actionRowHtml(a)).join('') : '<div style="color:var(--muted);font-size:12px;">No actions yet — create one above.</div>'}
-
-    <div class="section-title">Review Workflow</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Managers can approve/reject open actions and leave comments. Stored locally in this browser.</div>
-    ${actions.filter(a => a.status !== 'Done').map(a => `
-      <div class="review-card">
-        <strong style="font-size:12px;">${escHtml(a.type)} — ${escHtml(a.chain)}</strong>
-        <textarea id="rv-comment-${a.id}" placeholder="Manager comment..." rows="2" style="width:100%;margin-top:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--text);font-size:11px;"></textarea>
-        <div style="margin-top:6px;display:flex;gap:6px;">
-          <button class="ac-btn" onclick="reviewApprove('${a.id}','Approved')">Approve</button>
-          <button class="ac-btn secondary" onclick="reviewApprove('${a.id}','Rejected')">Reject</button>
-        </div>
-        ${reviews.filter(r => r.actionId === a.id).map(r => `<div style="font-size:11px;margin-top:6px;color:${r.status==='Approved'?'var(--green)':'var(--red)'}">${r.status} by ${escHtml(r.reviewedBy)} — "${escHtml(r.managerComment)}"</div>`).join('')}
-      </div>
-    `).join('') || '<div style="color:var(--muted);font-size:12px;">No open actions to review.</div>'}
-  `;
-}
-
-
 
 // ══════════════════════════════════════════════════════════════════════════
 // ROUND 2 — Underperformance detection, deep analytics, visit impact, exports
@@ -5444,7 +5309,7 @@ function generateInsights(doors) {
 
   // Stores with open high-priority actions
   const openHighPriority = loadActions().filter(a => a.status !== 'Done' && a.priority === 'High').length;
-  if (openHighPriority > 0) insights.push(`${openHighPriority} high-priority action${openHighPriority>1?'s':''} still open — check the Action Center.`);
+  if (openHighPriority > 0) insights.push(`${openHighPriority} high-priority follow-up action${openHighPriority>1?'s':''} still open.`);
 
   // Biggest score improvers (visit impact)
   const impact = computeVisitImpact(doors);
@@ -5833,9 +5698,6 @@ function exportVisitPlanCSV() {
   const ranked = [...applyVelocityLossFilters(DOORS)].map(d => ({ d, p: priorityScore(d) })).sort((a,b) => b.p - a.p).slice(0, 200);
   downloadCSV('visit_planning.csv', ranked.map(r => ({ Chain: r.d.chain, Address: r.d.address, City: r.d.city, State: r.d.state, Score: r.d.latestScore, LastVisit: r.d.lastVisitMonth||'Never', Priority: r.p })));
 }
-function exportActionsCSV() {
-  downloadCSV('action_summary.csv', loadActions().map(a => ({ Chain: a.chain, Type: a.type, Priority: a.priority, DueDate: a.dueDate, AssignedRep: a.assignedRep, Status: a.status, Notes: a.notes, CreatedAt: a.createdAt })));
-}
 function printCurrentView() { window.print(); }
 
 // Print stylesheet — hide chrome, show only the active view, injected once
@@ -5843,9 +5705,9 @@ function printCurrentView() { window.print(); }
   const style = document.createElement('style');
   style.media = 'print';
   style.textContent = `
-    .topbar, .detail-panel, .ac-toolbar, .action-form, .breadcrumb .bc-link, select, .ac-btn { display:none !important; }
+    .topbar, .detail-panel, .ac-toolbar, .breadcrumb .bc-link, select, .ac-btn { display:none !important; }
     .body, .content { display:block !important; overflow:visible !important; height:auto !important; }
-    #view-overview, #view-analytics, #view-visitplan, #view-actioncenter, #view-velocity, #view-reportreview, #view-chainreport { display:block !important; overflow:visible !important; padding:0 !important; }
+    #view-overview, #view-analytics, #view-visitplan, #view-velocity, #view-reportreview, #view-chainreport { display:block !important; overflow:visible !important; padding:0 !important; }
     .vd-filter-panel, .rr-filter-panel, .cr-filter-panel { display:none !important; }
     .chart-card, .kpi-card, .drill-card { break-inside:avoid; }
     body { background:#fff !important; overflow:visible !important; height:auto !important; }
@@ -7099,16 +6961,15 @@ async function loadAllData() {
     CI = snap.CI; EILEEN = snap.EILEEN; CHAINS = snap.CHAINS; SALES = snap.SALES; DOORS = snap.DOORS;
     CHAIN_PROGRAMS = snap.CHAIN_PROGRAMS || []; // absent from older snapshots until the next artifact rebuild -- degrades to "Not Tracked" everywhere, never an error
     buildDerivedIndexes();
-    // No live Supabase connection on this build -- Actions/Report Status/Reviews fall back to
-    // this browser's own localStorage, same as the whole dashboard did before this migration.
+    // No live Supabase connection on this build -- Actions/Report Status fall back to this
+    // browser's own localStorage, same as the whole dashboard did before this migration.
     try { ACTIONS_CACHE = JSON.parse(localStorage.getItem('lucyActions_v1') || '[]'); } catch(e) { ACTIONS_CACHE = []; }
-    try { REVIEWS_CACHE = JSON.parse(localStorage.getItem('lucyReviews_v1') || '[]'); } catch(e) { REVIEWS_CACHE = []; }
     try { REPORT_STATUS_CACHE = JSON.parse(localStorage.getItem('lucyReportStatus_v1') || '{}'); } catch(e) { REPORT_STATUS_CACHE = {}; }
     try { REPORT_VERDICT_CACHE = JSON.parse(localStorage.getItem('lucyReportVerdicts_v1') || '{}'); } catch(e) { REPORT_VERDICT_CACHE = {}; }
     return;
   }
   const [chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows,
-         actionsRows, reviewsRows, reportStatusRows, reportVerdictsRows, chainProgramsRows] = await Promise.all([
+         actionsRows, reportStatusRows, reportVerdictsRows, chainProgramsRows] = await Promise.all([
     sbFetchAll('chains', 'chain'),
     sbFetchAll('sales', 'chain'),
     sbFetchAll('sales_monthly', 'chain'),
@@ -7117,7 +6978,6 @@ async function loadAllData() {
     sbFetchAll('door_visits', 'id'),
     sbFetchAll('door_sales_monthly', 'door_key'),
     sbFetchAll('actions', 'created_at'),
-    sbFetchAll('reviews', 'reviewed_at'),
     sbFetchAll('report_status', 'updated_at'),
     sbFetchAll('report_verdicts', 'updated_at'),
     sbFetchAll('chain_programs', 'chain')
@@ -7127,10 +6987,6 @@ async function loadAllData() {
   ACTIONS_CACHE = actionsRows.map(a => ({
     id: a.id, doorKey: a.door_key, chain: a.chain, type: a.type, priority: a.priority,
     dueDate: a.due_date, assignedRep: a.assigned_rep, notes: a.notes, status: a.status, createdAt: a.created_at
-  }));
-  REVIEWS_CACHE = reviewsRows.map(r => ({
-    id: r.id, actionId: r.action_id, managerComment: r.manager_comment,
-    status: r.status, reviewedAt: r.reviewed_at, reviewedBy: r.reviewed_by
   }));
   REPORT_STATUS_CACHE = {};
   reportStatusRows.forEach(rs => {
