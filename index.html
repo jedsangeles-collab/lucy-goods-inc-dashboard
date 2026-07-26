@@ -6168,6 +6168,29 @@ function crBuildExceptions(doors, inventoryRows, popRows) {
   return { notVisited, lowOosSkus, missingPop, followUps };
 }
 
+// chainVelocityStats() always reflects the chain's LATEST available month, regardless of which
+// historical period is selected -- that would make the period picker silently not affect the
+// Executive Summary's velocity figure. Real per-door salesByMonth data, restricted to periodKeys,
+// same aggregation math as cvaMonthlySeriesFromDoors() above, gives genuinely period-accurate
+// numbers instead. Falls back to chainVelocityStats() only if this chain has no door-level sales
+// data at all for the selected period (keeps a sensible value rather than showing nothing).
+function crPeriodVelocity(doors, periodKeys) {
+  const byMonth = {};
+  doors.forEach(d => (d.salesByMonth||[]).forEach(sm => {
+    if (!sm || !sm.month || !periodKeys.includes(sm.month) || sm.units === null || sm.units === undefined) return;
+    if (!byMonth[sm.month]) byMonth[sm.month] = { units: 0 };
+    byMonth[sm.month].units += sm.units;
+  }));
+  const months = Object.keys(byMonth).sort();
+  if (!months.length) return null;
+  const recentMonth = months[months.length-1];
+  const recentUnits = byMonth[recentMonth].units;
+  const priorMonths = months.slice(0, -1);
+  const trailingAvgUnits = priorMonths.length ? priorMonths.reduce((s,m)=>s+byMonth[m].units,0)/priorMonths.length : null;
+  const changePct = (trailingAvgUnits && trailingAvgUnits > 0) ? ((recentUnits - trailingAvgUnits)/trailingAvgUnits*100) : null;
+  return { recentUnits, recentMonth, trailingAvgUnits, changePct, monthsAvailable: months.length };
+}
+
 function crBuildReport(chainName, endMonth, monthsBack, filters) {
   const periodKeys = crPeriodMonthKeys(endMonth, monthsBack);
   const allDoors = DOORS.filter(d => d.chain === chainName);
@@ -6178,7 +6201,7 @@ function crBuildReport(chainName, endMonth, monthsBack, filters) {
   const popRows = doors.map(d => crPopRowForDoor(d, periodKeys));
   const exceptions = crBuildExceptions(doors, inventoryRows, popRows);
 
-  const vel = chainVelocityStats(chainName);
+  const vel = crPeriodVelocity(allDoors, periodKeys) || chainVelocityStats(chainName);
   const avgScore = avgScoreForChain(chainName);
   const health = chainHealthStatus(avgScore);
   const program = chainProgramFor(chainName);
