@@ -5755,6 +5755,18 @@ function printCurrentView() { window.print(); }
       display:block !important; position:static !important; width:100% !important;
       height:auto !important; transform:none !important; border:none !important; z-index:auto !important;
     }
+    /* Same technique for the Chain Reports store popup: promote it into normal document flow
+       (no dark backdrop, no fixed positioning) and hide the page behind it, so printing from
+       inside the popup prints only that one store's detail, not the whole chain report. */
+    body:has(.cr-modal-backdrop.open) .content { display:none !important; }
+    .cr-modal-backdrop.open {
+      display:block !important; position:static !important; background:none !important; padding:0 !important;
+    }
+    .cr-modal {
+      display:block !important; position:static !important; width:100% !important; max-width:100% !important;
+      max-height:none !important; overflow:visible !important; border-radius:0 !important;
+    }
+    .cr-modal-close, .cr-modal-actions { display:none !important; }
   `;
   document.head.appendChild(style);
 })();
@@ -6312,6 +6324,11 @@ function crModalContentHtml(door) {
       <div class="dp-chain">${escHtml(door.chain)}</div>
       <div class="dp-addr">${escHtml(door.address)}</div>
       <div class="dp-city">${escHtml(door.city)}, ${escHtml(door.state)}</div>
+      <div class="cr-modal-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button class="ac-btn secondary" onclick="crExportStoreCSV('${esc(door.key)}')">⬇ Export CSV</button>
+        <button class="ac-btn secondary" onclick="crExportStoreXLSX('${esc(door.key)}')">⬇ Export Excel</button>
+        <button class="ac-btn secondary" onclick="crPrintStoreModal()">🖨 Print</button>
+      </div>
     </div>
 
     <div class="cr-modal-section">
@@ -6350,6 +6367,77 @@ function renderCrStoreModal() {
   if (!door) { crModalDoorKey = null; backdrop.classList.remove('open'); box.innerHTML = ''; return; }
   box.innerHTML = crModalContentHtml(door);
   backdrop.classList.add('open');
+}
+
+// window.print() alone would print whatever's behind the dark backdrop too (or nothing useful,
+// depending on the browser) -- the print stylesheet below (see injectPrintCSS) specifically
+// promotes .cr-modal-backdrop.open into normal document flow and hides the rest of the page,
+// same technique already used for .detail-panel.open.
+function crPrintStoreModal() { window.print(); }
+
+// Single-store CSV export -- distinct from crExportCSV() (the whole filtered chain report).
+// One file per section again, same reasoning as crExportCSV: Exceptions/Action Items have
+// different column shapes than Inventory/POP, so a single CSV would produce inconsistent headers.
+function crExportStoreCSV(doorKey) {
+  const door = DOORS_BY_KEY[doorKey];
+  if (!door) { console.warn('Store not found.'); return; }
+  const periodKeys = crPeriodMonthKeys(crPeriodEnd, crMonthsBack);
+  const invRows = crInventoryRowsForDoor(door, periodKeys);
+  const pop = crPopRowForDoor(door, periodKeys);
+  const { latestCiVisit, latestPromo } = crLatestVisitsForDoor(door, periodKeys);
+  const popLastUpdated = latestPromo ? (latestPromo.vd || 'Not Tracked') : (latestCiVisit ? (latestCiVisit.vd || 'Not Tracked') : 'Not Tracked');
+  const exceptions = crExceptionsForDoor(door, periodKeys);
+  const actions = loadActions().filter(a => a.doorKey === doorKey);
+  const prefix = (door.chain + '_' + door.address).replace(/[^A-Za-z0-9]/g,'_') + '_store_report';
+
+  downloadCSV(prefix + '_store_info.csv', [{
+    Chain: door.chain, Address: door.address, City: door.city, State: door.state,
+    LastVisitDate: door.lastVisitDate || 'Not Tracked', Status: door.visited ? 'Visited' : 'Not Visited',
+    AssignedRep: door.lastVisitedBy || 'Not Tracked',
+    Velocity: (door.realVelocity !== null && door.realVelocity !== undefined) ? door.realVelocity : 'Not Tracked',
+    Score: (door.latestScore !== null && door.latestScore !== undefined) ? door.latestScore : 'Not Tracked',
+    ReportingPeriod: periodKeys.length ? `${periodKeys[0]} to ${periodKeys[periodKeys.length-1]}` : 'Not Tracked'
+  }]);
+  downloadCSV(prefix + '_inventory.csv', invRows.map(r => ({ SKUName: r.skuName, SKUID: r.skuId, QtyOnHand: r.qtyOnHand, QtyFaced: r.qtyFaced, OOS: r.oosIndicator ? 'Yes' : 'No', Status: r.inventoryStatus })));
+  downloadCSV(prefix + '_pop.csv', [{ POPItemExpected: pop.popMaterialsExpected, Status: pop.popStatus, LastUpdated: popLastUpdated }]);
+  if (exceptions.length) downloadCSV(prefix + '_exceptions.csv', exceptions.map(r => ({ ExceptionType: r.exceptionType, Description: r.description, Severity: r.severity, DateReported: r.dateReported })));
+  if (actions.length) downloadCSV(prefix + '_action_items.csv', actions.map(a => ({ ActionRequired: a.type, Priority: a.priority, DueDate: a.dueDate || '', AssignedTo: a.assignedRep || '', Status: a.status, Notes: a.notes || '', CreatedAt: a.createdAt })));
+}
+
+// Single-store .xlsx export -- same buildXlsx()/downloadXLSX() writer as the chain-level export,
+// just scoped to one door's data across 5 sheets.
+function crExportStoreXLSX(doorKey) {
+  const door = DOORS_BY_KEY[doorKey];
+  if (!door) { console.warn('Store not found.'); return; }
+  const periodKeys = crPeriodMonthKeys(crPeriodEnd, crMonthsBack);
+  const invRows = crInventoryRowsForDoor(door, periodKeys);
+  const pop = crPopRowForDoor(door, periodKeys);
+  const { latestCiVisit, latestPromo } = crLatestVisitsForDoor(door, periodKeys);
+  const popLastUpdated = latestPromo ? (latestPromo.vd || 'Not Tracked') : (latestCiVisit ? (latestCiVisit.vd || 'Not Tracked') : 'Not Tracked');
+  const exceptions = crExceptionsForDoor(door, periodKeys);
+  const actions = loadActions().filter(a => a.doorKey === doorKey);
+
+  const storeInfoRows = [
+    ['Field','Value'],
+    ['Chain', door.chain], ['Address', door.address], ['City', door.city], ['State', door.state],
+    ['Last Visit Date', door.lastVisitDate || 'Not Tracked'], ['Status', door.visited ? 'Visited' : 'Not Visited'],
+    ['Assigned Rep', door.lastVisitedBy || 'Not Tracked'],
+    ['Velocity', (door.realVelocity !== null && door.realVelocity !== undefined) ? door.realVelocity : 'Not Tracked'],
+    ['Score', (door.latestScore !== null && door.latestScore !== undefined) ? door.latestScore : 'Not Tracked'],
+    ['Reporting Period', periodKeys.length ? `${periodKeys[0]} to ${periodKeys[periodKeys.length-1]}` : 'Not Tracked']
+  ];
+  const popInfoRows = [['Field','Value'], ['POP Item (Expected)', pop.popMaterialsExpected], ['Status', pop.popStatus], ['Last Updated', popLastUpdated]];
+  const invCols = [['SKU Name','skuName'],['SKU ID','skuId'],['Qty On Hand','qtyOnHand'],['Qty Faced','qtyFaced'],['OOS','oosIndicator'],['Status','inventoryStatus']];
+  const exceptionCols = [['Exception Type','exceptionType'],['Description','description'],['Severity','severity'],['Date Reported','dateReported']];
+  const actionCols = [['Action Required','type'],['Priority','priority'],['Due Date','dueDate'],['Assigned To','assignedRep'],['Status','status'],['Notes','notes']];
+
+  downloadXLSX((door.chain + '_' + door.address).replace(/[^A-Za-z0-9]/g,'_') + '_store_report.xlsx', [
+    { name: 'Store Info', rows: storeInfoRows },
+    { name: 'Inventory', rows: crRowsToAoA(invRows, invCols) },
+    { name: 'POP Details', rows: popInfoRows },
+    { name: 'Exceptions', rows: crRowsToAoA(exceptions, exceptionCols) },
+    { name: 'Action Items', rows: crRowsToAoA(actions, actionCols) }
+  ]);
 }
 
 // No blocking confirm()/alert() -- this project's own memory documents a real incident where a
