@@ -1378,6 +1378,32 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   background:#ffffff22;padding:4px 14px;border-radius:20px;
 }
 
+/* CHAIN REPORTS: STORE DETAIL POPUP -- centered modal, same overlay convention as .lightbox
+   above (fixed inset:0 dark backdrop, flex-centered) since this is a true popup, not a
+   slide-out panel like .detail-panel. */
+.cr-modal-backdrop{
+  display:none;position:fixed;inset:0;background:#000c;z-index:1000;
+  align-items:center;justify-content:center;padding:20px;
+}
+.cr-modal-backdrop.open{display:flex;}
+.cr-modal{
+  position:relative;background:var(--surface);border-radius:14px;
+  width:100%;max-width:720px;max-height:85vh;overflow-y:auto;
+  padding-bottom:8px;
+}
+.cr-modal-close{
+  position:absolute;top:14px;right:14px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--muted);width:28px;height:28px;border-radius:7px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;
+  z-index:1;
+}
+.cr-modal-close:hover{color:var(--text);border-color:var(--text);}
+.cr-modal-header{padding:20px 50px 16px 22px;border-bottom:1px solid var(--border);}
+.cr-modal-section{padding:14px 22px;border-bottom:1px solid var(--border);}
+.cr-modal-section:last-child{border-bottom:none;}
+.cr-modal-section-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+
 /* MAGNIFIER */
 .mag-lens{
   position:fixed;display:none;pointer-events:none;z-index:2000;
@@ -2829,6 +2855,14 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   <img id="lb-img" src="file:///C:/Users/dgsul/Downloads/lucy_dashboard_v2_6.html" alt="">
   <span class="lb-nav next" id="lb-next" onclick="event.stopPropagation();lbNav(1);">›</span>
   <span class="lb-counter" id="lb-counter" style="display:none;"></span>
+</div>
+
+<!-- Chain Reports: per-store detail popup. Content is rendered into #cr-modal by
+     renderCrStoreModal(); this container is deliberately outside any single tab's
+     #view-* div (position:fixed escapes normal layout regardless), same reasoning as
+     #lightbox/.detail-panel above. -->
+<div class="cr-modal-backdrop" id="cr-modal-backdrop" onclick="if(event.target===this) crCloseStoreModal()">
+  <div class="cr-modal" id="cr-modal"></div>
 </div>
 
 <script>
@@ -5184,12 +5218,13 @@ function addAction(doorKey, chain, type, priority, dueDate, assignedRep, notes) 
   if (usingEmbeddedSnapshot) { persistActionsLocal(); return; }
   sb.from('actions').insert(sbActionRow(action)).then(({ error }) => { if (error) console.error('actions insert failed', error); });
 }
-// actionRowHtml() (whose <select>/<button> call these) renders inside 3 different places --
-// the visit detail panel's Follow-up Actions list, the door detail panel's Actions list, and
-// the Stores tab's chain-workspace Action Tracker -- so there's no single "refresh the view
-// this came from" call. Re-render Stores tab when it's the active tab (its Action Tracker is
-// the primary place these controls get used); the detail-panel cases already didn't reliably
-// refresh themselves before this function existed elsewhere either, so this isn't a regression.
+// actionRowHtml() (whose <select>/<button> call these) renders inside 4 different places --
+// the visit detail panel's Follow-up Actions list, the door detail panel's Actions list, the
+// Stores tab's chain-workspace Action Tracker, and the Chain Reports store popup's Action Items
+// section -- so there's no single "refresh the view this came from" call. Re-render Stores tab
+// when it's the active tab, and the Chain Reports popup whenever it's open (both are real,
+// still-live surfaces); the detail-panel cases already didn't reliably refresh themselves before
+// this function existed elsewhere either, so that part isn't a regression.
 function updateActionStatus(id, status) {
   const a = ACTIONS_CACHE.find(x => x.id === id);
   if (a) {
@@ -5198,12 +5233,14 @@ function updateActionStatus(id, status) {
     else { sb.from('actions').update({ status }).eq('id', id).then(({ error }) => { if (error) console.error('actions update failed', error); }); }
   }
   if (currentTab === 'stores') renderStoresTab();
+  if (crModalDoorKey) renderCrStoreModal();
 }
 function deleteAction(id) {
   ACTIONS_CACHE = ACTIONS_CACHE.filter(a => a.id !== id);
   if (usingEmbeddedSnapshot) { persistActionsLocal(); }
   else { sb.from('actions').delete().eq('id', id).then(({ error }) => { if (error) console.error('actions delete failed', error); }); }
   if (currentTab === 'stores') renderStoresTab();
+  if (crModalDoorKey) renderCrStoreModal();
 }
 
 function actionRowHtml(a) {
@@ -5872,8 +5909,10 @@ let crChain = null;
 let crPeriodEnd = null;       // 'YYYY-MM', defaults to the latest month with any real visit data
 let crMonthsBack = 6;
 let crFilters = { store:'', dateFrom:'', dateTo:'', visitStatus:'', popStatus:'', inventoryStatus:'', minVelocity:'', maxVelocity:'' };
-let crCollapsed = { summary:false, stores:true, inventory:true, pop:true, exceptions:false };
-let crPage = { stores:1, inventory:1, pop:1 };
+let crCollapsed = { summary:false };
+let crModalDoorKey = null; // door currently shown in the store detail popup -- also doubles as "last selected store"
+let crModalDirty = false;  // true while the popup's add-action mini-form has unsaved text
+let crPage = { stores:1 };
 const CR_PAGE_SIZE = 100;
 let CR_CACHE = {};
 
@@ -6114,13 +6153,13 @@ function crFmtScore(v) { return v === 'Not Tracked' ? crNT(v) : v + '/4'; }
 function crFmtPct(v) { return v === 'Not Tracked' ? crNT(v) : v.toFixed(1) + '%'; }
 function crFmtBool(v) { return v === true ? 'Yes' : v === false ? 'No' : crNT(v); }
 
-function crSelectChain(name) { crChain = name || null; crPeriodEnd = crPeriodEnd || crLatestAvailableMonth(); crPage = { stores:1, inventory:1, pop:1 }; renderChainReport(); }
-function crSetPeriodEnd(v) { crPeriodEnd = v; crPage = { stores:1, inventory:1, pop:1 }; renderChainReport(); }
-function crSetMonthRange(n) { crMonthsBack = n; crPage = { stores:1, inventory:1, pop:1 }; renderChainReport(); }
-function crSetFilter(key, val) { crFilters[key] = val; crPage = { stores:1, inventory:1, pop:1 }; renderChainReport(); }
+function crSelectChain(name) { crChain = name || null; crPeriodEnd = crPeriodEnd || crLatestAvailableMonth(); crPage = { stores:1 }; renderChainReport(); }
+function crSetPeriodEnd(v) { crPeriodEnd = v; crPage = { stores:1 }; renderChainReport(); }
+function crSetMonthRange(n) { crMonthsBack = n; crPage = { stores:1 }; renderChainReport(); }
+function crSetFilter(key, val) { crFilters[key] = val; crPage = { stores:1 }; renderChainReport(); }
 function crResetFilters() {
   crFilters = { store:'', dateFrom:'', dateTo:'', visitStatus:'', popStatus:'', inventoryStatus:'', minVelocity:'', maxVelocity:'' };
-  crPage = { stores:1, inventory:1, pop:1 };
+  crPage = { stores:1 };
   renderChainReport();
 }
 function crToggleSection(name) { crCollapsed[name] = !crCollapsed[name]; renderChainReport(); }
@@ -6159,10 +6198,6 @@ const CR_INVENTORY_COLS = [
   ['Qty On Hand', r => crNT(r.qtyOnHand)], ['Qty Faced', r => crNT(r.qtyFaced)],
   ['OOS', r => r.oosIndicator?'Yes':'No'], ['Status', r => crNT(r.inventoryStatus)]
 ];
-const CR_POP_COLS = [
-  ['Address', r => escHtml(r.address||'—')], ['POP Expected', r => crNT(r.popMaterialsExpected)], ['POP Installed', r => crNT(r.popMaterialsInstalled)],
-  ['Compliance', r => crNT(r.popComplianceStatus)], ['Missing Items', r => crNT(r.missingPOPItems)], ['Status', r => crNT(r.popStatus)]
-];
 
 function crExecSummaryHtml(report) {
   const s = report.summary;
@@ -6183,19 +6218,150 @@ function crExecSummaryHtml(report) {
     </div>`).join('')}</div>`;
 }
 
-function crExceptionsHtml(report) {
-  const ex = report.exceptions;
-  const block = (title, rows, cols) => `
-    <div class="section-title" style="font-size:13px;margin-top:14px;">${escHtml(title)} (${fmtNum(rows.length)})</div>
-    ${crGenericTableHtml(cols, rows.slice(0,50))}
-    ${rows.length>50?`<div style="font-size:11px;color:var(--muted);margin-top:4px;">Showing first 50 of ${fmtNum(rows.length)} — export the full report for the complete list.</div>`:''}`;
+// ── Per-store popup: rendered in a top-level modal (#cr-modal), NOT inline in the page ──────
+function crStoreOptions() {
+  if (!crChain) return [];
+  return DOORS.filter(d => d.chain === crChain)
+    .map(d => ({ key: d.key, label: `${d.address}, ${d.city} ${d.state}` }))
+    .sort((a,b) => a.label.localeCompare(b.label));
+}
+function crSetStoreByLabel(label) {
+  if (!label) return;
+  const match = crStoreOptions().find(o => o.label === label);
+  if (match) crOpenStoreModal(match.key);
+}
+function crStoreTableHtml(rows) {
+  const head = CR_STORE_COLS.map(c => `<th>${escHtml(c[0])}</th>`).join('');
+  const body = rows.map(r => `<tr onclick="crOpenStoreModal('${esc(r.doorKey)}')" style="cursor:pointer;">${CR_STORE_COLS.map(c => `<td>${c[1](r)}</td>`).join('')}</tr>`).join('')
+    || `<tr><td colspan="${CR_STORE_COLS.length}" style="text-align:center;color:var(--muted);padding:20px;">No rows match the current filters.</td></tr>`;
+  return `<table class="ranked-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+// Opening/switching only ever happens on explicit user action (dropdown pick or row click) --
+// never auto-triggered just because a default store label is shown in the picker.
+function crOpenStoreModal(doorKey) {
+  if (crModalDirty) return;
+  crModalDoorKey = doorKey;
+  renderChainReport();
+}
+function crCloseStoreModal() {
+  if (crModalDirty) return;
+  crModalDoorKey = null;
+  renderCrStoreModal();
+}
+function crModalNoteInput(val) { crModalDirty = !!val.trim(); }
+function crModalSubmitAction(e, doorKey, chain) {
+  e.preventDefault();
+  const f = e.target;
+  addAction(doorKey, chain, f.type.value, f.priority.value, f.dueDate.value, f.assignedRep.value, f.notes.value);
+  crModalDirty = false;
+  renderCrStoreModal();
+  return false;
+}
+
+// Rule-based classification (Severity), not a captured field -- same honesty convention as the
+// rest of this module (mirrors the Insights panel's own "rule-based, not real AI" framing).
+function crExceptionsForDoor(door, periodKeys) {
+  const { latestCiVisit, latestPromo } = crLatestVisitsForDoor(door, periodKeys);
+  const rows = [];
+  if (isNotVisitedWithinThreshold(door)) {
+    rows.push({ exceptionType: 'Not Visited Recently', description: `Last visited ${door.lastVisitMonth || 'never'}`, severity: 'Medium', dateReported: door.lastVisitDate || 'Never' });
+  }
+  crInventoryRowsForDoor(door, periodKeys).forEach(r => {
+    if (r.inventoryStatus === 'OOS') rows.push({ exceptionType: 'Out of Stock', description: `${r.skuName} is out of stock`, severity: 'High', dateReported: latestCiVisit ? latestCiVisit.vd : 'Not Tracked' });
+    else if (r.inventoryStatus === 'Critical') rows.push({ exceptionType: 'Critical Inventory', description: `${r.skuName} stock critically low`, severity: 'High', dateReported: latestCiVisit ? latestCiVisit.vd : 'Not Tracked' });
+    else if (r.inventoryStatus === 'Low') rows.push({ exceptionType: 'Low Inventory', description: `${r.skuName} stock running low`, severity: 'Medium', dateReported: latestCiVisit ? latestCiVisit.vd : 'Not Tracked' });
+  });
+  if (crDoorPopStatus(door, periodKeys) === 'Missing') {
+    rows.push({ exceptionType: 'Missing POP', description: 'POP materials not installed', severity: 'Medium', dateReported: latestPromo ? latestPromo.vd : (latestCiVisit ? latestCiVisit.vd : 'Not Tracked') });
+  }
+  return rows;
+}
+
+function crModalActionItemsHtml(door) {
+  const actions = loadActions().filter(a => a.doorKey === door.key);
+  return `<div class="cr-modal-section">
+    <div class="cr-modal-section-title">Action Items</div>
+    ${actions.length ? actions.map(a => actionRowHtml(a)).join('') : '<div style="font-size:12px;color:var(--muted);">No action items yet for this store.</div>'}
+    <form onsubmit="return crModalSubmitAction(event, '${esc(door.key)}', '${esc(door.chain)}')" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
+      <div><label style="font-size:10px;color:var(--muted);display:block;">Action Required</label><select name="type" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);">${ACTION_TYPES.map(t=>`<option>${escHtml(t)}</option>`).join('')}</select></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;">Priority</label><select name="priority" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;">Due Date</label><input type="date" name="dueDate" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);"></div>
+      <div><label style="font-size:10px;color:var(--muted);display:block;">Assigned To</label><input type="text" name="assignedRep" placeholder="Rep name" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);"></div>
+      <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted);display:block;">Notes</label><textarea name="notes" rows="2" oninput="crModalNoteInput(this.value)" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);"></textarea></div>
+      <div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;">
+        <button class="ac-btn" type="submit">+ Add Action Item</button>
+        ${crModalDirty ? '<span style="font-size:11px;color:var(--yellow);">Unsaved note — finish or clear it to close the popup.</span>' : ''}
+      </div>
+    </form>
+  </div>`;
+}
+
+function crModalContentHtml(door) {
+  const periodKeys = crPeriodMonthKeys(crPeriodEnd, crMonthsBack);
+  const invRows = crInventoryRowsForDoor(door, periodKeys);
+  const pop = crPopRowForDoor(door, periodKeys);
+  const { latestCiVisit, latestPromo } = crLatestVisitsForDoor(door, periodKeys);
+  const popLastUpdated = latestPromo ? (latestPromo.vd || 'Not Tracked') : (latestCiVisit ? (latestCiVisit.vd || 'Not Tracked') : 'Not Tracked');
+  const exceptions = crExceptionsForDoor(door, periodKeys);
+  const invCols = CR_INVENTORY_COLS.filter(c => c[0] !== 'Address');
+
   return `
-    ${block('Stores Not Visited Recently', ex.notVisited, [['Address',r=>escHtml(r.address||'—')],['City',r=>escHtml(r.city||'—')],['Last Visit Month',r=>crNT(r.lastVisitMonth)]])}
-    ${block('Low / Out-of-Stock SKUs', ex.lowOosSkus, [['Address',r=>escHtml(r.address||'—')],['SKU',r=>escHtml(r.skuName)],['Status',r=>crNT(r.inventoryStatus)]])}
-    ${block('Missing POP Installations', ex.missingPop, [['Address',r=>escHtml(r.address||'—')],['POP Expected',r=>crNT(r.popMaterialsExpected)],['Status',r=>crNT(r.popStatus)]])}
-    ${block('Stores Requiring Follow-Up (open actions)', ex.followUps, [['Address',r=>escHtml(r.address||'—')],['Type',r=>escHtml(r.type||'—')],['Priority',r=>escHtml(r.priority||'—')],['Due',r=>crNT(r.dueDate)],['Status',r=>escHtml(r.status||'—')]])}
+    <div class="cr-modal-close" onclick="crCloseStoreModal()">✕</div>
+    <div class="cr-modal-header">
+      <div class="dp-chain">${escHtml(door.chain)}</div>
+      <div class="dp-addr">${escHtml(door.address)}</div>
+      <div class="dp-city">${escHtml(door.city)}, ${escHtml(door.state)}</div>
+    </div>
+
+    <div class="cr-modal-section">
+      <div class="cr-modal-section-title">Inventory Details</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">SKU ID and Qty on Hand are not tracked in this system. Qty Faced reflects shelf facings observed during a POP visit where available.</div>
+      ${crGenericTableHtml(invCols, invRows)}
+    </div>
+
+    <div class="cr-modal-section">
+      <div class="cr-modal-section-title">POP Details</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">POP tracking is presence/absence only in this system — itemized checklists and store-level completion percentages are not tracked.</div>
+      <div class="dp-row"><span class="dp-label">POP Item (Expected)</span><span class="dp-val">${crNT(pop.popMaterialsExpected)}</span></div>
+      <div class="dp-row"><span class="dp-label">Status</span><span class="dp-val">${crNT(pop.popStatus)}</span></div>
+      <div class="dp-row"><span class="dp-label">Last Updated</span><span class="dp-val">${crNT(popLastUpdated)}</span></div>
+    </div>
+
+    <div class="cr-modal-section">
+      <div class="cr-modal-section-title">Exceptions</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Severity is a rule-based classification from this system's own thresholds, not a captured field.</div>
+      ${crGenericTableHtml([
+        ['Exception Type', r=>escHtml(r.exceptionType)], ['Description', r=>escHtml(r.description)],
+        ['Severity', r=>escHtml(r.severity)], ['Date Reported', r=>crNT(r.dateReported)]
+      ], exceptions)}
+    </div>
+
+    ${crModalActionItemsHtml(door)}
   `;
 }
+
+function renderCrStoreModal() {
+  const backdrop = document.getElementById('cr-modal-backdrop');
+  const box = document.getElementById('cr-modal');
+  if (!backdrop || !box) return;
+  if (!crModalDoorKey) { backdrop.classList.remove('open'); box.innerHTML = ''; return; }
+  const door = DOORS_BY_KEY[crModalDoorKey];
+  if (!door) { crModalDoorKey = null; backdrop.classList.remove('open'); box.innerHTML = ''; return; }
+  box.innerHTML = crModalContentHtml(door);
+  backdrop.classList.add('open');
+}
+
+// No blocking confirm()/alert() -- this project's own memory documents a real incident where a
+// native dialog froze the entire Browser pane tool during automated verification. While the
+// add-action mini-form has unsaved text, Esc/backdrop-click/store-switch are silently ignored
+// (see crModalDirty checks above) and an inline hint explains why; only clearing the note or
+// submitting the form re-enables closing.
+(function initCrModalKeydown() {
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && crModalDoorKey) crCloseStoreModal();
+  });
+})();
 
 function renderCrFilterPanel() {
   const f = crFilters;
@@ -6232,6 +6398,17 @@ function renderChainReport() {
   const el = document.getElementById('view-chainreport');
   if (!crPeriodEnd) crPeriodEnd = crLatestAvailableMonth();
 
+  // A store selection scoped to a different (or no-longer-selected) chain is stale -- drop it
+  // rather than silently showing/popping up a store that isn't even in view anymore.
+  if (crModalDoorKey && (!DOORS_BY_KEY[crModalDoorKey] || DOORS_BY_KEY[crModalDoorKey].chain !== crChain)) crModalDoorKey = null;
+  const storeOpts = crChain ? crStoreOptions() : [];
+  // Pre-fills the picker with a sensible default label (first store) WITHOUT opening the popup --
+  // the popup only ever opens on an explicit dropdown pick or store-row click, never just because
+  // a chain was selected.
+  const selectedStoreLabel = crModalDoorKey
+    ? ((storeOpts.find(o=>o.key===crModalDoorKey)||{}).label || '')
+    : (storeOpts[0] ? storeOpts[0].label : '');
+
   const picker = `<div class="section-title" style="margin-top:0;">Chain Report Generator</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;">
       <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Chain</label>
@@ -6243,17 +6420,19 @@ function renderChainReport() {
         <input type="month" value="${esc(crPeriodEnd)}" onchange="crSetPeriodEnd(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;"></div>
       <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Reporting Window</label>
         <div class="rr-view-toggle">${[3,6,12].map(n=>`<button class="${crMonthsBack===n?'active':''}" onclick="crSetMonthRange(${n})">${n} mo</button>`).join('')}</div></div>
+      ${crChain ? `<div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Store Selection</label>
+        <input type="text" list="cr-store-datalist" placeholder="Search stores…" value="${escHtml(selectedStoreLabel)}" onchange="crSetStoreByLabel(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;min-width:260px;">
+        <datalist id="cr-store-datalist">${storeOpts.map(o=>`<option value="${escHtml(o.label)}"></option>`).join('')}</datalist></div>` : ''}
     </div>`;
 
   if (!crChain) {
     el.innerHTML = picker + `<div style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center;">Select a chain above to generate its report.</div>`;
+    renderCrStoreModal();
     return;
   }
 
   const report = crGetOrBuildReport(crChain, crPeriodEnd, crMonthsBack, crFilters);
   const storePaged = crPagedSlice(report.storeRows, 'stores');
-  const invPaged = crPagedSlice(report.inventoryRows, 'inventory');
-  const popPaged = crPagedSlice(report.popRows, 'pop');
 
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
@@ -6272,18 +6451,11 @@ function renderChainReport() {
     ${crSectionHeader('summary','Executive Summary')}
     ${!crCollapsed.summary ? crExecSummaryHtml(report) : ''}
 
-    ${crSectionHeader('stores','Store Details', report.storeRows.length)}
-    ${!crCollapsed.stores ? crGenericTableHtml(CR_STORE_COLS, storePaged.pageRows) + crPaginationHtml('stores', storePaged.totalPages) : ''}
-
-    ${crSectionHeader('inventory','Inventory Details', report.inventoryRows.length)}
-    ${!crCollapsed.inventory ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">SKU ID and Qty on Hand are not tracked in this system — shown as Not Tracked. Qty Faced reflects shelf facings observed during a POP visit where available.</div>` + crGenericTableHtml(CR_INVENTORY_COLS, invPaged.pageRows) + crPaginationHtml('inventory', invPaged.totalPages) : ''}
-
-    ${crSectionHeader('pop','POP Details', report.popRows.length)}
-    ${!crCollapsed.pop ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">POP tracking is presence/absence only in this system — itemized checklists and per-store completion percentages are not tracked.</div>` + crGenericTableHtml(CR_POP_COLS, popPaged.pageRows) + crPaginationHtml('pop', popPaged.totalPages) : ''}
-
-    ${crSectionHeader('exceptions','Exceptions & Action Items')}
-    ${!crCollapsed.exceptions ? crExceptionsHtml(report) : ''}
+    <div class="cp-section-title">Store Details (${fmtNum(report.storeRows.length)})</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Select a store above, or click any row, to view its Inventory, POP, Exceptions, and Action Items.</div>
+    ${crStoreTableHtml(storePaged.pageRows)}${crPaginationHtml('stores', storePaged.totalPages)}
   `;
+  renderCrStoreModal();
 }
 
 // CSV has no "sheet" concept -- one file per section (splitting Exceptions further into its 4
