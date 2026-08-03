@@ -2869,6 +2869,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 // ── DATA ──────────────────────────────────────────────────────────────────────
 let CI = [];  // populated async by loadAllData() -- see below
 let EILEEN = [];  // populated async by loadAllData() -- see below
+let CLARKS = [];  // populated async by loadAllData() -- see below
 let CHAINS = [];  // populated async by loadAllData() -- see below
 let SALES = {};  // populated async by loadAllData() -- see below
 let DOORS = [];  // populated async by loadAllData() -- see below
@@ -3147,10 +3148,15 @@ function openDetail(s, source) {
   const content = document.getElementById('dp-content');
 
   const isEileen = source === 'eileen';
-  const col = isEileen ? '#7C3AED' : scoreColor(s.sc);
+  // Clark Post Report has no numeric score at all (confirmed with the user: real notes only,
+  // never invent a scoring formula) -- must skip the CI-style score/point-breakdown UI entirely,
+  // the same way Eileen (which also has no score) already does, rather than interpolating
+  // undefined si/ss/sp/sa fields into the page.
+  const isClarks = source === 'clarks';
+  const col = (isEileen || isClarks) ? '#7C3AED' : scoreColor(s.sc);
 
   let scoreBlock = '';
-  if (!isEileen) {
+  if (!isEileen && !isClarks) {
     const ptRows = [
       [s.si, 'Product in Store', s.si ? `+1 pt` : 'Not stocked'],
       [s.ss > 0 ? 1 : 0, s.ss === 2 ? 'Full Stock (+2 pts)' : s.ss === 1 ? 'Partial Stock (+1 pt)' : 'Missing Product (0 pts)', s.ss > 0 ? `+${s.ss} pt${s.ss>1?'s':''}` : '0 pts'],
@@ -3273,7 +3279,7 @@ function openDetail(s, source) {
 
   content.innerHTML = `
     <div class="dp-header">
-      <div class="dp-chain">${s.ch}${isEileen?' · Eileen Visit':'· CI Visit'}</div>
+      <div class="dp-chain">${s.ch}${isEileen?' · Eileen Visit':isClarks?' · Post Report':'· CI Visit'}</div>
       <div class="dp-addr">${s.a}</div>
       <div class="dp-city">${s.ci}, ${s.st}${visitDate ? ' · ' + visitDate : ''}</div>
     </div>
@@ -3899,7 +3905,7 @@ function jsArrayLiteral(urls) {
 }
 
 function visitPhotoUrls(ciId, src) {
-  const arr = src === 'eileen' ? EILEEN : CI;
+  const arr = src === 'eileen' ? EILEEN : src === 'clarks' ? CLARKS : CI;
   const rec = arr.find(x => x.id === ciId);
   if (!rec || !rec.ph || !rec.ph.length) return [];
   return rec.ph.map(p => src === 'eileen' ? (PHOTO_BASE + p) : p);
@@ -4037,7 +4043,7 @@ function openDoorDetail(doorKey) {
 }
 
 function openVisitFromDoor(ciId, src) {
-  const arr = src === 'eileen' ? EILEEN : CI;
+  const arr = src === 'eileen' ? EILEEN : src === 'clarks' ? CLARKS : CI;
   const rec = arr.find(x => x.id === ciId);
   if (rec) openDetail(rec, src);
 }
@@ -4534,7 +4540,8 @@ function buildDerivedIndexes() {
 
   RR_ALL_REPORTS = CI.map(v => Object.assign({}, v, { src:'ci' }))
     .concat(EILEEN.map(v => Object.assign({}, v, { src:'eileen' })))
-    .concat(POPPROMO_REPORTS);
+    .concat(POPPROMO_REPORTS)
+    .concat(CLARKS.map(v => Object.assign({}, v, { src:'clarks' })));
 }
 
 function reportKey(rec) { return rec.src + '|' + rec.id; }
@@ -4777,7 +4784,7 @@ const RR_COLS = [
 ];
 
 function rrOpenReport(src, id) {
-  const arr = src === 'eileen' ? EILEEN : src === 'poppromo' ? POPPROMO_REPORTS : CI;
+  const arr = src === 'eileen' ? EILEEN : src === 'poppromo' ? POPPROMO_REPORTS : src === 'clarks' ? CLARKS : CI;
   const rec = arr.find(x => x.id === id);
   if (rec) openDetail(rec, src);
 }
@@ -4845,6 +4852,10 @@ function rrRepNotesHtml(rec) {
     if (rec.observedPrice !== null && rec.observedPrice !== undefined) rows.push(['Observed Price', '$'+Number(rec.observedPrice).toFixed(2), false]);
     if (rec.orderingIssue) rows.push(['Ordering Issue', rec.orderingIssue, true]);
     if (rec.weekendRestricted) rows.push(['Weekend Restricted', 'Yes', true]);
+  } else if (rec.src === 'clarks') {
+    // Clark Post Report's whole value is this free-text compliance note -- no numeric score for
+    // this source, confirmed with the user: show the real note, never invent a score from it.
+    if (rec.n) rows.push(['Rep Note', rec.n, false]);
   }
   if (!rows.length) return '';
   return `<div class="rr-notes-block">
@@ -5318,7 +5329,7 @@ function renderUnderperformingChains() {
     <table class="ranked-table"><thead><tr><th>Chain</th><th>Doors</th><th>Avg Score</th><th>Sales Change</th><th></th></tr></thead>
     <tbody>${rows.map(r => `<tr onclick="ovJumpToChain('${esc(r.chain)}')">
       <td>${escHtml(r.chain)}</td><td>${fmtNum(r.total)}</td>
-      <td><span class="badge ${r.avgScore<1.5?'badge-critical':r.avgScore<upThreshold?'badge-warn':'badge-muted'}">${fmtScore(r.avgScore)}</span></td>
+      <td><span class="badge ${r.avgScore===null?'badge-muted':r.avgScore<1.5?'badge-critical':r.avgScore<upThreshold?'badge-warn':'badge-muted'}">${fmtScore(r.avgScore)}</span></td>
       <td>${r.changePct===null?'—':`<span style="color:${r.changePct<0?'var(--red)':'var(--green)'}">${r.changePct>=0?'▲':'▼'} ${Math.abs(r.changePct).toFixed(1)}%</span>`}</td>
       <td style="color:var(--orange);">View →</td>
     </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted)">No chains below threshold — nice.</td></tr>'}</tbody></table>
@@ -5458,7 +5469,7 @@ function renderChainGrid(chains) {
         <th>Rank</th><th>Status</th>
       </tr></thead>
       <tbody>${rows.map(r => {
-        const status = r.avgScore>=3 ? {l:'Strong',c:'badge-good'} : r.avgScore>=2 ? {l:'Watch',c:'badge-warn'} : {l:'Critical',c:'badge-critical'};
+        const status = r.avgScore===null ? {l:'Unknown',c:'badge-muted'} : r.avgScore>=3 ? {l:'Strong',c:'badge-good'} : r.avgScore>=2 ? {l:'Watch',c:'badge-warn'} : {l:'Critical',c:'badge-critical'};
         return `<tr onclick="ovJumpToChain('${esc(r.chain)}')">
           <td>${escHtml(r.chain)}</td><td>${fmtNum(r.doors)}</td><td>${fmtScore(r.avgScore)}</td>
           <td>${fmtNum(r.recentVel)}</td><td>${fmtNum(r.trailingVel)}</td>
@@ -7109,12 +7120,12 @@ function renderChains() {
 
 
 function initReportDeepLink() {
-  const m = location.hash.match(/^#report=(ci|eileen)\|(.+)$/);
+  const m = location.hash.match(/^#report=(ci|eileen|poppromo|clarks)\|(.+)$/);
   if (!m) return;
   const src = m[1];
   const rawId = decodeURIComponent(m[2]);
   const idNum = Number(rawId);
-  const arr = src === 'eileen' ? EILEEN : CI;
+  const arr = src === 'eileen' ? EILEEN : src === 'poppromo' ? POPPROMO_REPORTS : src === 'clarks' ? CLARKS : CI;
   const rec = arr.find(x => x.id === rawId || x.id === idNum);
   if (rec) openDetail(rec, src);
 }
@@ -7177,6 +7188,12 @@ function applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, do
   EILEEN = visitsRows.filter(v => v.src === 'eileen').map(v => ({
     id: v.id, ch: v.ch, a: v.a, ci: v.ci, st: v.st, la: v.la, lo: v.lo, vd: v.vd, src: 'eileen', ph: v.ph || []
   }));
+  // Clark Post Report (MS/AL, June 2026) -- real address/date/note per visit, no numeric score
+  // (confirmed with the user: show real notes only, never invent a scoring formula from them).
+  CLARKS = visitsRows.filter(v => v.src === 'clarks').map(v => ({
+    id: v.id, ch: v.ch, a: v.a, ci: v.ci, st: v.st, n: v.n, vd: v.vd, month: v.month,
+    la: v.la, lo: v.lo, src: 'clarks', ph: v.ph || []
+  }));
 
   const doorVisitsByKey = {};
   doorVisitsRows.forEach(v => {
@@ -7218,7 +7235,7 @@ async function loadAllData() {
   if (window.__EMBEDDED_SNAPSHOT__) {
     usingEmbeddedSnapshot = true;
     const snap = window.__EMBEDDED_SNAPSHOT__;
-    CI = snap.CI; EILEEN = snap.EILEEN; CHAINS = snap.CHAINS; SALES = snap.SALES; DOORS = snap.DOORS;
+    CI = snap.CI; EILEEN = snap.EILEEN; CLARKS = snap.CLARKS || []; CHAINS = snap.CHAINS; SALES = snap.SALES; DOORS = snap.DOORS;
     CHAIN_PROGRAMS = snap.CHAIN_PROGRAMS || []; // absent from older snapshots until the next artifact rebuild -- degrades to "Not Tracked" everywhere, never an error
     buildDerivedIndexes();
     // No live Supabase connection on this build -- Actions/Report Status fall back to this
