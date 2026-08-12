@@ -1181,7 +1181,112 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-velocity{flex:1;display:flex;flex-direction:row;overflow:hidden;}
 .vd-filter-panel{width:240px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:18px 16px;background:var(--surface);}
 #view-reportreview{flex:1;display:flex;flex-direction:row;overflow:hidden;}
-#view-civisitreview{flex:1;display:flex;flex-direction:row;overflow:hidden;}
+#view-civisitreview{flex:1;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;background:#f5f4f0;}
+
+/* CI VISIT REVIEW -- patterned directly from the standalone "Lucy Goods -- June 2026 Photo
+   Review" prototype (its own light cream palette + sticky header/stats-bar/filters-bar/card
+   layout), NOT from this dashboard's Report Review tab -- deliberately its own visual language,
+   scoped entirely under #view-civisitreview / civr- prefixed classes so it can't leak into or
+   collide with the rest of the app. */
+#view-civisitreview .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+#view-civisitreview .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
+#view-civisitreview .civr-progress-bar{width:220px;height:4px;background:#e0ddd6;border-radius:2px;overflow:hidden;}
+#view-civisitreview .civr-progress-fill{height:100%;background:#2a7a2a;border-radius:2px;transition:width 0.3s;}
+#view-civisitreview .civr-progress-text{font-size:12px;color:#888;}
+#view-civisitreview .civr-export-btn{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid #bbb;background:#fff;color:#1a1a18;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-export-btn:hover{background:#f0efe8;}
+#view-civisitreview .civr-stats-bar{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;}
+#view-civisitreview .civr-stat{display:flex;flex-direction:column;gap:1px;}
+#view-civisitreview .civr-slabel{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;}
+#view-civisitreview .civr-sval{font-size:22px;font-weight:700;color:#1a1a18;}
+#view-civisitreview .civr-stat.civr-green .civr-sval{color:#1a7a1a;}
+#view-civisitreview .civr-stat.civr-red .civr-sval{color:#b03020;}
+#view-civisitreview .civr-stat.civr-blue .civr-sval{color:#1a5fa0;}
+#view-civisitreview .civr-stat.civr-amber .civr-sval{color:#8a5000;}
+#view-civisitreview .civr-filters{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+#view-civisitreview .civr-filters label{font-size:12px;color:#666;font-weight:500;}
+#view-civisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
+#view-civisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
+#view-civisitreview .civr-reset:hover{text-decoration:underline;}
+#view-civisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+#view-civisitreview .civr-bulk-count{font-size:13px;color:#666;}
+#view-civisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
+#view-civisitreview .civr-bulk-no{border-color:#c03020;background:#fdecea;color:#8a1010;}
+#view-civisitreview .civr-bulk-yes{border-color:#2a7a2a;background:#e6f5e6;color:#1a5a1a;}
+#view-civisitreview .civr-bulk-submit{border-color:#1a5fa0;background:#e3f0ff;color:#1a4a80;}
+#view-civisitreview .civr-bulk-msg{font-size:12px;color:#2a7a2a;font-weight:600;}
+#view-civisitreview .civr-main{max-width:1000px;width:100%;margin:0 auto;padding:16px;}
+
+#view-civisitreview .civr-store-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;}
+#view-civisitreview .civr-store-card.civr-submitted{border-left:4px solid #1a7a1a;}
+#view-civisitreview .civr-store-card.civr-submitted-flag{border-left:4px solid #e08020;}
+#view-civisitreview .civr-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0;}
+#view-civisitreview .civr-card-title{font-size:14px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-card-sub{font-size:12px;color:#777;margin-top:2px;}
+#view-civisitreview .civr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-bottom:10px;}
+#view-civisitreview .civr-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+#view-civisitreview .civr-b-strip-yes{background:#ddeeff;color:#1a5fa0;border:1px solid #aaccee;}
+#view-civisitreview .civr-b-strip-no{background:#fff3e0;color:#a06010;border:1px solid #e8c060;}
+#view-civisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
+#view-civisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
+#view-civisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
+#view-civisitreview .civr-card-body{padding:0 16px 14px;}
+
+#view-civisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-rep-notes-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;}
+#view-civisitreview .civr-rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
+#view-civisitreview .civr-rep-row{display:flex;gap:6px;padding:2px 0;align-items:baseline;}
+#view-civisitreview .civr-rep-key{color:#999;flex-shrink:0;min-width:130px;font-size:11px;}
+#view-civisitreview .civr-rep-val{color:#1a1a18;font-weight:500;font-size:12px;}
+#view-civisitreview .civr-rep-val.alert{color:#a02020;}
+#view-civisitreview .civr-rep-val.good{color:#1a7a1a;}
+#view-civisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
+
+#view-civisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
+#view-civisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
+#view-civisitreview .civr-photo-wrap{position:relative;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid #e0ddd6;background:#f5f4f0;cursor:pointer;}
+#view-civisitreview .civr-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+#view-civisitreview .civr-photo-wrap img:hover{opacity:0.88;}
+#view-civisitreview .civr-photo-hint{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
+#view-civisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
+#view-civisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
+#view-civisitreview .civr-view-all:hover{text-decoration:underline;}
+
+#view-civisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+#view-civisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
+#view-civisitreview .civr-vq:last-of-type{border-right:none;padding-right:0;padding-left:12px;}
+#view-civisitreview .civr-vq-label{font-size:11px;font-weight:600;color:#666;margin-bottom:4px;}
+#view-civisitreview .civr-vq-pre{font-size:10px;color:#aaa;margin-bottom:2px;}
+#view-civisitreview .civr-tri-btn{display:flex;gap:3px;}
+#view-civisitreview .civr-tbtn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;cursor:pointer;font-weight:500;transition:all 0.12s;white-space:nowrap;}
+#view-civisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
+#view-civisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
+#view-civisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
+#view-civisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
+#view-civisitreview .civr-submit-btn:hover{background:#144d88;}
+#view-civisitreview .civr-submit-btn.civr-submit-done{background:#2a7a2a;cursor:default;}
+#view-civisitreview .civr-flag-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;}
+#view-civisitreview .civr-flag-btn:hover{background:#fff8e0;border-color:#e0a020;color:#8a5000;}
+#view-civisitreview .civr-flag-btn.civr-flagged{background:#fff3e0;border-color:#e0a020;color:#8a5000;font-weight:600;}
+
+#view-civisitreview .civr-submitted-banner{display:none;background:#e8f5e8;border-top:1px solid #b0d8b0;padding:8px 16px;font-size:12px;color:#1a6a1a;font-weight:600;align-items:center;justify-content:space-between;}
+#view-civisitreview .civr-submitted-banner.civr-show{display:flex;}
+#view-civisitreview .civr-undo-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #88bb88;background:#fff;color:#1a6a1a;cursor:pointer;}
+#view-civisitreview .civr-undo-btn:hover{background:#d0ecd0;}
+
+#view-civisitreview .civr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:#fafaf8;border-top:1px solid #eae8df;}
+#view-civisitreview .civr-notes-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;flex-shrink:0;}
+#view-civisitreview .civr-notes-input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;font-family:inherit;}
+#view-civisitreview .civr-notes-input:focus{outline:2px solid #4a90d0;border-color:#4a90d0;}
+
+#view-civisitreview .civr-pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 0;}
+#view-civisitreview .civr-page-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-page-btn:hover:not(:disabled){background:#f0efe8;}
+#view-civisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
+#view-civisitreview .civr-page-info{font-size:13px;color:#666;}
+#view-civisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
 .rr-filter-panel{width:240px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:18px 16px;background:var(--surface);}
 .rr-filter-panel h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 8px;}
 .rr-filter-panel h4:first-child{margin-top:0;}
@@ -2308,9 +2413,8 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     </div>
 
     <!-- CI VISIT REVIEW VIEW -->
-    <div id="view-civisitreview" style="display:none;flex-direction:row;overflow:hidden;padding:0;">
-      <div class="rr-filter-panel" id="civ-filter-panel"></div>
-      <div class="rr-main" id="civ-main"></div>
+    <div id="view-civisitreview" style="display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:0;">
+      <div id="civ-main"></div>
     </div>
 
     <!-- OOS VIEW -->
@@ -5119,47 +5223,14 @@ function renderReportReview() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// CI VISIT REVIEW -- same manager-verdict-queue pattern as Report Review above (reuses the same
-// .rr-* CSS classes and REPORT_STATUS_CACHE/REPORT_VERDICT_CACHE tables/VERDICT_QS questions),
-// but a deliberately separate tab/data-scope: real CI (Customer Impact) visits instead of
-// poppromo, confirmed with the user as its own tab rather than folded into Report Review.
+// CI VISIT REVIEW -- deliberately its OWN layout/visual pattern, NOT Report Review's. Patterned
+// directly from the standalone "Lucy Goods -- June 2026 Photo Review" prototype (sticky
+// header+progress bar, stats bar, horizontal filters bar, bulk bar, single-column paginated
+// cards, verdict-bar, submitted-banner, pager) -- see the civr-* CSS block near #view-civisitreview
+// for the matching styles. Persistence (REPORT_STATUS_CACHE/REPORT_VERDICT_CACHE, getReportStatus/
+// setReportStatus/getReportVerdict/setReportVerdict, reportKey) is shared dashboard-wide
+// infrastructure, not something specific to Report Review, so it's reused as-is.
 // ══════════════════════════════════════════════════════════════════════════
-let civFilters = { chain:'', storeSearch:'', state:'', territory:'', rep:'', dateFrom:'', dateTo:'', status:'', minScore:'', maxScore:'', minVelocity:'', maxVelocity:'' };
-let civSort = { col:'date', dir:'desc' };
-let civPage = 1;
-const CIV_PAGE_SIZE = 25;
-let civViewMode = 'cards'; // this tab exists specifically for the photo-review-style queue, so cards is the default (Report Review defaults to Table)
-let civCardPage = 1;
-const CIV_CARD_PAGE_SIZE = 6;
-function civSetViewMode(mode) { civViewMode = mode; renderCiVisitReview(); }
-
-function civResetFilters() {
-  civFilters = { chain:'', storeSearch:'', state:'', territory:'', rep:'', dateFrom:'', dateTo:'', status:'', minScore:'', maxScore:'', minVelocity:'', maxVelocity:'' };
-  civPage = 1; civCardPage = 1; civBulkMsg = '';
-  renderCiVisitReview();
-}
-function civSetFilter(key, val) { civFilters[key] = val; civPage = 1; civCardPage = 1; civBulkMsg = ''; renderCiVisitReview(); }
-function civSortBy(col) {
-  civSort = { col, dir: (civSort.col === col && civSort.dir === 'asc') ? 'desc' : 'asc' };
-  renderCiVisitReview();
-}
-function civChangePage(dir) { civPage += dir; renderCiVisitReview(); }
-function civCardChangePage(dir) { civCardPage += dir; renderCiVisitReview(); window.scrollTo({top:0,behavior:'smooth'}); }
-
-function civReportValue(rec, col) {
-  const door = reportDoor(rec);
-  switch (col) {
-    case 'date': return parseVisitTimestamp(rec);
-    case 'store': return (rec.a||'').toLowerCase();
-    case 'chain': return (rec.ch||'').toLowerCase();
-    case 'rep': return (rec.rep||'Unknown').toLowerCase();
-    case 'score': return (rec.sc===null||rec.sc===undefined) ? null : rec.sc;
-    case 'velocity': return door && door.realVelocity!==null && door.realVelocity!==undefined ? door.realVelocity : null;
-    case 'status': return getReportStatus(rec);
-    case 'updated': { const u = getReportStatusUpdatedAt(rec); return u ? new Date(u).getTime() : parseVisitTimestamp(rec); }
-    default: return null;
-  }
-}
 
 // Real rep-reported hints for CI: si (carries/product present), sp (POP/shelf-strip present),
 // oo (out-of-stock items array, non-empty = needs product). `sa` (strip-added-this-visit) is a
@@ -5173,142 +5244,6 @@ function civRepHint(rec) {
     stripAdded: null,
     needsProduct: Array.isArray(rec.oo) ? rec.oo.length > 0 : null
   };
-}
-
-function civFilteredReports() {
-  let list = CIV_ALL_REPORTS;
-  if (civFilters.chain) list = list.filter(r => r.ch === civFilters.chain);
-  if (civFilters.storeSearch) {
-    const s = civFilters.storeSearch.toLowerCase();
-    list = list.filter(r => (r.a||'').toLowerCase().includes(s) || (r.ci||'').toLowerCase().includes(s));
-  }
-  if (civFilters.state) list = list.filter(r => (r.st||'') === civFilters.state);
-  if (civFilters.territory) list = list.filter(r => (r.ci||'') === civFilters.territory);
-  if (civFilters.rep) { const s = civFilters.rep.toLowerCase(); list = list.filter(r => (r.rep||'Unknown').toLowerCase().includes(s)); }
-  if (civFilters.dateFrom) { const from = new Date(civFilters.dateFrom).getTime(); list = list.filter(r => parseVisitTimestamp(r) >= from); }
-  if (civFilters.dateTo) { const to = new Date(civFilters.dateTo).getTime() + 86399999; list = list.filter(r => parseVisitTimestamp(r) <= to); }
-  if (civFilters.status) list = list.filter(r => getReportStatus(r) === civFilters.status);
-  if (civFilters.minScore !== '') { const m = parseFloat(civFilters.minScore); list = list.filter(r => r.sc!==null && r.sc!==undefined && r.sc >= m); }
-  if (civFilters.maxScore !== '') { const m = parseFloat(civFilters.maxScore); list = list.filter(r => r.sc!==null && r.sc!==undefined && r.sc <= m); }
-  if (civFilters.minVelocity !== '') { const m = parseFloat(civFilters.minVelocity); list = list.filter(r => { const d=reportDoor(r); return d && d.realVelocity!==null && d.realVelocity!==undefined && d.realVelocity >= m; }); }
-  if (civFilters.maxVelocity !== '') { const m = parseFloat(civFilters.maxVelocity); list = list.filter(r => { const d=reportDoor(r); return d && d.realVelocity!==null && d.realVelocity!==undefined && d.realVelocity <= m; }); }
-  return list;
-}
-
-function civCompare(a, b, col, dir) {
-  const av = civReportValue(a, col), bv = civReportValue(b, col);
-  const aNull = (av===null||av===undefined||av===''), bNull = (bv===null||bv===undefined||bv==='');
-  if (aNull && bNull) return 0;
-  if (aNull) return 1;
-  if (bNull) return -1;
-  const cmp = (typeof av === 'string') ? av.localeCompare(bv) : (av - bv);
-  return dir === 'asc' ? cmp : -cmp;
-}
-
-function renderCivFilterPanel() {
-  const el = document.getElementById('civ-filter-panel');
-  if (!el) return;
-  const chains = [...new Set(CIV_ALL_REPORTS.map(r=>r.ch).filter(Boolean))].sort();
-  const states = [...new Set(CIV_ALL_REPORTS.map(r=>r.st).filter(Boolean))].sort();
-  const territories = [...new Set(CIV_ALL_REPORTS.map(r=>r.ci).filter(Boolean))].sort();
-
-  el.innerHTML = `
-    <h4>Chain</h4>
-    <select onchange="civSetFilter('chain', this.value)">
-      <option value="">All Chains</option>
-      ${chains.map(c=>`<option value="${esc(c)}" ${civFilters.chain===c?'selected':''}>${escHtml(c)}</option>`).join('')}
-    </select>
-
-    <h4>Store Search</h4>
-    <input type="text" placeholder="Address or city…" value="${esc(civFilters.storeSearch)}" oninput="civSetFilter('storeSearch', this.value)">
-
-    <h4>State</h4>
-    <select onchange="civSetFilter('state', this.value)">
-      <option value="">All States</option>
-      ${states.map(s=>`<option value="${esc(s)}" ${civFilters.state===s?'selected':''}>${escHtml(s)}</option>`).join('')}
-    </select>
-
-    <h4>Territory (City)</h4>
-    <select onchange="civSetFilter('territory', this.value)">
-      <option value="">All Territories</option>
-      ${territories.map(t=>`<option value="${esc(t)}" ${civFilters.territory===t?'selected':''}>${escHtml(t)}</option>`).join('')}
-    </select>
-
-    <h4>Representative</h4>
-    <input type="text" placeholder="Rep name contains…" value="${esc(civFilters.rep)}" oninput="civSetFilter('rep', this.value)">
-
-    <h4>Visit Date Range</h4>
-    <div class="rr-range-row">
-      <input type="date" value="${esc(civFilters.dateFrom)}" onchange="civSetFilter('dateFrom', this.value)">
-      <span>–</span>
-      <input type="date" value="${esc(civFilters.dateTo)}" onchange="civSetFilter('dateTo', this.value)">
-    </div>
-
-    <h4>Report Status</h4>
-    <select onchange="civSetFilter('status', this.value)">
-      <option value="">All</option>
-      <option value="Pending" ${civFilters.status==='Pending'?'selected':''}>Pending</option>
-      <option value="Reviewed" ${civFilters.status==='Reviewed'?'selected':''}>Reviewed</option>
-    </select>
-
-    <h4>Score Range</h4>
-    <div class="rr-range-row">
-      <input type="number" min="0" max="4" placeholder="Min" value="${esc(civFilters.minScore)}" onchange="civSetFilter('minScore', this.value)">
-      <span>–</span>
-      <input type="number" min="0" max="4" placeholder="Max" value="${esc(civFilters.maxScore)}" onchange="civSetFilter('maxScore', this.value)">
-    </div>
-
-    <h4>Velocity Range (u/wk)</h4>
-    <div class="rr-range-row">
-      <input type="number" placeholder="Min" value="${esc(civFilters.minVelocity)}" onchange="civSetFilter('minVelocity', this.value)">
-      <span>–</span>
-      <input type="number" placeholder="Max" value="${esc(civFilters.maxVelocity)}" onchange="civSetFilter('maxVelocity', this.value)">
-    </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:2px;">Velocity reflects each store's latest known real velocity match, not a measurement taken at that specific visit.</div>
-
-    <div class="vd-reset" onclick="civResetFilters()">Reset filters</div>
-  `;
-}
-
-function civSummaryCards(reports) {
-  const total = reports.length;
-  const reviewed = reports.filter(r => getReportStatus(r) === 'Reviewed').length;
-  const scored = reports.filter(r => r.sc!==null && r.sc!==undefined);
-  const avgScore = scored.length ? scored.reduce((s,r)=>s+r.sc,0)/scored.length : null;
-  const doorsInScope = [...new Set(reports.map(r=>reportDoor(r)).filter(Boolean))];
-  const doorsWithVel = doorsInScope.filter(d=>d.realVelocity!==null&&d.realVelocity!==undefined);
-  const avgVelocity = doorsWithVel.length ? doorsWithVel.reduce((s,d)=>s+d.realVelocity,0)/doorsWithVel.length : null;
-  const doorKeysInScope = new Set(doorsInScope.map(d=>d.key));
-  const openActions = loadActions().filter(a => a.status !== 'Done' && doorKeysInScope.has(a.doorKey)).length;
-  const stripConfirmed = reports.filter(r => getReportVerdict(r).stripPresent === true).length;
-  const flagged = reports.filter(r => getReportVerdict(r).flag).length;
-
-  const cards = [
-    ['Total Reports', fmtNum(total)],
-    ['Reports Reviewed', fmtNum(reviewed)],
-    ['Reports Pending Review', fmtNum(total - reviewed)],
-    ['Average Visit Score', avgScore!==null?avgScore.toFixed(2)+'/4':'—'],
-    ['Average Velocity', avgVelocity!==null?avgVelocity.toFixed(1)+' u/wk':'—'],
-    ['Total Stores Visited', fmtNum(doorsInScope.length)],
-    ['Open Action Items', fmtNum(openActions)],
-    ['Strip Confirmed', fmtNum(stripConfirmed)],
-    ['Flagged', fmtNum(flagged)],
-  ];
-  return `<div class="cp-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));">${cards.map(([label,val]) => `
-    <div class="cp-kpi" style="cursor:default;">
-      <div class="cp-kpi-label">${label}</div>
-      <div class="cp-kpi-value">${val}</div>
-    </div>`).join('')}</div>`;
-}
-
-const CIV_COLS = [
-  ['date','Visit Date'], ['store','Store'], ['chain','Chain'],
-  ['rep','Rep'], ['score','Score'], ['velocity','Velocity'], ['status','Status'], ['updated','Last Updated'],
-];
-
-function civOpenReport(id) {
-  const rec = CI.find(x => x.id === id);
-  if (rec) openDetail(rec, 'ci');
 }
 
 let CIV_VERDICT_DRAFT = {};
@@ -5357,216 +5292,307 @@ function civUndoVerdict(id) {
   renderCiVisitReview();
 }
 
-// Bulk actions -- identical rationale to Report Review's (no blocking confirm(), see that
-// section's comment for why): apply to every report matching the CURRENT filters, not just the
-// current page.
-let civBulkMsg = '';
-function civBulkSetRevisit(val) {
-  const list = civFilteredReports();
-  list.forEach(r => { civDraftVerdict(r).revisit = val; });
-  civBulkMsg = `✓ Marked ${list.length} report${list.length===1?'':'s'} — Revisit ${val ? 'Yes' : 'No'}`;
+let civrFilters = { chain:'', status:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
+let civrPage = 0;
+const CIVR_PAGE_SIZE = 6; // matches the reference prototype's own PER_PAGE exactly
+let civrBulkMsg = '';
+
+function civrSetFilter(key, val) { civrFilters[key] = val; civrPage = 0; civrBulkMsg = ''; renderCiVisitReview(); }
+function civrResetFilters() {
+  civrFilters = { chain:'', status:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
+  civrPage = 0; civrBulkMsg = '';
   renderCiVisitReview();
 }
-function civBulkSubmit() {
-  const list = civFilteredReports();
-  list.forEach(r => {
+function civrChangePage(dir) { civrPage += dir; renderCiVisitReview(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+function civrFilteredReports() {
+  return CIV_ALL_REPORTS.filter(r => {
+    if (civrFilters.chain && r.ch !== civrFilters.chain) return false;
+    const status = getReportStatus(r);
+    if (civrFilters.status === 'pending' && status === 'Reviewed') return false;
+    if (civrFilters.status === 'done' && status !== 'Reviewed') return false;
+    const draft = civDraftVerdict(r);
+    if (civrFilters.needsProduct === 'yes' && draft.needsProduct !== true) return false;
+    if (civrFilters.needsProduct === 'no' && draft.needsProduct !== false) return false;
+    const repOos = Array.isArray(r.oo) && r.oo.length > 0;
+    if (civrFilters.repOos === 'yes' && !repOos) return false;
+    if (civrFilters.repOos === 'no' && repOos) return false;
+    if (civrFilters.productThere === 'yes' && draft.productPresent !== true) return false;
+    if (civrFilters.productThere === 'no' && draft.productPresent !== false) return false;
+    if (civrFilters.productThere === 'blank' && draft.productPresent !== null) return false;
+    if (civrFilters.revisit === 'yes' && draft.revisit !== true) return false;
+    if (civrFilters.revisit === 'no' && draft.revisit !== false) return false;
+    if (civrFilters.revisit === 'blank' && draft.revisit !== null) return false;
+    if (civrFilters.flagged === 'yes' && !draft.flag) return false;
+    return true;
+  });
+}
+
+// Stats bar totals are always computed over the FULL scope (not the current filter), matching
+// the reference prototype's own updateStats() -- filters narrow the card list, not the KPIs.
+function civrStats() {
+  let sub = 0, stripY = 0, needsY = 0, flagC = 0;
+  CIV_ALL_REPORTS.forEach(r => {
+    const status = getReportStatus(r);
+    const draft = civDraftVerdict(r);
+    if (status === 'Reviewed') { sub++; if (draft.stripPresent) stripY++; if (draft.needsProduct) needsY++; }
+    if (draft.flag) flagC++;
+  });
+  const total = CIV_ALL_REPORTS.length;
+  return { total, sub, stripY, needsY, flagC, pend: total - sub };
+}
+
+// Bulk actions -- deliberately NO blocking confirm()/alert() (the reference prototype has them,
+// but this project has a documented incident where a native dialog froze the whole Browser pane
+// tool during automated verification) -- an inline message after the fact instead. Applies to
+// every report matching the CURRENT filters, not just the current page.
+function civrBulkSetRevisit(val) {
+  const list = civrFilteredReports();
+  list.forEach(r => { civDraftVerdict(r).revisit = val; });
+  civrBulkMsg = `✓ ${list.length} report${list.length===1?'':'s'} marked ${val ? 'Yes Revisit' : 'No Revisit'}`;
+  renderCiVisitReview();
+}
+function civrBulkSubmit() {
+  const list = civrFilteredReports();
+  const unsubmitted = list.filter(r => getReportStatus(r) !== 'Reviewed');
+  unsubmitted.forEach(r => {
     const draft = civDraftVerdict(r);
     setReportVerdict(r, draft);
     setReportStatus(r, 'Reviewed');
     delete CIV_VERDICT_DRAFT[reportKey(r)];
   });
-  civBulkMsg = `✓ Submitted ${list.length} report${list.length===1?'':'s'}`;
+  civrBulkMsg = unsubmitted.length ? `✓ ${unsubmitted.length} report${unsubmitted.length===1?'':'s'} submitted` : 'All filtered reports are already submitted.';
   renderCiVisitReview();
 }
 
-function civRepNotesHtml(rec) {
-  const rows = [];
-  if (rec.n) rows.push(['Rep Note', rec.n, false]);
-  if (Array.isArray(rec.oo) && rec.oo.length) rows.push(['Out of Stock', rec.oo.join(', '), true]);
-  if (!rows.length) return '';
-  return `<div class="rr-notes-block">
-    <div class="rr-notes-title">Rep-Reported Details</div>
-    ${rows.map(([k,v,alert]) => `<div class="rr-note-row"><span class="rr-note-key">${escHtml(k)}</span><span class="rr-note-val${alert?' alert':''}">${escHtml(String(v))}</span></div>`).join('')}
-  </div>`;
+function civrNoteRow(k, v, cls) {
+  if (!v) return '';
+  return `<div class="civr-rep-row"><span class="civr-rep-key">${escHtml(k)}</span><span class="civr-rep-val${cls?' '+cls:''}">${escHtml(v)}</span></div>`;
 }
 
-function civBadgesHtml(rec, hint, status) {
-  const badges = [];
-  if (hint.stripPresent === true) badges.push(['strip-yes', 'Strip Present']);
-  if (hint.stripPresent === false) badges.push(['strip-no', 'Strip Missing']);
-  if (hint.needsProduct === true) badges.push(['oos', 'Out of Stock']);
-  if (hint.needsProduct === false) badges.push(['ok', 'Fully Stocked']);
-  if (status === 'Reviewed') badges.push(['lock', '✓ Submitted']);
-  if (!badges.length) return '';
-  return `<div class="rr-badges">${badges.map(([cls,label]) => `<span class="rr-badge ${cls}">${escHtml(label)}</span>`).join('')}</div>`;
+function civrRepNotesHtml(rec) {
+  const shelfLabel = rec.si === 1 ? 'Yes' : rec.si === 0 ? 'No' : '—';
+  const stripLabel = rec.sp === 1 ? 'Yes' : rec.sp === 0 ? 'No' : '—';
+  const oosItems = Array.isArray(rec.oo) ? rec.oo : [];
+  const gridRows = [
+    civrNoteRow('Lucy on shelf', shelfLabel, shelfLabel==='No'?'alert':''),
+    civrNoteRow('Strip present', stripLabel, stripLabel==='Yes'?'good':stripLabel==='No'?'alert':''),
+    oosItems.length ? civrNoteRow('Out of stock items', oosItems.join(', '), 'alert') : ''
+  ].join('');
+  let html = `<div class="civr-rep-notes"><div class="civr-rep-notes-title">Rep field notes</div><div class="civr-rep-grid">${gridRows}</div>`;
+  if (rec.n) html += `<div class="civr-rep-note-long">${escHtml(rec.n)}</div>`;
+  html += `</div>`;
+  return html;
 }
 
-// CI photos are already full URLs.
-function civPhotoUrls(rec) { return rec.ph || []; }
-function civPhotosHtml(rec) {
-  const urls = civPhotoUrls(rec);
-  if (!urls.length) return '';
+function civrBadgesHtml(rec, hint, status) {
+  let badges = '';
+  if (hint.stripPresent === true) badges += `<span class="civr-badge civr-b-strip-yes">Strip present</span>`;
+  else if (hint.stripPresent === false) badges += `<span class="civr-badge civr-b-strip-no">No strip</span>`;
+  if (Array.isArray(rec.oo) && rec.oo.length) badges += `<span class="civr-badge civr-b-oos">Rep: OOS</span>`;
+  else badges += `<span class="civr-badge civr-b-ok">Rep: in stock</span>`;
+  if (status === 'Reviewed') badges += `<span class="civr-badge civr-b-lock">✓ Submitted</span>`;
+  return badges;
+}
+
+// CI's photo model is a flexible array (not the reference prototype's 3 fixed Before/After/Strip
+// slots -- CI never captured named slots), so labels are generic "Photo N" -- same generalization
+// this project's very first build already made when adapting the reference file for CI/Eileen.
+function civrPhotosHtml(rec) {
+  const urls = Array.isArray(rec.ph) ? rec.ph : [];
   const lit = jsArrayLiteral(urls);
-  return `<div class="rr-photos-row">${urls.map((u,i) => `<div class="rr-photo-wrap" onclick="openLightbox('${esc(u)}', ${lit}, ${i})"><img src="${esc(u)}" loading="lazy"></div>`).join('')}</div>`;
+  const cols = [0,1,2].map(i => {
+    const url = urls[i];
+    const cell = url
+      ? `<div class="civr-photo-wrap" onclick="openLightbox('${esc(url)}', ${lit}, ${i})"><img src="${esc(url)}" loading="lazy"><span class="civr-photo-hint">expand</span></div>`
+      : `<div class="civr-photo-wrap"><div class="civr-no-photo">No photo</div></div>`;
+    return `<div class="civr-photo-col"><div class="civr-plabel">Photo ${i+1}</div>${cell}</div>`;
+  }).join('');
+  const extra = urls.length - 3;
+  const viewAll = extra > 0 ? `<div class="civr-view-all" onclick="openLightbox('${esc(urls[0])}', ${lit}, 0)">View all ${urls.length} photos →</div>` : '';
+  return `<div class="civr-photos-row">${cols}</div>${viewAll}`;
 }
 
-function civVerdictBarHtml(rec, draft, hint, status) {
+function civrVerdictBarHtml(rec, draft, hint, status) {
   const locked = status === 'Reviewed';
   const qHtml = VERDICT_QS.map(([field,label]) => {
     const val = draft[field];
     const hintVal = hint[field];
-    const hintHtml = hintVal===undefined || hintVal===null ? '' : `<div class="rr-vq-hint">Rep said: ${rrHintLabel(hintVal)}</div>`;
-    return `<div class="rr-vq">
-      <div class="rr-vq-label">${label}</div>
+    const hintHtml = hintVal===undefined || hintVal===null ? `<div class="civr-vq-pre">&nbsp;</div>` : `<div class="civr-vq-pre">Rep said: ${rrHintLabel(hintVal)}</div>`;
+    return `<div class="civr-vq">
+      <div class="civr-vq-label">${label}</div>
       ${hintHtml}
-      <div class="rr-tri-btn">
-        <button class="rr-tbtn ${val===true?'on-yes':''}" ${locked?'disabled':''} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', true)">Yes</button>
-        <button class="rr-tbtn ${val===false?'on-no':''}" ${locked?'disabled':''} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', false)">No</button>
+      <div class="civr-tri-btn">
+        <button class="civr-tbtn ${val===true?'civr-on-yes':''}" onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', true)">Yes</button>
+        <button class="civr-tbtn ${val===false?'civr-on-no':''}" onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', false)">No</button>
       </div>
     </div>`;
   }).join('');
-  return `<div class="rr-verdict-bar">
+  return `<div class="civr-verdict-bar">
     ${qHtml}
-    <div class="rr-submit-col">
-      <button class="rr-flag-btn ${draft.flag?'flagged':''}" onclick="civToggleFlag(${JSON.stringify(rec.id)})">${draft.flag?'⚑ Flagged':'⚐ Flag'}</button>
-      ${locked
-        ? `<button class="rr-submit-btn done" onclick="civUndoVerdict(${JSON.stringify(rec.id)})">✓ Submitted — Undo</button>`
-        : `<button class="rr-submit-btn" onclick="civSubmitVerdict(${JSON.stringify(rec.id)})">Submit Verdict</button>`}
+    <div class="civr-submit-col">
+      <button class="civr-submit-btn ${locked?'civr-submit-done':''}" onclick="civSubmitVerdict(${JSON.stringify(rec.id)})">${locked?'Submitted ✓':'Submit ✓'}</button>
+      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" onclick="civToggleFlag(${JSON.stringify(rec.id)})">⚑ Flag</button>
     </div>
   </div>
-  <div class="rr-notes-bar">
-    <input type="text" placeholder="Quick note…" value="${esc(draft.notes||'')}" ${locked?'disabled':''} onchange="civSetNote(${JSON.stringify(rec.id)}, this.value)">
+  <div class="civr-notes-bar">
+    <span class="civr-notes-label">Quick notes</span>
+    <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" onchange="civSetNote(${JSON.stringify(rec.id)}, this.value)" oninput="civSetNote(${JSON.stringify(rec.id)}, this.value)">
   </div>`;
 }
 
-function civCardHtml(rec) {
+function civrSubmittedBannerHtml(rec, draft, status) {
+  const locked = status === 'Reviewed';
+  return `<div class="civr-submitted-banner${locked?' civr-show':''}">
+    <span>✓ Submitted${draft.flag?' — flagged for follow-up':''}</span>
+    <button class="civr-undo-btn" onclick="civUndoVerdict(${JSON.stringify(rec.id)})">Undo</button>
+  </div>`;
+}
+
+function civrCardWrapperClass(rec) {
+  const status = getReportStatus(rec);
+  if (status !== 'Reviewed') return 'civr-store-card';
+  return 'civr-store-card ' + (civDraftVerdict(rec).flag ? 'civr-submitted-flag' : 'civr-submitted');
+}
+
+function civrCardHtml(rec) {
   const status = getReportStatus(rec);
   const hint = civRepHint(rec);
   const draft = civDraftVerdict(rec);
-  const dateLabel = rec.vd || rec.month || '—';
-  const scoreLabel = (rec.sc!==null && rec.sc!==undefined) ? rec.sc+'/4' : '—';
-  return `<div class="rr-card ${status==='Reviewed'?'reviewed':''}">
-    <div class="rr-card-head">
-      <div class="rr-card-title">${escHtml(rec.ch||'—')} — ${escHtml(rec.a||'—')}</div>
-      <div class="rr-card-sub">${escHtml(rec.ci||'')}${rec.ci&&rec.st?', ':''}${escHtml(rec.st||'')} · ${escHtml(dateLabel)} · ${escHtml(rec.rep||'Unknown')} · Score ${scoreLabel}</div>
-      ${civBadgesHtml(rec, hint, status)}
+  return `<div class="civr-card-head">
+    <div>
+      <div class="civr-card-title">${escHtml(rec.ch||'—')} — ${escHtml(rec.a||'—')}</div>
+      <div class="civr-card-sub">${escHtml(rec.ci||'')}${rec.ci&&rec.st?', ':''}${escHtml(rec.st||'')} • ${escHtml(rec.vd||rec.month||'—')}</div>
+      <div class="civr-badges">${civrBadgesHtml(rec, hint, status)}</div>
     </div>
-    <div class="rr-card-body">
-      ${civRepNotesHtml(rec)}
-      ${civPhotosHtml(rec)}
-    </div>
-    ${civVerdictBarHtml(rec, draft, hint, status)}
-  </div>`;
+  </div>
+  <div class="civr-card-body">
+    ${civrRepNotesHtml(rec)}
+    ${civrPhotosHtml(rec)}
+  </div>
+  ${civrVerdictBarHtml(rec, draft, hint, status)}
+  ${civrSubmittedBannerHtml(rec, draft, status)}`;
 }
 
-function civTableHtml(pageReports, sort) {
-  const headerHtml = CIV_COLS.map(([key,label]) => {
-    const active = sort.col === key;
-    const arrow = active ? (sort.dir==='asc'?' ▲':' ▼') : '';
-    return `<th onclick="civSortBy('${key}')" style="cursor:pointer;user-select:none;">${label}${arrow}</th>`;
-  }).join('');
-  const bodyHtml = pageReports.map(r => {
-    const door = reportDoor(r);
-    const status = getReportStatus(r);
-    const updatedAt = getReportStatusUpdatedAt(r);
-    return `<tr class="rr-report-row" onclick="civOpenReport(${JSON.stringify(r.id)})">
-      <td>${escHtml(r.vd||r.month||'—')}</td>
-      <td>${escHtml(r.a||'—')}</td>
-      <td>${escHtml(r.ch||'—')}</td>
-      <td>${escHtml(r.rep||'Unknown')}</td>
-      <td>${r.sc!==null&&r.sc!==undefined?r.sc+'/4':'—'}</td>
-      <td>${door&&door.realVelocity!==null&&door.realVelocity!==undefined?door.realVelocity.toFixed(1)+' u/wk':'—'}</td>
-      <td><span class="rr-status-badge ${status==='Reviewed'?'reviewed':'pending'}">${status}</span></td>
-      <td>${updatedAt?escHtml(new Date(updatedAt).toLocaleDateString()):escHtml(r.vd||r.month||'—')}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="${CIV_COLS.length}" style="text-align:center;color:var(--muted);padding:24px;">No reports match the selected filters. Try widening your date range or clearing a filter.</td></tr>`;
-  return `<table class="ranked-table"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
-}
-
-function civExportCSV() {
-  const sorted = [...civFilteredReports()].sort((a,b) => civCompare(a,b,civSort.col,civSort.dir));
-  const rows = sorted.map(r => {
-    const door = reportDoor(r);
-    const verdict = getReportVerdict(r);
+function civrExportCSV() {
+  const rows = CIV_ALL_REPORTS.map(rec => {
+    const draft = civDraftVerdict(rec);
     return {
-      VisitDate: r.vd||r.month||'', Store: r.a||'', City: r.ci||'', State: r.st||'',
-      Chain: r.ch||'', Rep: r.rep||'Unknown',
-      Score: r.sc, Velocity: door?door.realVelocity:'', Status: getReportStatus(r),
-      LastUpdated: getReportStatusUpdatedAt(r) || '',
-      ProductThere: rrYNCsv(verdict.productPresent), StripThere: rrYNCsv(verdict.stripPresent),
-      StripAdded: rrYNCsv(verdict.stripAdded), NeedsProduct: rrYNCsv(verdict.needsProduct),
-      Revisit: rrYNCsv(verdict.revisit), VerdictNotes: verdict.notes||'', Flagged: verdict.flag?'Yes':'No'
+      Store: rec.a||'', City: rec.ci||'', State: rec.st||'', Chain: rec.ch||'', VisitDate: rec.vd||rec.month||'',
+      RepStripPresent: rec.sp===1?'yes':rec.sp===0?'no':'',
+      RepOOS: Array.isArray(rec.oo)&&rec.oo.length?'yes':'no', RepOOSItems: Array.isArray(rec.oo)?rec.oo.join('; '):'',
+      YourProductThere: rrYNCsv(draft.productPresent), YourStripWasThere: rrYNCsv(draft.stripPresent),
+      YourStripAdded: rrYNCsv(draft.stripAdded), YourNeedsProduct: rrYNCsv(draft.needsProduct),
+      Revisit: rrYNCsv(draft.revisit), Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
+      Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No'
     };
   });
   downloadCSV('ci_visit_review.csv', rows);
 }
 
 function renderCiVisitReview() {
-  renderCivFilterPanel();
   const el = document.getElementById('civ-main');
-  const filtered = civFilteredReports();
-  const sorted = [...filtered].sort((a,b) => civCompare(a,b,civSort.col,civSort.dir));
+  const filtered = civrFilteredReports();
+  const stats = civrStats();
+  const chains = [...new Set(CIV_ALL_REPORTS.map(r=>r.ch).filter(Boolean))].sort();
 
-  let bodyHtml;
-  if (civViewMode === 'cards') {
-    const totalCardPages = Math.max(1, Math.ceil(sorted.length / CIV_CARD_PAGE_SIZE));
-    if (civCardPage > totalCardPages) civCardPage = totalCardPages;
-    if (civCardPage < 1) civCardPage = 1;
-    const cardStart = (civCardPage-1)*CIV_CARD_PAGE_SIZE;
-    const pageReports = sorted.slice(cardStart, cardStart+CIV_CARD_PAGE_SIZE);
-    bodyHtml = `
-      <div class="rr-bulk-bar">
-        <span class="rr-bulk-count">${fmtNum(sorted.length)} report${sorted.length===1?'':'s'} currently filtered</span>
-        <button class="rr-bulk-btn no" onclick="civBulkSetRevisit(false)">✗ Mark all filtered — No Revisit</button>
-        <button class="rr-bulk-btn yes" onclick="civBulkSetRevisit(true)">✓ Mark all filtered — Yes Revisit</button>
-        <button class="rr-bulk-btn submit" onclick="civBulkSubmit()">⇧ Submit all filtered</button>
-        ${civBulkMsg ? `<span class="rr-bulk-msg">${escHtml(civBulkMsg)}</span>` : ''}
-      </div>
-      ${pageReports.map(civCardHtml).join('') || `<div style="text-align:center;color:var(--muted);padding:24px;">No reports match the selected filters. Try widening your date range or clearing a filter.</div>`}
-      <div class="pg-row">
-        <button class="pg-btn" onclick="civCardChangePage(-1)" ${civCardPage<=1?'disabled':''}>‹ Prev</button>
-        <span>Page ${civCardPage} of ${totalCardPages}</span>
-        <button class="pg-btn" onclick="civCardChangePage(1)" ${civCardPage>=totalCardPages?'disabled':''}>Next ›</button>
-      </div>`;
-  } else {
-    const totalPages = Math.max(1, Math.ceil(sorted.length / CIV_PAGE_SIZE));
-    if (civPage > totalPages) civPage = totalPages;
-    if (civPage < 1) civPage = 1;
-    const pageStart = (civPage-1)*CIV_PAGE_SIZE;
-    const pageReports = sorted.slice(pageStart, pageStart+CIV_PAGE_SIZE);
-    bodyHtml = `
-      ${civTableHtml(pageReports, civSort)}
-      <div class="pg-row">
-        <button class="pg-btn" onclick="civChangePage(-1)" ${civPage<=1?'disabled':''}>‹ Prev</button>
-        <span>Page ${civPage} of ${totalPages}</span>
-        <button class="pg-btn" onclick="civChangePage(1)" ${civPage>=totalPages?'disabled':''}>Next ›</button>
-      </div>`;
-  }
+  const totalPages = Math.max(1, Math.ceil(filtered.length / CIVR_PAGE_SIZE));
+  if (civrPage >= totalPages) civrPage = totalPages - 1;
+  if (civrPage < 0) civrPage = 0;
+  const start = civrPage * CIVR_PAGE_SIZE;
+  const pageReports = filtered.slice(start, start + CIVR_PAGE_SIZE);
+
+  const cardsHtml = filtered.length === 0
+    ? `<div class="civr-empty">No reports match the current filters.</div>`
+    : pageReports.map(rec => `<div class="${civrCardWrapperClass(rec)}" id="civr-card-${rec.id}">${civrCardHtml(rec)}</div>`).join('');
 
   el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-      <div>
-        <div class="section-title" style="margin-top:0;">CI Visit Review</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:-4px;">Real CI (Customer Impact) visits, June–August 2026 only</div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <div class="rr-view-toggle">
-          <button class="${civViewMode==='table'?'active':''}" onclick="civSetViewMode('table')">Table</button>
-          <button class="${civViewMode==='cards'?'active':''}" onclick="civSetViewMode('cards')">Review Cards</button>
-        </div>
-        <button class="ac-btn secondary" onclick="civExportCSV()">⬇ Export Reports CSV</button>
-        <button class="ac-btn secondary" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
+  <div class="civr-header">
+    <div>
+      <h1>CI Visit Review — real CI visits, June–August 2026</h1>
+      <div class="civr-progress-wrap">
+        <div class="civr-progress-bar"><div class="civr-progress-fill" style="width:${stats.total?Math.round(stats.sub/stats.total*100):0}%"></div></div>
+        <span class="civr-progress-text">${fmtNum(stats.sub)} of ${fmtNum(stats.total)} submitted</span>
       </div>
     </div>
-    <div id="civ-summary-placeholder"><div style="color:var(--muted);font-size:12px;padding:12px 0;">Loading analytics summary…</div></div>
-    <div class="section-title">Reports (${fmtNum(sorted.length)} of ${fmtNum(CIV_ALL_REPORTS.length)})</div>
-    ${bodyHtml}
-  `;
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="civr-export-btn" onclick="civrExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
+    </div>
+  </div>
 
-  setTimeout(() => {
-    const ph = document.getElementById('civ-summary-placeholder');
-    if (ph && currentTab === 'civisitreview') ph.outerHTML = civSummaryCards(filtered);
-  }, 0);
+  <div class="civr-stats-bar">
+    <div class="civr-stat"><span class="civr-slabel">Total</span><span class="civr-sval">${fmtNum(stats.total)}</span></div>
+    <div class="civr-stat civr-blue"><span class="civr-slabel">Submitted</span><span class="civr-sval">${fmtNum(stats.sub)}</span></div>
+    <div class="civr-stat civr-green"><span class="civr-slabel">Strip confirmed</span><span class="civr-sval">${fmtNum(stats.stripY)}</span></div>
+    <div class="civr-stat civr-red"><span class="civr-slabel">Needs product</span><span class="civr-sval">${fmtNum(stats.needsY)}</span></div>
+    <div class="civr-stat civr-amber"><span class="civr-slabel">Flagged</span><span class="civr-sval">${fmtNum(stats.flagC)}</span></div>
+    <div class="civr-stat"><span class="civr-slabel">Pending</span><span class="civr-sval">${fmtNum(stats.pend)}</span></div>
+  </div>
+
+  <div class="civr-filters">
+    <label>Chain:</label>
+    <select class="civr-select" onchange="civrSetFilter('chain', this.value)">
+      <option value="">All chains</option>
+      ${chains.map(c=>`<option value="${esc(c)}" ${civrFilters.chain===c?'selected':''}>${escHtml(c)}</option>`).join('')}
+    </select>
+    <label>Status:</label>
+    <select class="civr-select" onchange="civrSetFilter('status', this.value)">
+      <option value="">All</option>
+      <option value="pending" ${civrFilters.status==='pending'?'selected':''}>Pending</option>
+      <option value="done" ${civrFilters.status==='done'?'selected':''}>Submitted</option>
+    </select>
+    <label>Needs product:</label>
+    <select class="civr-select" onchange="civrSetFilter('needsProduct', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${civrFilters.needsProduct==='yes'?'selected':''}>Needs product</option>
+      <option value="no" ${civrFilters.needsProduct==='no'?'selected':''}>Stock OK</option>
+    </select>
+    <label>Rep OOS:</label>
+    <select class="civr-select" onchange="civrSetFilter('repOos', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${civrFilters.repOos==='yes'?'selected':''}>Rep flagged OOS</option>
+      <option value="no" ${civrFilters.repOos==='no'?'selected':''}>Rep said OK</option>
+    </select>
+    <label>Product there:</label>
+    <select class="civr-select" onchange="civrSetFilter('productThere', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${civrFilters.productThere==='yes'?'selected':''}>Yes</option>
+      <option value="no" ${civrFilters.productThere==='no'?'selected':''}>No</option>
+      <option value="blank" ${civrFilters.productThere==='blank'?'selected':''}>Not answered</option>
+    </select>
+    <label>Revisit:</label>
+    <select class="civr-select" onchange="civrSetFilter('revisit', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${civrFilters.revisit==='yes'?'selected':''}>Yes</option>
+      <option value="no" ${civrFilters.revisit==='no'?'selected':''}>No</option>
+      <option value="blank" ${civrFilters.revisit==='blank'?'selected':''}>Not answered</option>
+    </select>
+    <label>Flagged:</label>
+    <select class="civr-select" onchange="civrSetFilter('flagged', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${civrFilters.flagged==='yes'?'selected':''}>Flagged only</option>
+    </select>
+    <span class="civr-reset" onclick="civrResetFilters()">Reset filters</span>
+  </div>
+
+  <div class="civr-bulk-bar">
+    <span class="civr-bulk-count">${fmtNum(filtered.length)} report${filtered.length===1?'':'s'} currently filtered</span>
+    <button class="civr-bulk-btn civr-bulk-no" onclick="civrBulkSetRevisit(false)">✗ Mark all filtered — No Revisit</button>
+    <button class="civr-bulk-btn civr-bulk-yes" onclick="civrBulkSetRevisit(true)">✓ Mark all filtered — Yes Revisit</button>
+    <button class="civr-bulk-btn civr-bulk-submit" onclick="civrBulkSubmit()">⇧ Submit all filtered</button>
+    ${civrBulkMsg ? `<span class="civr-bulk-msg">${escHtml(civrBulkMsg)}</span>` : ''}
+  </div>
+
+  <div class="civr-main">
+    ${cardsHtml}
+    <div class="civr-pager">
+      <button class="civr-page-btn" onclick="civrChangePage(-1)" ${civrPage<=0?'disabled':''}>← Prev</button>
+      <span class="civr-page-info">${filtered.length===0?'':`${start+1}–${Math.min(start+CIVR_PAGE_SIZE, filtered.length)} of ${filtered.length}`}</span>
+      <button class="civr-page-btn" onclick="civrChangePage(1)" ${civrPage>=totalPages-1?'disabled':''}>Next →</button>
+    </div>
+  </div>
+  `;
 }
 
 function renderAnalytics() {
