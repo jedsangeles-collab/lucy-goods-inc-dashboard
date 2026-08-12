@@ -1283,6 +1283,58 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
 #view-civisitreview .civr-page-info{font-size:13px;color:#666;}
 #view-civisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
+
+/* CI VISIT REVIEW -- AUTH / ACCESS CONTROL / AUDIT / VERSION HISTORY -- scoped entirely under
+   #view-civisitreview like the rest of the civr-* rules, so none of this affects any other tab. */
+#view-civisitreview .civauth-gate{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:24px;}
+#view-civisitreview .civauth-gate-box{background:#fff;border:1px solid #e0ddd6;border-radius:12px;padding:32px;max-width:360px;width:100%;text-align:center;}
+#view-civisitreview .civauth-gate-title{font-size:16px;font-weight:700;color:#1a1a18;margin-bottom:6px;}
+#view-civisitreview .civauth-gate-sub{font-size:12px;color:#777;margin-bottom:16px;}
+#view-civisitreview .civauth-gate-input{width:100%;font-size:13px;padding:9px 12px;border:1px solid #ddd;border-radius:7px;margin-bottom:10px;font-family:inherit;}
+#view-civisitreview .civauth-gate-btn{width:100%;font-size:13px;font-weight:600;padding:9px 12px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;}
+#view-civisitreview .civauth-gate-btn:hover{background:#144d88;}
+#view-civisitreview .civauth-gate-msg{font-size:11px;color:#666;margin-top:10px;min-height:14px;}
+#view-civisitreview .civauth-readonly-banner{background:#fff3e0;border-bottom:1px solid #e0a020;padding:8px 24px;font-size:12px;color:#8a5000;font-weight:500;}
+#view-civisitreview .civauth-readonly-banner a{color:#1a5fa0;font-weight:600;}
+#view-civisitreview .civauth-identity{font-size:11px;color:#666;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#view-civisitreview .civauth-identity strong{color:#1a1a18;}
+#view-civisitreview .civauth-signout{font-size:11px;color:#a02020;cursor:pointer;}
+#view-civisitreview .civauth-signout:hover{text-decoration:underline;}
+#view-civisitreview .civauth-dash{background:#fafaf8;border-bottom:1px solid #eae8df;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+#view-civisitreview .civauth-dash-stats{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:#666;}
+#view-civisitreview .civauth-dash-stats b{color:#1a1a18;}
+#view-civisitreview .civauth-dash-actions{display:flex;gap:6px;flex-wrap:wrap;}
+#view-civisitreview .civauth-dash-btn{font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#333;cursor:pointer;font-weight:500;}
+#view-civisitreview .civauth-dash-btn:hover{background:#f0efe8;}
+#view-civisitreview .civauth-dash-btn:disabled{opacity:.4;cursor:default;}
+#view-civisitreview .civauth-dirty{display:inline-block;font-size:10px;font-weight:700;color:#8a5000;background:#fff3e0;border:1px solid #e0a020;border-radius:20px;padding:1px 8px;margin-left:8px;}
+#view-civisitreview .civauth-modal-backdrop{position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center;z-index:200;}
+#view-civisitreview .civauth-modal-backdrop.civauth-open{display:flex;}
+#view-civisitreview .civauth-modal{background:#fff;border-radius:12px;max-width:820px;width:92%;max-height:85vh;overflow-y:auto;padding:0;position:relative;}
+#view-civisitreview .civauth-modal-head{position:sticky;top:0;background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;}
+#view-civisitreview .civauth-modal-title{font-size:15px;font-weight:700;color:#1a1a18;}
+#view-civisitreview .civauth-modal-close{font-size:20px;color:#888;cursor:pointer;background:none;border:none;line-height:1;}
+#view-civisitreview .civauth-modal-body{padding:16px 20px;}
+#view-civisitreview .civauth-modal-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+#view-civisitreview .civauth-modal-filters select,#view-civisitreview .civauth-modal-filters input{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit;}
+#view-civisitreview .civauth-table{width:100%;border-collapse:collapse;font-size:12px;}
+#view-civisitreview .civauth-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#999;padding:6px 8px;border-bottom:1px solid #e0ddd6;white-space:nowrap;}
+#view-civisitreview .civauth-table td{padding:6px 8px;border-bottom:1px solid #f0efe8;vertical-align:top;}
+#view-civisitreview .civauth-table tr:hover td{background:#fafaf8;}
+#view-civisitreview .civauth-tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;}
+#view-civisitreview .civauth-tag-revert{background:#fdecea;color:#a02020;}
+#view-civisitreview .civauth-tag-restore{background:#ddeeff;color:#1a5fa0;}
+#view-civisitreview .civauth-tag-save{background:#e8f5e8;color:#1a7a1a;}
+#view-civisitreview .civauth-confirm-actions{display:flex;gap:8px;margin-top:16px;}
+#view-civisitreview .civauth-confirm-btn{font-size:12px;font-weight:600;padding:8px 16px;border-radius:7px;border:none;cursor:pointer;}
+#view-civisitreview .civauth-confirm-btn.civauth-primary{background:#1a5fa0;color:#fff;}
+#view-civisitreview .civauth-confirm-btn.civauth-danger{background:#c03020;color:#fff;}
+#view-civisitreview .civauth-confirm-btn.civauth-secondary{background:#f0efe8;color:#333;}
+#view-civisitreview .civauth-diff-row{display:flex;gap:16px;padding:8px 0;border-bottom:1px solid #f0efe8;font-size:12px;}
+#view-civisitreview .civauth-diff-col{flex:1;}
+#view-civisitreview .civauth-diff-label{font-size:10px;text-transform:uppercase;color:#999;margin-bottom:2px;}
+#view-civisitreview .civauth-warn-banner{background:#fff3e0;border:1px solid #e0a020;border-radius:8px;padding:10px 14px;font-size:12px;color:#8a5000;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+
 .rr-status-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block;}
 .rr-status-badge.pending{background:var(--yellow-dim);color:var(--yellow);}
 .rr-status-badge.reviewed{background:var(--green-dim);color:var(--green);}
@@ -2312,6 +2364,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <!-- CI VISIT REVIEW VIEW -->
     <div id="view-civisitreview" style="display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:0;">
       <div id="civ-main"></div>
+      <div id="civauth-modal-root"></div>
     </div>
 
   </div><!-- /content -->
@@ -2909,7 +2962,19 @@ document.addEventListener('click', closePanelOnOutsideClick, true);
 // the Stores tab now hosts the chain insights workspace (see renderStoresTab in the round-4 module).
 
 // ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+// Requirement 9 (second bullet): leaving CI Visit Review with unsaved drafts shows a warning
+// instead of switching -- the only place this touches anything outside the CI Visit Review
+// module itself, and it's a no-op for every other tab-to-tab switch.
+let civPendingTabSwitch = null;
+
 function switchTab(tab) {
+  if (currentTab === 'civisitreview' && tab !== 'civisitreview' && civDirtySet.size > 0) {
+    civPendingTabSwitch = tab;
+    civModalOpen = 'leave-warning';
+    renderCivModal();
+    return;
+  }
+  if (tab === 'civisitreview' && currentTab !== 'civisitreview') civLogAudit('access', {});
   // Right-hand detail panel is contextual to whatever was selected in the PREVIOUS view --
   // never carry it over into a different tab; reopening always requires a fresh selection.
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
@@ -2924,6 +2989,25 @@ function switchTab(tab) {
   if (tab === 'overview') renderOverview();
   if (tab === 'stores') renderStoresTab();
   if (tab === 'chainreport') renderChainReport();
+}
+
+function civLeaveWarningHtml() {
+  return `<div class="civauth-warn-banner">You have ${civDirtySet.size} unsaved change${civDirtySet.size===1?'':'s'} on CI Visit Review. Save or discard before leaving this tab.</div>
+    <div class="civauth-confirm-actions">
+      <button class="civauth-confirm-btn civauth-primary" onclick="civResolveLeaveWarning('save')">Save Changes</button>
+      <button class="civauth-confirm-btn civauth-danger" onclick="civResolveLeaveWarning('discard')">Discard Changes</button>
+      <button class="civauth-confirm-btn civauth-secondary" onclick="civResolveLeaveWarning('cancel')">Cancel</button>
+    </div>`;
+}
+function civResolveLeaveWarning(action) {
+  const target = civPendingTabSwitch;
+  civPendingTabSwitch = null;
+  civModalOpen = null;
+  renderCivModal();
+  if (action === 'save') civSaveAllDirty();
+  else if (action === 'discard') { [...civDirtySet].forEach(k => civDiscardChanges(parseInt(k.split('|')[1], 10))); }
+  else return; // cancel -- stay on the tab
+  if (target) switchTab(target);
 }
 
 // ── LIGHTBOX ──────────────────────────────────────────────────────────────────
@@ -3796,6 +3880,373 @@ function rrHintLabel(v) { return v === true ? 'Yes' : v === false ? 'No' : '—'
 function rrYNCsv(v) { return v === true ? 'Yes' : v === false ? 'No' : ''; }
 
 // ══════════════════════════════════════════════════════════════════════════
+// CI VISIT REVIEW -- AUTH, SESSIONS, AUDIT LOG, VERSION HISTORY
+// Real per-user identity (Supabase Auth, magic-link), scoped ONLY to this tab -- nothing else in
+// the app requires login or touches these tables. On the Claude Artifact host
+// (usingEmbeddedSnapshot=true) there is no live Supabase connection at all, so this tab renders
+// read-only there instead of a login gate -- confirmed with the user, magic-link redirects can't
+// reliably target that sandboxed iframe anyway.
+// ══════════════════════════════════════════════════════════════════════════
+let civSession = null;        // Supabase Auth session, or null
+let civUserProfile = null;    // { id, email, full_name, role } row from user_profiles, or null
+let civSessionId = null;      // per-browser-tab id -- there's no server here to issue a real one
+let civLastActivityAt = null;
+let civSessionLoginAt = null; // when THIS session's login completed (distinct from "last activity", which ticks constantly)
+let civAuthReady = false;     // true once the initial getSession() resolves (avoids a login-gate flash)
+let civDirtySet = new Set();  // reportKey()s with a real user-made, not-yet-saved edit (never just "a draft object exists" -- that gets created on every render)
+let civChangesTodayCount = 0;
+let civLastSavedVersionId = null;
+
+function civSessionIdInit() {
+  let sid = sessionStorage.getItem('civSessionId');
+  if (!sid) { sid = crypto.randomUUID(); sessionStorage.setItem('civSessionId', sid); }
+  civSessionId = sid;
+}
+
+async function civLoadProfile(userId) {
+  const { data, error } = await sb.from('user_profiles').select('*').eq('id', userId).maybeSingle();
+  if (error) { console.error('user_profiles fetch failed', error); return null; }
+  return data;
+}
+
+function civCurrentUser() {
+  if (!civSession || !civUserProfile) return null;
+  return { id: civSession.user.id, email: civSession.user.email, fullName: civUserProfile.full_name || civSession.user.email, role: civUserProfile.role };
+}
+// Client-side convenience checks only -- the real gate is always the Postgres RLS policy on
+// report_status/report_verdicts/civ_report_versions (see migrate_civ_auth_schema.sql). These just
+// decide what to show/enable so a non-editor isn't shown a save action that would fail server-side.
+function civCanEdit() { const u = civCurrentUser(); return !!u && (u.role === 'editor' || u.role === 'admin'); }
+function civCanAdmin() { const u = civCurrentUser(); return !!u && u.role === 'admin'; }
+
+async function civAuthInit() {
+  if (usingEmbeddedSnapshot) { civAuthReady = true; return; }
+  civSessionIdInit();
+  const { data } = await sb.auth.getSession();
+  civSession = data.session || null;
+  if (civSession) { civUserProfile = await civLoadProfile(civSession.user.id); civSessionLoginAt = new Date().toISOString(); }
+  civAuthReady = true;
+  if (civSession) { civLogAudit('login', {}); civRefreshDashboardStats(); }
+  if (currentTab === 'civisitreview') renderCiVisitReview();
+  sb.auth.onAuthStateChange(async (event, session) => {
+    const hadSession = !!civSession;
+    civSession = session;
+    if (session && (!civUserProfile || civUserProfile.id !== session.user.id)) civUserProfile = await civLoadProfile(session.user.id);
+    if (!session) civUserProfile = null;
+    if (session && !hadSession) { civSessionLoginAt = new Date().toISOString(); civLogAudit('login', {}); civRefreshDashboardStats(); }
+    if (currentTab === 'civisitreview') renderCiVisitReview();
+  });
+}
+
+async function civRefreshDashboardStats() {
+  const u = civCurrentUser();
+  if (!u) return;
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const [changesToday, lastVersion] = await Promise.all([
+    sb.from('civ_audit_log').select('id', { count: 'exact', head: true }).eq('user_id', u.id).eq('action', 'save').gte('created_at', todayStart.toISOString()),
+    sb.from('civ_report_versions').select('id').order('id', { ascending: false }).limit(1).maybeSingle()
+  ]);
+  civChangesTodayCount = changesToday.count || 0;
+  civLastSavedVersionId = lastVersion.data ? lastVersion.data.id : null;
+  if (currentTab === 'civisitreview') renderCiVisitReview();
+}
+
+async function civSendMagicLink(email) {
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin + window.location.pathname } });
+  return error ? error.message : null;
+}
+
+async function civSignOut() {
+  civLogAudit('logout', {});
+  await sb.auth.signOut();
+  civSession = null; civUserProfile = null;
+  renderCiVisitReview();
+}
+
+function civTouchActivity() { civLastActivityAt = new Date().toISOString(); }
+
+// Fire-and-forget, same pattern as setReportStatus/setReportVerdict elsewhere in this file.
+// No-ops silently if nobody is logged in (nothing to attribute the event to).
+function civLogAudit(action, fields) {
+  const u = civCurrentUser();
+  if (!u) return;
+  civTouchActivity();
+  const row = Object.assign({
+    user_id: u.id, user_name: u.fullName, session_id: civSessionId, action: action,
+    chain: null, door_key: null, report_id: null, field: null, previous_value: null, new_value: null, version_id: null
+  }, fields || {});
+  sb.from('civ_audit_log').insert(row).then(({ error }) => { if (error) console.error('civ_audit_log insert failed', error); });
+}
+
+// Creates a new, immutable version row -- called after every successful setReportVerdict(). The
+// snapshot is the FULL verdict object (not a diff), which is what makes Restore Version trivial:
+// restoring just re-applies an old snapshot() and writes ANOTHER new version, never touching history.
+async function civSaveVersion(reportId, snapshot, opts) {
+  const u = civCurrentUser();
+  if (!u) return null;
+  opts = opts || {};
+  const row = {
+    report_id: reportId, user_id: u.id, user_name: u.fullName, snapshot: snapshot,
+    change_reason: opts.changeReason || null,
+    is_revert: !!opts.isRevert, is_restore: !!opts.isRestore,
+    reverted_from_version_id: opts.revertedFromVersionId || null,
+    restored_from_version_id: opts.restoredFromVersionId || null
+  };
+  const { data, error } = await sb.from('civ_report_versions').insert(row).select().single();
+  if (error) { console.error('civ_report_versions insert failed', error); return null; }
+  civRefreshDashboardStats();
+  return data;
+}
+
+function civFmtVersion(id) { return 'v' + String(id).padStart(3, '0'); }
+function civFmtWhen(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
+
+function civSubmitMagicLink() {
+  const input = document.getElementById('civauth-email');
+  const msgEl = document.getElementById('civauth-gate-msg');
+  const email = (input && input.value || '').trim();
+  if (!email) { msgEl.textContent = 'Enter an email address.'; return; }
+  msgEl.textContent = 'Sending…';
+  civSendMagicLink(email).then(err => {
+    msgEl.textContent = err ? ('Error: ' + err) : `Check ${email} for a sign-in link, then return to this tab.`;
+  });
+}
+
+function renderCivLoginGate() {
+  return `<div class="civauth-gate">
+    <div class="civauth-gate-box">
+      <div class="civauth-gate-title">CI Visit Review — sign in required</div>
+      <div class="civauth-gate-sub">Enter your work email to get a one-time sign-in link. No password needed.</div>
+      <input type="email" class="civauth-gate-input" id="civauth-email" placeholder="you@lucy.co">
+      <button class="civauth-gate-btn" onclick="civSubmitMagicLink()">Send magic link</button>
+      <div class="civauth-gate-msg" id="civauth-gate-msg"></div>
+    </div>
+  </div>`;
+}
+
+function renderCivReadOnlyBanner() {
+  return `<div class="civauth-readonly-banner">📖 Read-only preview — this Claude Artifact can't complete a real sign-in.
+    <a href="https://jedsangeles-collab.github.io/lucy-goods-inc-dashboard/" target="_blank" rel="noopener">Open the live dashboard on GitHub Pages</a> to log in and make changes.</div>`;
+}
+
+// ── Change History / Activity Log modals + Revert / Restore panels ─────────────
+let civModalOpen = null;              // null | 'history' | 'activity' | 'revert' | 'restore'
+let civHistoryFilters = { user:'', chain:'', action:'' };
+let civHistoryRows = [];              // cached civ_report_versions fetch
+let civActivityRows = [];             // cached civ_audit_log fetch
+let civRevertTargetVersionId = null;  // version row the open Revert/Restore panel is acting on
+
+async function civFetchVersions() {
+  const { data, error } = await sb.from('civ_report_versions').select('*').order('created_at', { ascending: false }).limit(500);
+  if (error) { console.error('civ_report_versions fetch failed', error); return []; }
+  return data;
+}
+async function civFetchAuditLog() {
+  const u = civCurrentUser();
+  let q = sb.from('civ_audit_log').select('*').order('created_at', { ascending: false }).limit(500);
+  if (!civCanAdmin()) q = q.eq('user_id', u ? u.id : '00000000-0000-0000-0000-000000000000');
+  const { data, error } = await q;
+  if (error) { console.error('civ_audit_log fetch failed', error); return []; }
+  return data;
+}
+
+function civCloseModal() { civModalOpen = null; civRevertTargetVersionId = null; civPendingTabSwitch = null; renderCivModal(); }
+
+async function civOpenHistoryModal() {
+  if (!civCurrentUser()) return;
+  civLogAudit('view', {});
+  civHistoryRows = await civFetchVersions();
+  civModalOpen = 'history';
+  renderCivModal();
+}
+async function civOpenActivityModal() {
+  if (!civCurrentUser()) return;
+  civActivityRows = await civFetchAuditLog();
+  civModalOpen = 'activity';
+  renderCivModal();
+}
+function civOpenRevertPanel(versionId) {
+  if (!civCanAdmin()) return;
+  civRevertTargetVersionId = versionId;
+  civModalOpen = 'revert';
+  renderCivModal();
+}
+function civOpenRestorePanel(versionId) {
+  if (!civCanAdmin()) return;
+  civRevertTargetVersionId = versionId;
+  civModalOpen = 'restore';
+  renderCivModal();
+}
+function civHistorySetFilter(key, val) { civHistoryFilters[key] = val; renderCivModal(); }
+
+function civVersionRowMeta(v) {
+  const rec = CI.find(x => x.id === v.report_id);
+  return { chain: rec ? rec.ch : '—', store: rec ? rec.a : '—' };
+}
+// The version immediately before `beforeVersionId` for the same report -- this is what "Revert"
+// (undo THIS one change) restores to, as distinct from "Restore Version" (jump to exactly the
+// selected version's own snapshot).
+function civPrevVersionFor(reportId, beforeVersionId) {
+  const versions = civHistoryRows.filter(x => x.report_id === reportId && x.id < beforeVersionId).sort((a,b) => b.id - a.id);
+  return versions[0] || null;
+}
+function civBlankVerdictSnapshot() { return { productPresent:null, stripPresent:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false }; }
+
+function civDiffHtml(current, target) {
+  const fields = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
+  const fmt = (v) => typeof v === 'boolean' ? (v ? 'Yes' : 'No') : (v || '—');
+  return fields.map(([f,label]) => {
+    const changed = JSON.stringify(current[f]) !== JSON.stringify(target[f]);
+    return `<div class="civauth-diff-row" style="${changed?'background:#fff8e8;':''}">
+      <div class="civauth-diff-col"><div class="civauth-diff-label">${escHtml(label)} — Current</div>${escHtml(String(fmt(current[f])))}</div>
+      <div class="civauth-diff-col"><div class="civauth-diff-label">${escHtml(label)} — Target</div><strong>${escHtml(String(fmt(target[f])))}</strong></div>
+    </div>`;
+  }).join('');
+}
+
+function civHistoryTableHtml() {
+  const rows = civHistoryRows.filter(v => {
+    if (civHistoryFilters.user && v.user_name !== civHistoryFilters.user) return false;
+    if (civHistoryFilters.chain && civVersionRowMeta(v).chain !== civHistoryFilters.chain) return false;
+    if (civHistoryFilters.action === 'save' && (v.is_revert || v.is_restore)) return false;
+    if (civHistoryFilters.action === 'revert' && !v.is_revert) return false;
+    if (civHistoryFilters.action === 'restore' && !v.is_restore) return false;
+    return true;
+  });
+  const users = [...new Set(civHistoryRows.map(v => v.user_name).filter(Boolean))].sort();
+  const chains = [...new Set(civHistoryRows.map(v => civVersionRowMeta(v).chain).filter(Boolean))].sort();
+  return `
+    <div class="civauth-modal-filters">
+      <select onchange="civHistorySetFilter('user', this.value)">
+        <option value="">All users</option>
+        ${users.map(u => `<option value="${esc(u)}" ${civHistoryFilters.user===u?'selected':''}>${escHtml(u)}</option>`).join('')}
+      </select>
+      <select onchange="civHistorySetFilter('chain', this.value)">
+        <option value="">All chains</option>
+        ${chains.map(c => `<option value="${esc(c)}" ${civHistoryFilters.chain===c?'selected':''}>${escHtml(c)}</option>`).join('')}
+      </select>
+      <select onchange="civHistorySetFilter('action', this.value)">
+        <option value="">All actions</option>
+        <option value="save" ${civHistoryFilters.action==='save'?'selected':''}>Save</option>
+        <option value="revert" ${civHistoryFilters.action==='revert'?'selected':''}>Revert</option>
+        <option value="restore" ${civHistoryFilters.action==='restore'?'selected':''}>Restore</option>
+      </select>
+    </div>
+    <table class="civauth-table"><thead><tr>
+      <th>Version</th><th>When</th><th>User</th><th>Chain</th><th>Store</th><th>Action</th><th>Reason</th><th></th>
+    </tr></thead><tbody>
+    ${rows.map(v => {
+      const m = civVersionRowMeta(v);
+      const tag = v.is_revert ? '<span class="civauth-tag civauth-tag-revert">Revert</span>' : v.is_restore ? '<span class="civauth-tag civauth-tag-restore">Restore</span>' : '<span class="civauth-tag civauth-tag-save">Save</span>';
+      return `<tr>
+        <td>${civFmtVersion(v.id)}</td>
+        <td>${civFmtWhen(v.created_at)}</td>
+        <td>${escHtml(v.user_name||'—')}</td>
+        <td>${escHtml(m.chain)}</td>
+        <td style="max-width:160px;">${escHtml(m.store)}</td>
+        <td>${tag}</td>
+        <td style="max-width:160px;">${escHtml(v.change_reason||'')}</td>
+        <td>${civCanAdmin() ? `<span class="civr-reset" onclick="civOpenRevertPanel(${v.id})">Revert</span> · <span class="civr-reset" onclick="civOpenRestorePanel(${v.id})">Restore</span>` : ''}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="8" style="text-align:center;color:#888;padding:16px;">No saved versions yet.</td></tr>`}
+    </tbody></table>`;
+}
+
+function civActivityTableHtml() {
+  return `<table class="civauth-table"><thead><tr>
+    <th>When</th><th>User</th><th>Action</th><th>Chain</th><th>Store</th><th>Field</th><th>Previous</th><th>New</th>
+  </tr></thead><tbody>
+  ${civActivityRows.map(a => `<tr>
+    <td>${civFmtWhen(a.created_at)}</td>
+    <td>${escHtml(a.user_name||'—')}</td>
+    <td>${escHtml(a.action)}</td>
+    <td>${escHtml(a.chain||'—')}</td>
+    <td style="max-width:140px;">${escHtml(a.door_key||'—')}</td>
+    <td>${escHtml(a.field||'—')}</td>
+    <td>${escHtml(a.previous_value||'—')}</td>
+    <td>${escHtml(a.new_value||'—')}</td>
+  </tr>`).join('') || `<tr><td colspan="8" style="text-align:center;color:#888;padding:16px;">No activity yet.</td></tr>`}
+  </tbody></table>`;
+}
+
+function civRevertPanelHtml() {
+  const v = civHistoryRows.find(x => x.id === civRevertTargetVersionId);
+  if (!v) return '<div>Version not found.</div>';
+  const current = getReportVerdict({ src:'ci', id: v.report_id });
+  const prevVersion = civPrevVersionFor(v.report_id, v.id);
+  const target = prevVersion ? prevVersion.snapshot : civBlankVerdictSnapshot();
+  return `<div class="civauth-warn-banner">Reverting undoes version ${civFmtVersion(v.id)} (saved by <strong>${escHtml(v.user_name)}</strong> on ${civFmtWhen(v.created_at)}), setting the record back to what it was ${prevVersion ? 'in ' + civFmtVersion(prevVersion.id) : 'before any verdict was ever saved'}. This creates a NEW version — nothing is deleted or overwritten.</div>
+    ${civDiffHtml(current, target)}
+    <div class="civauth-confirm-actions">
+      <button class="civauth-confirm-btn civauth-danger" onclick="civConfirmRevert(${v.id})">Confirm Revert</button>
+      <button class="civauth-confirm-btn civauth-secondary" onclick="civCloseModal()">Cancel</button>
+    </div>`;
+}
+function civRestorePanelHtml() {
+  const v = civHistoryRows.find(x => x.id === civRevertTargetVersionId);
+  if (!v) return '<div>Version not found.</div>';
+  const current = getReportVerdict({ src:'ci', id: v.report_id });
+  return `<div class="civauth-warn-banner">Restoring sets this record to exactly what it was in ${civFmtVersion(v.id)} (saved by <strong>${escHtml(v.user_name)}</strong> on ${civFmtWhen(v.created_at)}). This creates a NEW version — nothing is deleted or overwritten.</div>
+    ${civDiffHtml(current, v.snapshot)}
+    <div class="civauth-confirm-actions">
+      <button class="civauth-confirm-btn civauth-primary" onclick="civConfirmRestore(${v.id})">Confirm Restore</button>
+      <button class="civauth-confirm-btn civauth-secondary" onclick="civCloseModal()">Cancel</button>
+    </div>`;
+}
+
+async function civConfirmRevert(versionId) {
+  if (!civCanAdmin()) return;
+  const v = civHistoryRows.find(x => x.id === versionId);
+  if (!v) return;
+  const prevVersion = civPrevVersionFor(v.report_id, v.id);
+  const target = prevVersion ? prevVersion.snapshot : civBlankVerdictSnapshot();
+  const rec = { src:'ci', id: v.report_id };
+  setReportVerdict(rec, target);
+  if (!prevVersion) setReportStatus(rec, 'Pending');
+  const newVersion = await civSaveVersion(v.report_id, target, { isRevert: true, revertedFromVersionId: v.id });
+  civLogAudit('revert', { chain: civReportChain(v.report_id), door_key: civReportDoorKey(v.report_id), report_id: v.report_id, version_id: newVersion?newVersion.id:null, previous_value: JSON.stringify(v.snapshot), new_value: JSON.stringify(target) });
+  delete CIV_VERDICT_DRAFT[reportKey(rec)];
+  civHistoryRows = await civFetchVersions();
+  civModalOpen = 'history'; civRevertTargetVersionId = null;
+  renderCivModal();
+  renderCiVisitReview();
+}
+async function civConfirmRestore(versionId) {
+  if (!civCanAdmin()) return;
+  const v = civHistoryRows.find(x => x.id === versionId);
+  if (!v) return;
+  const rec = { src:'ci', id: v.report_id };
+  setReportVerdict(rec, v.snapshot);
+  setReportStatus(rec, 'Reviewed');
+  const newVersion = await civSaveVersion(v.report_id, v.snapshot, { isRestore: true, restoredFromVersionId: v.id });
+  civLogAudit('restore', { chain: civReportChain(v.report_id), door_key: civReportDoorKey(v.report_id), report_id: v.report_id, version_id: newVersion?newVersion.id:null, new_value: JSON.stringify(v.snapshot) });
+  delete CIV_VERDICT_DRAFT[reportKey(rec)];
+  civHistoryRows = await civFetchVersions();
+  civModalOpen = 'history'; civRevertTargetVersionId = null;
+  renderCivModal();
+  renderCiVisitReview();
+}
+
+function renderCivModal() {
+  const el = document.getElementById('civauth-modal-root');
+  if (!el) return;
+  if (!civModalOpen) { el.innerHTML = ''; return; }
+  const titles = { history: 'Change History', activity: 'Activity Log', revert: 'Revert Change', restore: 'Restore Version', 'leave-warning': 'Unsaved Changes' };
+  let body = '';
+  if (civModalOpen === 'history') body = civHistoryTableHtml();
+  else if (civModalOpen === 'activity') body = civActivityTableHtml();
+  else if (civModalOpen === 'revert') body = civRevertPanelHtml();
+  else if (civModalOpen === 'restore') body = civRestorePanelHtml();
+  else if (civModalOpen === 'leave-warning') body = civLeaveWarningHtml();
+  el.innerHTML = `<div class="civauth-modal-backdrop civauth-open" onclick="if(event.target===this) civCloseModal()">
+    <div class="civauth-modal">
+      <div class="civauth-modal-head"><span class="civauth-modal-title">${titles[civModalOpen]}</span><button class="civauth-modal-close" onclick="civCloseModal()">✕</button></div>
+      <div class="civauth-modal-body">${body}</div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // CI VISIT REVIEW -- deliberately its OWN layout/visual pattern, NOT Report Review's. Patterned
 // directly from the standalone "Lucy Goods -- June 2026 Photo Review" prototype (sticky
 // header+progress bar, stats bar, horizontal filters bar, bulk bar, single-column paginated
@@ -3841,28 +4292,67 @@ function civDraftVerdict(rec) {
   }
   return CIV_VERDICT_DRAFT[k];
 }
+function civReportChain(id) { const r = CI.find(x => x.id === id); return r ? r.ch : null; }
+function civReportDoorKey(id) { const d = reportDoor({ src: 'ci', id }); return d ? d.key : null; }
+
 function civSetVerdictAnswer(id, field, value) {
-  const draft = civDraftVerdict({ src: 'ci', id });
+  if (!civCanEdit()) return; // real enforcement is the report_verdicts RLS policy; this just avoids a no-op round trip for a Viewer
+  const rec = { src: 'ci', id };
+  const draft = civDraftVerdict(rec);
+  const prev = draft[field];
   draft[field] = draft[field] === value ? null : value;
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id, field, previous_value: prev===null?null:String(prev), new_value: draft[field]===null?null:String(draft[field]) });
   renderCiVisitReview();
 }
-function civSetNote(id, value) { civDraftVerdict({ src: 'ci', id }).notes = value; }
+function civSetNote(id, value) {
+  if (!civCanEdit()) return;
+  const rec = { src: 'ci', id };
+  civDraftVerdict(rec).notes = value;
+  civDirtySet.add(reportKey(rec));
+}
 function civToggleFlag(id) {
-  const draft = civDraftVerdict({ src: 'ci', id });
+  if (!civCanEdit()) return;
+  const rec = { src: 'ci', id };
+  const draft = civDraftVerdict(rec);
   draft.flag = !draft.flag;
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id, field: 'flag', previous_value: String(!draft.flag), new_value: String(draft.flag) });
   renderCiVisitReview();
 }
 function civSubmitVerdict(id) {
+  if (!civCanEdit()) return;
   const rec = { src: 'ci', id };
   const draft = civDraftVerdict(rec);
   setReportVerdict(rec, draft);
   setReportStatus(rec, 'Reviewed');
   delete CIV_VERDICT_DRAFT[reportKey(rec)];
+  civDirtySet.delete(reportKey(rec));
+  civSaveVersion(id, draft).then(version => {
+    civLogAudit('save', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id, version_id: version ? version.id : null });
+  });
   renderCiVisitReview();
 }
 function civUndoVerdict(id) {
+  if (!civCanEdit()) return;
   setReportStatus({ src: 'ci', id }, 'Pending');
+  civLogAudit('discard', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id });
   renderCiVisitReview();
+}
+// Requirement 9: an in-progress edit that hasn't been saved yet -- discards the draft (reverting
+// to the last saved value / original rep-side hint), distinct from civUndoVerdict() above (which
+// un-submits an already-saved Reviewed record back to Pending).
+function civDiscardChanges(id) {
+  const rec = { src: 'ci', id };
+  delete CIV_VERDICT_DRAFT[reportKey(rec)];
+  civDirtySet.delete(reportKey(rec));
+  civLogAudit('discard', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id });
+  renderCiVisitReview();
+}
+// Activity dashboard's "Save Changes" quick action -- saves every currently-dirty record at once.
+function civSaveAllDirty() {
+  if (!civCanEdit()) return;
+  [...civDirtySet].forEach(k => { const id = parseInt(k.split('|')[1], 10); if (!isNaN(id)) civSubmitVerdict(id); });
 }
 
 let civrFilters = { chain:'', status:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
@@ -3920,12 +4410,14 @@ function civrStats() {
 // tool during automated verification) -- an inline message after the fact instead. Applies to
 // every report matching the CURRENT filters, not just the current page.
 function civrBulkSetRevisit(val) {
+  if (!civCanEdit()) return;
   const list = civrFilteredReports();
   list.forEach(r => { civDraftVerdict(r).revisit = val; });
   civrBulkMsg = `✓ ${list.length} report${list.length===1?'':'s'} marked ${val ? 'Yes Revisit' : 'No Revisit'}`;
   renderCiVisitReview();
 }
 function civrBulkSubmit() {
+  if (!civCanEdit()) return;
   const list = civrFilteredReports();
   const unsubmitted = list.filter(r => getReportStatus(r) !== 'Reviewed');
   unsubmitted.forEach(r => {
@@ -3933,6 +4425,9 @@ function civrBulkSubmit() {
     setReportVerdict(r, draft);
     setReportStatus(r, 'Reviewed');
     delete CIV_VERDICT_DRAFT[reportKey(r)];
+    civSaveVersion(r.id, draft).then(version => {
+      civLogAudit('save', { chain: r.ch, door_key: civReportDoorKey(r.id), report_id: r.id, version_id: version ? version.id : null });
+    });
   });
   civrBulkMsg = unsubmitted.length ? `✓ ${unsubmitted.length} report${unsubmitted.length===1?'':'s'} submitted` : 'All filtered reports are already submitted.';
   renderCiVisitReview();
@@ -3988,6 +4483,8 @@ function civrPhotosHtml(rec) {
 
 function civrVerdictBarHtml(rec, draft, hint, status) {
   const locked = status === 'Reviewed';
+  const canEdit = civCanEdit(); // Viewer role (or logged-out/Artifact host) -- read-only, real gate is the RLS policy
+  const dis = canEdit ? '' : 'disabled';
   const qHtml = VERDICT_QS.map(([field,label]) => {
     const val = draft[field];
     const hintVal = hint[field];
@@ -3996,21 +4493,23 @@ function civrVerdictBarHtml(rec, draft, hint, status) {
       <div class="civr-vq-label">${label}</div>
       ${hintHtml}
       <div class="civr-tri-btn">
-        <button class="civr-tbtn ${val===true?'civr-on-yes':''}" onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', true)">Yes</button>
-        <button class="civr-tbtn ${val===false?'civr-on-no':''}" onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', false)">No</button>
+        <button class="civr-tbtn ${val===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', true)">Yes</button>
+        <button class="civr-tbtn ${val===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', false)">No</button>
       </div>
     </div>`;
   }).join('');
+  const isDirty = civDirtySet.has(reportKey(rec));
   return `<div class="civr-verdict-bar">
     ${qHtml}
     <div class="civr-submit-col">
-      <button class="civr-submit-btn ${locked?'civr-submit-done':''}" onclick="civSubmitVerdict(${JSON.stringify(rec.id)})">${locked?'Submitted ✓':'Submit ✓'}</button>
-      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" onclick="civToggleFlag(${JSON.stringify(rec.id)})">⚑ Flag</button>
+      <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict(${JSON.stringify(rec.id)})">${locked?'Submitted ✓':'Submit ✓'}</button>
+      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag(${JSON.stringify(rec.id)})">⚑ Flag</button>
+      ${isDirty && canEdit ? `<button class="civr-flag-btn" onclick="civDiscardChanges(${JSON.stringify(rec.id)})">Discard</button>` : ''}
     </div>
   </div>
   <div class="civr-notes-bar">
     <span class="civr-notes-label">Quick notes</span>
-    <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" onchange="civSetNote(${JSON.stringify(rec.id)}, this.value)" oninput="civSetNote(${JSON.stringify(rec.id)}, this.value)">
+    <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" ${dis} onchange="civSetNote(${JSON.stringify(rec.id)}, this.value)" oninput="civSetNote(${JSON.stringify(rec.id)}, this.value)">
   </div>`;
 }
 
@@ -4032,9 +4531,10 @@ function civrCardHtml(rec) {
   const status = getReportStatus(rec);
   const hint = civRepHint(rec);
   const draft = civDraftVerdict(rec);
+  const isDirty = civDirtySet.has(reportKey(rec));
   return `<div class="civr-card-head">
     <div>
-      <div class="civr-card-title">${escHtml(rec.ch||'—')} — ${escHtml(rec.a||'—')}</div>
+      <div class="civr-card-title">${escHtml(rec.ch||'—')} — ${escHtml(rec.a||'—')}${isDirty ? '<span class="civauth-dirty">● Unsaved Changes</span>' : ''}</div>
       <div class="civr-card-sub">${escHtml(rec.ci||'')}${rec.ci&&rec.st?', ':''}${escHtml(rec.st||'')} • ${escHtml(rec.vd||rec.month||'—')}</div>
       <div class="civr-badges">${civrBadgesHtml(rec, hint, status)}</div>
     </div>
@@ -4065,6 +4565,15 @@ function civrExportCSV() {
 
 function renderCiVisitReview() {
   const el = document.getElementById('civ-main');
+
+  // Requirement 1: login required to access this tab at all, on the real (GitHub Pages) host.
+  // The Artifact host has no live Supabase connection to authenticate against, so it renders
+  // read-only instead (confirmed with the user -- magic-link redirects can't target that sandbox).
+  if (!usingEmbeddedSnapshot) {
+    if (!civAuthReady) { el.innerHTML = `<div class="civauth-gate"><div class="civauth-gate-box"><div class="civauth-gate-title">Checking session…</div></div></div>`; return; }
+    if (!civCurrentUser()) { el.innerHTML = renderCivLoginGate(); return; }
+  }
+
   const filtered = civrFilteredReports();
   const stats = civrStats();
   const chains = [...new Set(CIV_ALL_REPORTS.map(r=>r.ch).filter(Boolean))].sort();
@@ -4079,7 +4588,29 @@ function renderCiVisitReview() {
     ? `<div class="civr-empty">No reports match the current filters.</div>`
     : pageReports.map(rec => `<div class="${civrCardWrapperClass(rec)}" id="civr-card-${rec.id}">${civrCardHtml(rec)}</div>`).join('');
 
+  const u = civCurrentUser();
+  const topBannerHtml = usingEmbeddedSnapshot ? renderCivReadOnlyBanner() : '';
+  // Requirement 2: identity strip -- the logged-in user is auto-detected, never typed in.
+  const identityHtml = u ? `<div class="civauth-identity">Logged in as: <strong>${escHtml(u.fullName)}</strong> (${escHtml(u.role)}) · Last Activity: ${civLastActivityAt ? new Date(civLastActivityAt).toLocaleTimeString() : '—'} <span class="civauth-signout" onclick="civSignOut()">Log out</span></div>` : '';
+  // Requirement 10: the mini activity dashboard + quick-access buttons.
+  const dashHtml = u ? `<div class="civauth-dash">
+    <div class="civauth-dash-stats">
+      <span>Current User: <b>${escHtml(u.fullName)}</b></span>
+      <span>Last Login: <b>${civFmtWhen(civSessionLoginAt)}</b></span>
+      <span>Unsaved Changes: <b>${fmtNum(civDirtySet.size)}</b></span>
+      <span>Changes Today: <b>${fmtNum(civChangesTodayCount)}</b></span>
+      <span>Last Saved Version: <b>${civLastSavedVersionId ? civFmtVersion(civLastSavedVersionId) : '—'}</b></span>
+    </div>
+    <div class="civauth-dash-actions">
+      <button class="civauth-dash-btn" ${civCanEdit() && civDirtySet.size ? '' : 'disabled'} onclick="civSaveAllDirty()">Save Changes</button>
+      <button class="civauth-dash-btn" onclick="civOpenHistoryModal()">Change History</button>
+      <button class="civauth-dash-btn" onclick="civOpenActivityModal()">Activity Log</button>
+      ${civCanAdmin() ? `<button class="civauth-dash-btn" onclick="civOpenHistoryModal()">Restore Version</button>` : ''}
+    </div>
+  </div>` : '';
+
   el.innerHTML = `
+  ${topBannerHtml}
   <div class="civr-header">
     <div>
       <h1>CI Visit Review — real CI visits, June–August 2026</h1>
@@ -4087,12 +4618,14 @@ function renderCiVisitReview() {
         <div class="civr-progress-bar"><div class="civr-progress-fill" style="width:${stats.total?Math.round(stats.sub/stats.total*100):0}%"></div></div>
         <span class="civr-progress-text">${fmtNum(stats.sub)} of ${fmtNum(stats.total)} submitted</span>
       </div>
+      ${identityHtml}
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="civr-export-btn" onclick="civrExportCSV()">Export CSV</button>
       <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
     </div>
   </div>
+  ${dashHtml}
 
   <div class="civr-stats-bar">
     <div class="civr-stat"><span class="civr-slabel">Total</span><span class="civr-sval">${fmtNum(stats.total)}</span></div>
@@ -4149,13 +4682,13 @@ function renderCiVisitReview() {
     <span class="civr-reset" onclick="civrResetFilters()">Reset filters</span>
   </div>
 
-  <div class="civr-bulk-bar">
+  ${civCanEdit() ? `<div class="civr-bulk-bar">
     <span class="civr-bulk-count">${fmtNum(filtered.length)} report${filtered.length===1?'':'s'} currently filtered</span>
     <button class="civr-bulk-btn civr-bulk-no" onclick="civrBulkSetRevisit(false)">✗ Mark all filtered — No Revisit</button>
     <button class="civr-bulk-btn civr-bulk-yes" onclick="civrBulkSetRevisit(true)">✓ Mark all filtered — Yes Revisit</button>
     <button class="civr-bulk-btn civr-bulk-submit" onclick="civrBulkSubmit()">⇧ Submit all filtered</button>
     ${civrBulkMsg ? `<span class="civr-bulk-msg">${escHtml(civrBulkMsg)}</span>` : ''}
-  </div>
+  </div>` : ''}
 
   <div class="civr-main">
     ${cardsHtml}
@@ -6157,6 +6690,7 @@ async function init() {
   renderChains();
   renderOverview();
   initReportDeepLink();
+  civAuthInit();
 }
 
 init();
