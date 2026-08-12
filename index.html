@@ -1338,10 +1338,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .rr-status-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block;}
 .rr-status-badge.pending{background:var(--yellow-dim);color:var(--yellow);}
 .rr-status-badge.reviewed{background:var(--green-dim);color:var(--green);}
-.rr-view-toggle{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;}
-.rr-view-toggle button{background:var(--surface2);color:var(--muted);border:none;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
-.rr-view-toggle button.active{background:var(--orange);color:#fff;}
-.vd-reset{font-size:11px;color:var(--orange);cursor:pointer;margin-top:10px;display:inline-block;}
 .vd-bucket-bar{cursor:pointer;transition:opacity .1s;}
 .vd-bucket-bar:hover{opacity:.75;}
 
@@ -1461,32 +1457,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   background:#ffffff22;padding:4px 14px;border-radius:20px;
 }
 
-/* CHAIN REPORTS: STORE DETAIL POPUP -- centered modal, same overlay convention as .lightbox
-   above (fixed inset:0 dark backdrop, flex-centered) since this is a true popup, not a
-   slide-out panel like .detail-panel. */
-.cr-modal-backdrop{
-  display:none;position:fixed;inset:0;background:#000c;z-index:1000;
-  align-items:center;justify-content:center;padding:20px;
-}
-.cr-modal-backdrop.open{display:flex;}
-.cr-modal{
-  position:relative;background:var(--surface);border-radius:14px;
-  width:100%;max-width:720px;max-height:85vh;overflow-y:auto;
-  padding-bottom:8px;
-}
-.cr-modal-close{
-  position:absolute;top:14px;right:14px;
-  background:var(--surface2);border:1px solid var(--border);
-  color:var(--muted);width:28px;height:28px;border-radius:7px;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;
-  z-index:1;
-}
-.cr-modal-close:hover{color:var(--text);border-color:var(--text);}
-.cr-modal-header{padding:20px 50px 16px 22px;border-bottom:1px solid var(--border);}
-.cr-modal-section{padding:14px 22px;border-bottom:1px solid var(--border);}
-.cr-modal-section:last-child{border-bottom:none;}
-.cr-modal-section-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
-
 /* MAGNIFIER */
 .mag-lens{
   position:fixed;display:none;pointer-events:none;z-index:2000;
@@ -1590,7 +1560,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div class="tab" onclick="switchTab(&#39;chains&#39;)" id="tab-chains"><span class="tab-icon">⬡</span> Chains</div>
     <div class="tab" onclick="switchTab(&#39;stores&#39;)" id="tab-stores"><span class="tab-icon">⊞</span> Stores</div>
     <div class="tab" onclick="switchTab(&#39;civisitreview&#39;)" id="tab-civisitreview"><span class="tab-icon">📷</span> CI Visit Review</div>
-    <div class="tab" onclick="switchTab(&#39;chainreport&#39;)" id="tab-chainreport"><span class="tab-icon">📄</span> Chain Reports</div>
   </div>
   <div class="topbar-right">
     <div class="recency-filter">
@@ -1613,7 +1582,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 
     <!-- MAP VIEW -->
     <div id="view-overview" style="display:flex;flex-direction:column;"></div>
-    <div id="view-chainreport" style="display:none;flex-direction:column;overflow:auto;"></div>
     <div id="view-map" style="display: none; flex-direction: column;">
       <div id="map" style="flex: 1 1 0%; position: relative;"></div>
       <div class="map-source-toggle">
@@ -2446,14 +2414,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   <span class="lb-counter" id="lb-counter" style="display:none;"></span>
 </div>
 
-<!-- Chain Reports: per-store detail popup. Content is rendered into #cr-modal by
-     renderCrStoreModal(); this container is deliberately outside any single tab's
-     #view-* div (position:fixed escapes normal layout regardless), same reasoning as
-     #lightbox/.detail-panel above. -->
-<div class="cr-modal-backdrop" id="cr-modal-backdrop" onclick="if(event.target===this) crCloseStoreModal()">
-  <div class="cr-modal" id="cr-modal"></div>
-</div>
-
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 let CI = [];  // populated async by loadAllData() -- see below
@@ -2980,7 +2940,7 @@ function switchTab(tab) {
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  const views = ['overview','map','chains','stores','civisitreview','chainreport'];
+  const views = ['overview','map','chains','stores','civisitreview'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
   if (tab === 'civisitreview') renderCiVisitReview();
@@ -2988,7 +2948,6 @@ function switchTab(tab) {
   if (tab === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
   if (tab === 'overview') renderOverview();
   if (tab === 'stores') renderStoresTab();
-  if (tab === 'chainreport') renderChainReport();
 }
 
 function civLeaveWarningHtml() {
@@ -3151,7 +3110,7 @@ function chainSales(chainName) {
 
 // Real chain-level POP target/completed LOCATION COUNTS from a promo cycle (e.g. the July 2026
 // POP Marketing Check) -- not a per-store figure. Returns the most recent cycle's row, or null
-// if this chain has no chain_programs row at all (Chain Report Generator shows "Not Tracked").
+// if this chain has no chain_programs row at all.
 function chainProgramFor(chainName, cycle) {
   const nk = normChain(chainName);
   const rows = CHAIN_PROGRAMS.filter(p => normChain(p.chain) === nk);
@@ -3801,7 +3760,6 @@ function buildDerivedIndexes() {
   DOORS.forEach(d => { DOORS_BY_KEY[d.key] = d; });
   REPORT_TO_DOOR = {};
   DOORS.forEach(d => (d.visits||[]).forEach(v => { REPORT_TO_DOOR[v.src+'|'+v.ciId] = d; }));
-  CR_CACHE = {}; // Chain Report Generator's memoized reports -- never survive a fresh data load
 
   POPPROMO_REPORTS = [];
   DOORS.forEach(d => (d.visits||[]).forEach(v => {
@@ -4727,13 +4685,12 @@ function addAction(doorKey, chain, type, priority, dueDate, assignedRep, notes) 
   if (usingEmbeddedSnapshot) { persistActionsLocal(); return; }
   sb.from('actions').insert(sbActionRow(action)).then(({ error }) => { if (error) console.error('actions insert failed', error); });
 }
-// actionRowHtml() (whose <select>/<button> call these) renders inside 4 different places --
-// the visit detail panel's Follow-up Actions list, the door detail panel's Actions list, the
-// Stores tab's chain-workspace Action Tracker, and the Chain Reports store popup's Action Items
-// section -- so there's no single "refresh the view this came from" call. Re-render Stores tab
-// when it's the active tab, and the Chain Reports popup whenever it's open (both are real,
-// still-live surfaces); the detail-panel cases already didn't reliably refresh themselves before
-// this function existed elsewhere either, so that part isn't a regression.
+// actionRowHtml() (whose <select>/<button> call these) renders inside 3 different places --
+// the visit detail panel's Follow-up Actions list, the door detail panel's Actions list, and
+// the Stores tab's chain-workspace Action Tracker -- so there's no single "refresh the view
+// this came from" call. Re-render Stores tab when it's the active tab; the detail-panel cases
+// already didn't reliably refresh themselves before this function existed elsewhere either,
+// so that part isn't a regression.
 function updateActionStatus(id, status) {
   const a = ACTIONS_CACHE.find(x => x.id === id);
   if (a) {
@@ -4742,14 +4699,12 @@ function updateActionStatus(id, status) {
     else { sb.from('actions').update({ status }).eq('id', id).then(({ error }) => { if (error) console.error('actions update failed', error); }); }
   }
   if (currentTab === 'stores') renderStoresTab();
-  if (crModalDoorKey) renderCrStoreModal();
 }
 function deleteAction(id) {
   ACTIONS_CACHE = ACTIONS_CACHE.filter(a => a.id !== id);
   if (usingEmbeddedSnapshot) { persistActionsLocal(); }
   else { sb.from('actions').delete().eq('id', id).then(({ error }) => { if (error) console.error('actions delete failed', error); }); }
   if (currentTab === 'stores') renderStoresTab();
-  if (crModalDoorKey) renderCrStoreModal();
 }
 
 function actionRowHtml(a) {
@@ -5136,8 +5091,7 @@ function printCurrentView() { window.print(); }
   style.textContent = `
     .topbar, .detail-panel, .ac-toolbar, .breadcrumb .bc-link, select, .ac-btn { display:none !important; }
     .body, .content { display:block !important; overflow:visible !important; height:auto !important; }
-    #view-overview, #view-civisitreview, #view-chainreport { display:block !important; overflow:visible !important; padding:0 !important; }
-    .cr-filter-panel { display:none !important; }
+    #view-overview, #view-civisitreview { display:block !important; overflow:visible !important; padding:0 !important; }
     .chart-card, .kpi-card, .drill-card { break-inside:avoid; }
     body { background:#fff !important; overflow:visible !important; height:auto !important; }
     /* When a report detail is open, print only the report: show .detail-panel in normal flow
@@ -5147,18 +5101,6 @@ function printCurrentView() { window.print(); }
       display:block !important; position:static !important; width:100% !important;
       height:auto !important; transform:none !important; border:none !important; z-index:auto !important;
     }
-    /* Same technique for the Chain Reports store popup: promote it into normal document flow
-       (no dark backdrop, no fixed positioning) and hide the page behind it, so printing from
-       inside the popup prints only that one store's detail, not the whole chain report. */
-    body:has(.cr-modal-backdrop.open) .content { display:none !important; }
-    .cr-modal-backdrop.open {
-      display:block !important; position:static !important; background:none !important; padding:0 !important;
-    }
-    .cr-modal {
-      display:block !important; position:static !important; width:100% !important; max-width:100% !important;
-      max-height:none !important; overflow:visible !important; border-radius:0 !important;
-    }
-    .cr-modal-close, .cr-modal-actions { display:none !important; }
   `;
   document.head.appendChild(style);
 })();
@@ -5296,715 +5238,6 @@ function cvaAnalytics(chainName) {
   const result = { chainDoors, realVelDoors, trendSeries, stats, binData, outlier };
   cvaCache[cacheKey] = result;
   return result;
-}
-
-// ══════════════════════════════════════════════════════════════════════════
-// CHAIN REPORT GENERATOR — standardized chain-level report w/ store/inventory/POP detail
-// ══════════════════════════════════════════════════════════════════════════
-// Real data reality check (confirmed by reading the ETL/schema, not assumed): there is no SKU ID
-// or on-hand-quantity concept ANYWHERE in this project's data, for any source. CI visits only
-// carry out-of-stock SKU NAMES (oo, presence-only) + a single present/absent POP flag (sp) + a
-// coarse door-level stock bucket (ss, 0/1/2). Poppromo visits carry a kit label, present/absent/
-// matches-promo POP booleans, and a real per-SKU shelf-facings count (skuFacings) -- facings, not
-// on-hand units. Eileen visits carry none of this. Every cell this module can't back with real
-// data renders the literal 'Not Tracked' (via crNT() in the render layer) rather than a guess.
-
-let crChain = null;
-let crPeriodEnd = null;       // 'YYYY-MM', defaults to the latest month with any real visit data
-let crMonthsBack = 6;
-let crFilters = { store:'', dateFrom:'', dateTo:'', visitStatus:'', popStatus:'', inventoryStatus:'', minVelocity:'', maxVelocity:'' };
-let crCollapsed = { summary:false };
-let crModalDoorKey = null; // door currently shown in the store detail popup -- also doubles as "last selected store"
-let crModalDirty = false;  // true while the popup's add-action mini-form has unsaved text
-let crPage = { stores:1 };
-const CR_PAGE_SIZE = 100;
-let CR_CACHE = {};
-
-function crLatestAvailableMonth() {
-  let latest = null;
-  DOORS.forEach(d => (d.visits||[]).forEach(v => { if (v.month && (!latest || v.month > latest)) latest = v.month; }));
-  return latest || new Date().toISOString().slice(0,7);
-}
-
-// Arbitrary-end-month window (not just "trailing from today") -- the spec wants any historical
-// six-month period to be regeneratable, not only the most recent one.
-function crPeriodMonthKeys(endMonth, monthsBack) {
-  const parts = (endMonth||'').split('-').map(Number);
-  if (parts.length !== 2 || !parts[0] || !parts[1]) return [];
-  const [y, m] = parts;
-  const keys = [];
-  for (let i = monthsBack - 1; i >= 0; i--) {
-    const d = new Date(y, m - 1 - i, 1);
-    keys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-  }
-  return keys;
-}
-
-// Pulls the latest in-period CI visit (door_visits row), latest in-period poppromo visit
-// (door_visits row, already carries its own full field set), and the matching flat CI record
-// (needed for si/ss/sp/oo, which live ONLY on the flat CI array -- door.visits[] entries only
-// carry ciId + ooCount, not the real oo/ss/sp fields themselves).
-function crLatestVisitsForDoor(door, periodKeys) {
-  const ciVisits = (door.visits||[]).filter(v => v.src==='ci' && periodKeys.includes(v.month)).sort((a,b)=>(a.month||'').localeCompare(b.month||''));
-  const promoVisits = (door.visits||[]).filter(v => v.src==='poppromo' && periodKeys.includes(v.month)).sort((a,b)=>(a.month||'').localeCompare(b.month||''));
-  const latestCiVisit = ciVisits.length ? ciVisits[ciVisits.length-1] : null;
-  const latestPromo = promoVisits.length ? promoVisits[promoVisits.length-1] : null;
-  const ciRec = latestCiVisit ? CI.find(v => v.id === latestCiVisit.ciId) : null;
-  return { latestCiVisit, latestPromo, ciRec };
-}
-
-function crDoorPopStatus(door, periodKeys) {
-  const { latestPromo, ciRec } = crLatestVisitsForDoor(door, periodKeys);
-  if (latestPromo) {
-    if (latestPromo.shelfStripPresent === null || latestPromo.shelfStripPresent === undefined) return 'Not Tracked';
-    if (!latestPromo.shelfStripPresent) return 'Missing';
-    return latestPromo.shelfStripMatchesPromo ? 'Complete' : 'Partial';
-  }
-  if (ciRec) {
-    if (ciRec.sp === 1) return 'Complete';
-    if (ciRec.sp === 0) return 'Missing';
-  }
-  return 'Not Tracked';
-}
-
-function crDoorInventoryStatus(door, periodKeys) {
-  const { ciRec } = crLatestVisitsForDoor(door, periodKeys);
-  if (ciRec && Array.isArray(ciRec.oo) && ciRec.oo.length) return 'OOS';
-  if (ciRec && ciRec.ss !== null && ciRec.ss !== undefined) return ciRec.ss === 0 ? 'Critical' : ciRec.ss === 1 ? 'Low' : 'Good';
-  return 'Not Tracked';
-}
-
-function crApplyFilters(doors, filters, periodKeys) {
-  let list = doors;
-  if (filters.store) {
-    const s = filters.store.toLowerCase();
-    list = list.filter(d => (d.address||'').toLowerCase().includes(s) || (d.city||'').toLowerCase().includes(s));
-  }
-  if (filters.dateFrom) { const from = new Date(filters.dateFrom).getTime(); list = list.filter(d => d.lastVisitDate && new Date(d.lastVisitDate).getTime() >= from); }
-  if (filters.dateTo) { const to = new Date(filters.dateTo).getTime() + 86399999; list = list.filter(d => d.lastVisitDate && new Date(d.lastVisitDate).getTime() <= to); }
-  if (filters.visitStatus) list = list.filter(d => (d.visited ? 'Visited' : 'Not Visited') === filters.visitStatus);
-  if (filters.popStatus) list = list.filter(d => crDoorPopStatus(d, periodKeys) === filters.popStatus);
-  if (filters.inventoryStatus) list = list.filter(d => crDoorInventoryStatus(d, periodKeys) === filters.inventoryStatus);
-  if (filters.minVelocity !== '') { const m = parseFloat(filters.minVelocity); list = list.filter(d => d.realVelocity !== null && d.realVelocity !== undefined && d.realVelocity >= m); }
-  if (filters.maxVelocity !== '') { const m = parseFloat(filters.maxVelocity); list = list.filter(d => d.realVelocity !== null && d.realVelocity !== undefined && d.realVelocity <= m); }
-  return list;
-}
-
-function crStoreRow(door) {
-  return {
-    doorKey: door.key, chain: door.chain, address: door.address, city: door.city, state: door.state,
-    mostRecentVisitDate: door.lastVisitDate || 'Not Tracked',
-    mostRecentVisitMonth: door.lastVisitMonth || 'Not Tracked',
-    doorStatus: door.visited ? 'Visited' : 'Not Visited',
-    assignedRep: door.lastVisitedBy || 'Not Tracked',
-    mostRecentVelocity: (door.realVelocity !== null && door.realVelocity !== undefined) ? door.realVelocity : 'Not Tracked',
-    latestScore: (door.latestScore !== null && door.latestScore !== undefined) ? door.latestScore : 'Not Tracked'
-  };
-}
-
-function crInventoryRowsForDoor(door, periodKeys) {
-  const { latestPromo, ciRec } = crLatestVisitsForDoor(door, periodKeys);
-  const oosNames = new Set((ciRec && ciRec.oo) || []);
-  const facings = (latestPromo && latestPromo.skuFacings) || {};
-  const skuNames = new Set([...oosNames, ...Object.keys(facings)]);
-  const base = { doorKey: door.key, chain: door.chain, address: door.address, city: door.city, state: door.state };
-  if (!skuNames.size) {
-    return [Object.assign({}, base, {
-      skuName: 'Not Tracked', skuId: 'Not Tracked', qtyOnHand: 'Not Tracked', qtyFaced: 'Not Tracked',
-      oosIndicator: false, lowInventoryIndicator: false, inventoryStatus: 'Not Tracked'
-    })];
-  }
-  return [...skuNames].map(name => {
-    const oos = oosNames.has(name);
-    const qtyFaced = facings[name] !== undefined ? facings[name] : 'Not Tracked';
-    let status = 'Not Tracked';
-    if (oos) status = 'OOS';
-    else if (ciRec && ciRec.ss !== null && ciRec.ss !== undefined) status = ciRec.ss === 0 ? 'Critical' : ciRec.ss === 1 ? 'Low' : 'Good';
-    return Object.assign({}, base, {
-      skuName: name, skuId: 'Not Tracked', qtyOnHand: 'Not Tracked', qtyFaced,
-      oosIndicator: oos, lowInventoryIndicator: (status==='Low'||status==='Critical'), inventoryStatus: status
-    });
-  });
-}
-
-function crPopRowForDoor(door, periodKeys) {
-  const { latestPromo, ciRec } = crLatestVisitsForDoor(door, periodKeys);
-  const base = { doorKey: door.key, chain: door.chain, address: door.address, city: door.city, state: door.state };
-  if (latestPromo) {
-    const installed = (latestPromo.shelfStripPresent === null || latestPromo.shelfStripPresent === undefined) ? 'Not Tracked' : (latestPromo.shelfStripPresent ? 'Yes' : 'No');
-    const compliance = (latestPromo.shelfStripMatchesPromo === null || latestPromo.shelfStripMatchesPromo === undefined) ? 'Not Tracked' : (latestPromo.shelfStripMatchesPromo ? 'Yes' : 'No');
-    return Object.assign({}, base, {
-      popMaterialsExpected: latestPromo.kit || 'Not Tracked',
-      popMaterialsInstalled: installed,
-      popComplianceStatus: compliance,
-      missingPOPItems: (latestPromo.shelfStripPresent === false && latestPromo.kit) ? latestPromo.kit : 'Not Tracked',
-      popCompletionPct: 'Not Tracked',
-      popStatus: crDoorPopStatus(door, periodKeys)
-    });
-  }
-  if (ciRec) {
-    return Object.assign({}, base, {
-      popMaterialsExpected: 'Not Tracked',
-      popMaterialsInstalled: ciRec.sp === 1 ? 'Yes' : ciRec.sp === 0 ? 'No' : 'Not Tracked',
-      popComplianceStatus: 'Not Tracked',
-      missingPOPItems: 'Not Tracked',
-      popCompletionPct: 'Not Tracked',
-      popStatus: crDoorPopStatus(door, periodKeys)
-    });
-  }
-  return Object.assign({}, base, {
-    popMaterialsExpected:'Not Tracked', popMaterialsInstalled:'Not Tracked', popComplianceStatus:'Not Tracked',
-    missingPOPItems:'Not Tracked', popCompletionPct:'Not Tracked', popStatus:'Not Tracked'
-  });
-}
-
-function crBuildExceptions(doors, inventoryRows, popRows) {
-  const notVisited = doors.filter(isNotVisitedWithinThreshold).map(d => ({
-    doorKey: d.key, chain: d.chain, address: d.address, city: d.city, state: d.state,
-    lastVisitMonth: d.lastVisitMonth || 'Never'
-  }));
-  const lowOosSkus = inventoryRows.filter(r => r.inventoryStatus === 'OOS' || r.inventoryStatus === 'Critical');
-  const missingPop = popRows.filter(r => r.popStatus === 'Missing');
-  const doorKeys = new Set(doors.map(d => d.key));
-  const followUps = loadActions().filter(a => doorKeys.has(a.doorKey) && a.status !== 'Done').map(a => {
-    const d = DOORS_BY_KEY[a.doorKey];
-    return { doorKey: a.doorKey, chain: a.chain, address: d?d.address:a.doorKey, type: a.type, priority: a.priority, dueDate: a.dueDate||'Not Tracked', status: a.status };
-  });
-  return { notVisited, lowOosSkus, missingPop, followUps };
-}
-
-// chainVelocityStats() always reflects the chain's LATEST available month, regardless of which
-// historical period is selected -- that would make the period picker silently not affect the
-// Executive Summary's velocity figure. Real per-door salesByMonth data, restricted to periodKeys,
-// same aggregation math as cvaMonthlySeriesFromDoors() above, gives genuinely period-accurate
-// numbers instead. Falls back to chainVelocityStats() only if this chain has no door-level sales
-// data at all for the selected period (keeps a sensible value rather than showing nothing).
-function crPeriodVelocity(doors, periodKeys) {
-  const byMonth = {};
-  doors.forEach(d => (d.salesByMonth||[]).forEach(sm => {
-    if (!sm || !sm.month || !periodKeys.includes(sm.month) || sm.units === null || sm.units === undefined) return;
-    if (!byMonth[sm.month]) byMonth[sm.month] = { units: 0 };
-    byMonth[sm.month].units += sm.units;
-  }));
-  const months = Object.keys(byMonth).sort();
-  if (!months.length) return null;
-  const recentMonth = months[months.length-1];
-  const recentUnits = byMonth[recentMonth].units;
-  const priorMonths = months.slice(0, -1);
-  const trailingAvgUnits = priorMonths.length ? priorMonths.reduce((s,m)=>s+byMonth[m].units,0)/priorMonths.length : null;
-  const changePct = (trailingAvgUnits && trailingAvgUnits > 0) ? ((recentUnits - trailingAvgUnits)/trailingAvgUnits*100) : null;
-  return { recentUnits, recentMonth, trailingAvgUnits, changePct, monthsAvailable: months.length };
-}
-
-function crBuildReport(chainName, endMonth, monthsBack, filters) {
-  const periodKeys = crPeriodMonthKeys(endMonth, monthsBack);
-  const allDoors = DOORS.filter(d => d.chain === chainName);
-  const doors = crApplyFilters(allDoors, filters, periodKeys);
-
-  const storeRows = doors.map(crStoreRow);
-  const inventoryRows = doors.flatMap(d => crInventoryRowsForDoor(d, periodKeys));
-  const popRows = doors.map(d => crPopRowForDoor(d, periodKeys));
-  const exceptions = crBuildExceptions(doors, inventoryRows, popRows);
-
-  const vel = crPeriodVelocity(allDoors, periodKeys) || chainVelocityStats(chainName);
-  const avgScore = avgScoreForChain(chainName);
-  const health = chainHealthStatus(avgScore);
-  const program = chainProgramFor(chainName);
-
-  return {
-    chainName, generatedAt: new Date().toISOString(),
-    periodLabel: periodKeys.length ? `${periodKeys[0]} to ${periodKeys[periodKeys.length-1]}` : 'Not Tracked',
-    periodKeys,
-    summary: {
-      totalStores: allDoors.length,
-      filteredStores: doors.length,
-      visited: allDoors.filter(d=>d.visited).length,
-      unvisited: allDoors.filter(d=>!d.visited).length,
-      avgScore, health, velocity: vel,
-      popTarget: program ? program.targetLocations : 'Not Tracked',
-      popCompleted: program ? program.completedLocations : 'Not Tracked',
-      popCompletionPct: (program && program.targetLocations) ? (program.completedLocations / program.targetLocations * 100) : 'Not Tracked',
-      popKit: program ? program.kit : 'Not Tracked'
-    },
-    storeRows, inventoryRows, popRows, exceptions
-  };
-}
-
-// Pure in-memory memoization, same shape as cvaAnalytics()'s cache above -- avoids recomputing
-// the same chain/period/filter combo repeatedly in one session. Never persisted (unlike
-// REPORT_STATUS_CACHE/REPORT_VERDICT_CACHE) -- this data is fully re-derivable from DOORS/CI/etc,
-// so there's nothing here that needs to survive a reload or be shared across devices.
-function crGetOrBuildReport(chainName, endMonth, monthsBack, filters) {
-  const key = [chainName, endMonth, monthsBack, JSON.stringify(filters)].join('|');
-  if (CR_CACHE[key]) return CR_CACHE[key];
-  const report = crBuildReport(chainName, endMonth, monthsBack, filters);
-  CR_CACHE[key] = report;
-  return report;
-}
-
-// ── Chain Report Generator UI ──────────────────────────────────────────────────
-// A bare dash ('—', via fmtNum/fmtScore) already means "no data because there's genuinely no
-// number here" elsewhere in this app -- reusing it for "this field isn't tracked in this system
-// AT ALL" would read as a bug, not an honest disclosure. crNT() renders the literal string
-// distinctly (muted italic) so the two kinds of "empty" never look the same.
-function crNT(val) {
-  return (val === 'Not Tracked' || val === null || val === undefined || val === '')
-    ? '<span style="color:var(--muted);font-style:italic;">Not Tracked</span>'
-    : escHtml(String(val));
-}
-function crFmtVelocity(v) { return v === 'Not Tracked' ? crNT(v) : v.toFixed(1) + ' u/wk'; }
-function crFmtScore(v) { return v === 'Not Tracked' ? crNT(v) : v + '/4'; }
-function crFmtPct(v) { return v === 'Not Tracked' ? crNT(v) : v.toFixed(1) + '%'; }
-function crFmtBool(v) { return v === true ? 'Yes' : v === false ? 'No' : crNT(v); }
-
-function crSelectChain(name) { crChain = name || null; crPeriodEnd = crPeriodEnd || crLatestAvailableMonth(); crPage = { stores:1 }; renderChainReport(); }
-function crSetPeriodEnd(v) { crPeriodEnd = v; crPage = { stores:1 }; renderChainReport(); }
-function crSetMonthRange(n) { crMonthsBack = n; crPage = { stores:1 }; renderChainReport(); }
-function crSetFilter(key, val) { crFilters[key] = val; crPage = { stores:1 }; renderChainReport(); }
-function crResetFilters() {
-  crFilters = { store:'', dateFrom:'', dateTo:'', visitStatus:'', popStatus:'', inventoryStatus:'', minVelocity:'', maxVelocity:'' };
-  crPage = { stores:1 };
-  renderChainReport();
-}
-function crToggleSection(name) { crCollapsed[name] = !crCollapsed[name]; renderChainReport(); }
-function crChangePage(section, dir) { crPage[section] += dir; renderChainReport(); }
-function crSectionHeader(name, label, count) {
-  return `<div class="cp-section-title" onclick="crToggleSection('${name}')">${escHtml(label)}${count!==undefined?` (${fmtNum(count)})`:''} <span class="cp-collapse-icon">${crCollapsed[name]?'▸ expand':'▾ collapse'}</span></div>`;
-}
-function crPagedSlice(rows, section) {
-  const totalPages = Math.max(1, Math.ceil(rows.length / CR_PAGE_SIZE));
-  if (crPage[section] > totalPages) crPage[section] = totalPages;
-  if (crPage[section] < 1) crPage[section] = 1;
-  const start = (crPage[section]-1) * CR_PAGE_SIZE;
-  return { pageRows: rows.slice(start, start+CR_PAGE_SIZE), totalPages };
-}
-function crPaginationHtml(section, totalPages) {
-  return `<div class="pg-row">
-    <button class="pg-btn" onclick="crChangePage('${section}',-1)" ${crPage[section]<=1?'disabled':''}>‹ Prev</button>
-    <span>Page ${crPage[section]} of ${totalPages}</span>
-    <button class="pg-btn" onclick="crChangePage('${section}',1)" ${crPage[section]>=totalPages?'disabled':''}>Next ›</button>
-  </div>`;
-}
-function crGenericTableHtml(cols, rows) {
-  const head = cols.map(c => `<th>${escHtml(c[0])}</th>`).join('');
-  const body = rows.map(r => `<tr>${cols.map(c => `<td>${c[1](r)}</td>`).join('')}</tr>`).join('')
-    || `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--muted);padding:20px;">No rows match the current filters.</td></tr>`;
-  return `<table class="ranked-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
-}
-
-const CR_STORE_COLS = [
-  ['Address', r => escHtml(r.address||'—')], ['City', r => escHtml(r.city||'—')], ['State', r => escHtml(r.state||'—')],
-  ['Last Visit', r => crNT(r.mostRecentVisitDate)], ['Status', r => escHtml(r.doorStatus)],
-  ['Rep', r => crNT(r.assignedRep)], ['Velocity', r => crFmtVelocity(r.mostRecentVelocity)], ['Score', r => crFmtScore(r.latestScore)]
-];
-const CR_INVENTORY_COLS = [
-  ['Address', r => escHtml(r.address||'—')], ['SKU Name', r => escHtml(r.skuName)], ['SKU ID', r => crNT(r.skuId)],
-  ['Qty On Hand', r => crNT(r.qtyOnHand)], ['Qty Faced', r => crNT(r.qtyFaced)],
-  ['OOS', r => r.oosIndicator?'Yes':'No'], ['Status', r => crNT(r.inventoryStatus)]
-];
-
-function crExecSummaryHtml(report) {
-  const s = report.summary;
-  const cards = [
-    ['Total Stores', fmtNum(s.totalStores)],
-    ['Matching Current Filters', fmtNum(s.filteredStores)],
-    ['Visited', fmtNum(s.visited)],
-    ['Not Visited', fmtNum(s.unvisited)],
-    ['Avg Health Score', fmtScore(s.avgScore) + ' (' + s.health.label + ')'],
-    ['Recent Velocity', s.velocity && s.velocity.recentUnits!==null&&s.velocity.recentUnits!==undefined ? fmtNum(s.velocity.recentUnits)+' units' : '—'],
-    ['POP Completion (chain-level)', crFmtPct(s.popCompletionPct)],
-    ['Assigned Kit', crNT(s.popKit)],
-  ];
-  return `<div class="cp-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">${cards.map(([label,val]) => `
-    <div class="cp-kpi" style="cursor:default;">
-      <div class="cp-kpi-label">${escHtml(label)}</div>
-      <div class="cp-kpi-value">${val}</div>
-    </div>`).join('')}</div>`;
-}
-
-// ── Per-store popup: rendered in a top-level modal (#cr-modal), NOT inline in the page ──────
-function crStoreOptions() {
-  if (!crChain) return [];
-  return DOORS.filter(d => d.chain === crChain)
-    .map(d => ({ key: d.key, label: `${d.address}, ${d.city} ${d.state}` }))
-    .sort((a,b) => a.label.localeCompare(b.label));
-}
-function crSetStoreByLabel(label) {
-  if (!label) return;
-  const match = crStoreOptions().find(o => o.label === label);
-  if (match) crOpenStoreModal(match.key);
-}
-function crStoreTableHtml(rows) {
-  const head = CR_STORE_COLS.map(c => `<th>${escHtml(c[0])}</th>`).join('');
-  const body = rows.map(r => `<tr onclick="crOpenStoreModal('${esc(r.doorKey)}')" style="cursor:pointer;">${CR_STORE_COLS.map(c => `<td>${c[1](r)}</td>`).join('')}</tr>`).join('')
-    || `<tr><td colspan="${CR_STORE_COLS.length}" style="text-align:center;color:var(--muted);padding:20px;">No rows match the current filters.</td></tr>`;
-  return `<table class="ranked-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
-}
-
-// Opening/switching only ever happens on explicit user action (dropdown pick or row click) --
-// never auto-triggered just because a default store label is shown in the picker.
-function crOpenStoreModal(doorKey) {
-  if (crModalDirty) return;
-  crModalDoorKey = doorKey;
-  renderChainReport();
-}
-function crCloseStoreModal() {
-  if (crModalDirty) return;
-  crModalDoorKey = null;
-  renderCrStoreModal();
-}
-function crModalNoteInput(val) { crModalDirty = !!val.trim(); }
-function crModalSubmitAction(e, doorKey, chain) {
-  e.preventDefault();
-  const f = e.target;
-  addAction(doorKey, chain, f.type.value, f.priority.value, f.dueDate.value, f.assignedRep.value, f.notes.value);
-  crModalDirty = false;
-  renderCrStoreModal();
-  return false;
-}
-
-// Rule-based classification (Severity), not a captured field -- same honesty convention as the
-// rest of this module (mirrors the Insights panel's own "rule-based, not real AI" framing).
-function crExceptionsForDoor(door, periodKeys) {
-  const { latestCiVisit, latestPromo } = crLatestVisitsForDoor(door, periodKeys);
-  const rows = [];
-  if (isNotVisitedWithinThreshold(door)) {
-    rows.push({ exceptionType: 'Not Visited Recently', description: `Last visited ${door.lastVisitMonth || 'never'}`, severity: 'Medium', dateReported: door.lastVisitDate || 'Never' });
-  }
-  crInventoryRowsForDoor(door, periodKeys).forEach(r => {
-    if (r.inventoryStatus === 'OOS') rows.push({ exceptionType: 'Out of Stock', description: `${r.skuName} is out of stock`, severity: 'High', dateReported: latestCiVisit ? latestCiVisit.vd : 'Not Tracked' });
-    else if (r.inventoryStatus === 'Critical') rows.push({ exceptionType: 'Critical Inventory', description: `${r.skuName} stock critically low`, severity: 'High', dateReported: latestCiVisit ? latestCiVisit.vd : 'Not Tracked' });
-    else if (r.inventoryStatus === 'Low') rows.push({ exceptionType: 'Low Inventory', description: `${r.skuName} stock running low`, severity: 'Medium', dateReported: latestCiVisit ? latestCiVisit.vd : 'Not Tracked' });
-  });
-  if (crDoorPopStatus(door, periodKeys) === 'Missing') {
-    rows.push({ exceptionType: 'Missing POP', description: 'POP materials not installed', severity: 'Medium', dateReported: latestPromo ? latestPromo.vd : (latestCiVisit ? latestCiVisit.vd : 'Not Tracked') });
-  }
-  return rows;
-}
-
-function crModalActionItemsHtml(door) {
-  const actions = loadActions().filter(a => a.doorKey === door.key);
-  return `<div class="cr-modal-section">
-    <div class="cr-modal-section-title">Action Items</div>
-    ${actions.length ? actions.map(a => actionRowHtml(a)).join('') : '<div style="font-size:12px;color:var(--muted);">No action items yet for this store.</div>'}
-    <form onsubmit="return crModalSubmitAction(event, '${esc(door.key)}', '${esc(door.chain)}')" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
-      <div><label style="font-size:10px;color:var(--muted);display:block;">Action Required</label><select name="type" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);">${ACTION_TYPES.map(t=>`<option>${escHtml(t)}</option>`).join('')}</select></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;">Priority</label><select name="priority" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;">Due Date</label><input type="date" name="dueDate" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);"></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;">Assigned To</label><input type="text" name="assignedRep" placeholder="Rep name" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);"></div>
-      <div style="grid-column:1/-1;"><label style="font-size:10px;color:var(--muted);display:block;">Notes</label><textarea name="notes" rows="2" oninput="crModalNoteInput(this.value)" style="width:100%;font-size:12px;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);"></textarea></div>
-      <div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;">
-        <button class="ac-btn" type="submit">+ Add Action Item</button>
-        ${crModalDirty ? '<span style="font-size:11px;color:var(--yellow);">Unsaved note — finish or clear it to close the popup.</span>' : ''}
-      </div>
-    </form>
-  </div>`;
-}
-
-function crModalContentHtml(door) {
-  const periodKeys = crPeriodMonthKeys(crPeriodEnd, crMonthsBack);
-  const invRows = crInventoryRowsForDoor(door, periodKeys);
-  const pop = crPopRowForDoor(door, periodKeys);
-  const { latestCiVisit, latestPromo } = crLatestVisitsForDoor(door, periodKeys);
-  const popLastUpdated = latestPromo ? (latestPromo.vd || 'Not Tracked') : (latestCiVisit ? (latestCiVisit.vd || 'Not Tracked') : 'Not Tracked');
-  const exceptions = crExceptionsForDoor(door, periodKeys);
-  const invCols = CR_INVENTORY_COLS.filter(c => c[0] !== 'Address');
-
-  return `
-    <div class="cr-modal-close" onclick="crCloseStoreModal()">✕</div>
-    <div class="cr-modal-header">
-      <div class="dp-chain">${escHtml(door.chain)}</div>
-      <div class="dp-addr">${escHtml(door.address)}</div>
-      <div class="dp-city">${escHtml(door.city)}, ${escHtml(door.state)}</div>
-      <div class="cr-modal-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-        <button class="ac-btn secondary" onclick="crExportStoreCSV('${esc(door.key)}')">⬇ Export CSV</button>
-        <button class="ac-btn secondary" onclick="crExportStoreXLSX('${esc(door.key)}')">⬇ Export Excel</button>
-        <button class="ac-btn secondary" onclick="crPrintStoreModal()">🖨 Print</button>
-      </div>
-    </div>
-
-    <div class="cr-modal-section">
-      <div class="cr-modal-section-title">Inventory Details</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">SKU ID and Qty on Hand are not tracked in this system. Qty Faced reflects shelf facings observed during a POP visit where available.</div>
-      ${crGenericTableHtml(invCols, invRows)}
-    </div>
-
-    <div class="cr-modal-section">
-      <div class="cr-modal-section-title">POP Details</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">POP tracking is presence/absence only in this system — itemized checklists and store-level completion percentages are not tracked.</div>
-      <div class="dp-row"><span class="dp-label">POP Item (Expected)</span><span class="dp-val">${crNT(pop.popMaterialsExpected)}</span></div>
-      <div class="dp-row"><span class="dp-label">Status</span><span class="dp-val">${crNT(pop.popStatus)}</span></div>
-      <div class="dp-row"><span class="dp-label">Last Updated</span><span class="dp-val">${crNT(popLastUpdated)}</span></div>
-    </div>
-
-    <div class="cr-modal-section">
-      <div class="cr-modal-section-title">Exceptions</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Severity is a rule-based classification from this system's own thresholds, not a captured field.</div>
-      ${crGenericTableHtml([
-        ['Exception Type', r=>escHtml(r.exceptionType)], ['Description', r=>escHtml(r.description)],
-        ['Severity', r=>escHtml(r.severity)], ['Date Reported', r=>crNT(r.dateReported)]
-      ], exceptions)}
-    </div>
-
-    ${crModalActionItemsHtml(door)}
-  `;
-}
-
-function renderCrStoreModal() {
-  const backdrop = document.getElementById('cr-modal-backdrop');
-  const box = document.getElementById('cr-modal');
-  if (!backdrop || !box) return;
-  if (!crModalDoorKey) { backdrop.classList.remove('open'); box.innerHTML = ''; return; }
-  const door = DOORS_BY_KEY[crModalDoorKey];
-  if (!door) { crModalDoorKey = null; backdrop.classList.remove('open'); box.innerHTML = ''; return; }
-  box.innerHTML = crModalContentHtml(door);
-  backdrop.classList.add('open');
-}
-
-// window.print() alone would print whatever's behind the dark backdrop too (or nothing useful,
-// depending on the browser) -- the print stylesheet below (see injectPrintCSS) specifically
-// promotes .cr-modal-backdrop.open into normal document flow and hides the rest of the page,
-// same technique already used for .detail-panel.open.
-function crPrintStoreModal() { window.print(); }
-
-// Single-store CSV export -- distinct from crExportCSV() (the whole filtered chain report).
-// One file per section again, same reasoning as crExportCSV: Exceptions/Action Items have
-// different column shapes than Inventory/POP, so a single CSV would produce inconsistent headers.
-function crExportStoreCSV(doorKey) {
-  const door = DOORS_BY_KEY[doorKey];
-  if (!door) { console.warn('Store not found.'); return; }
-  const periodKeys = crPeriodMonthKeys(crPeriodEnd, crMonthsBack);
-  const invRows = crInventoryRowsForDoor(door, periodKeys);
-  const pop = crPopRowForDoor(door, periodKeys);
-  const { latestCiVisit, latestPromo } = crLatestVisitsForDoor(door, periodKeys);
-  const popLastUpdated = latestPromo ? (latestPromo.vd || 'Not Tracked') : (latestCiVisit ? (latestCiVisit.vd || 'Not Tracked') : 'Not Tracked');
-  const exceptions = crExceptionsForDoor(door, periodKeys);
-  const actions = loadActions().filter(a => a.doorKey === doorKey);
-  const prefix = (door.chain + '_' + door.address).replace(/[^A-Za-z0-9]/g,'_') + '_store_report';
-
-  downloadCSV(prefix + '_store_info.csv', [{
-    Chain: door.chain, Address: door.address, City: door.city, State: door.state,
-    LastVisitDate: door.lastVisitDate || 'Not Tracked', Status: door.visited ? 'Visited' : 'Not Visited',
-    AssignedRep: door.lastVisitedBy || 'Not Tracked',
-    Velocity: (door.realVelocity !== null && door.realVelocity !== undefined) ? door.realVelocity : 'Not Tracked',
-    Score: (door.latestScore !== null && door.latestScore !== undefined) ? door.latestScore : 'Not Tracked',
-    ReportingPeriod: periodKeys.length ? `${periodKeys[0]} to ${periodKeys[periodKeys.length-1]}` : 'Not Tracked'
-  }]);
-  downloadCSV(prefix + '_inventory.csv', invRows.map(r => ({ SKUName: r.skuName, SKUID: r.skuId, QtyOnHand: r.qtyOnHand, QtyFaced: r.qtyFaced, OOS: r.oosIndicator ? 'Yes' : 'No', Status: r.inventoryStatus })));
-  downloadCSV(prefix + '_pop.csv', [{ POPItemExpected: pop.popMaterialsExpected, Status: pop.popStatus, LastUpdated: popLastUpdated }]);
-  if (exceptions.length) downloadCSV(prefix + '_exceptions.csv', exceptions.map(r => ({ ExceptionType: r.exceptionType, Description: r.description, Severity: r.severity, DateReported: r.dateReported })));
-  if (actions.length) downloadCSV(prefix + '_action_items.csv', actions.map(a => ({ ActionRequired: a.type, Priority: a.priority, DueDate: a.dueDate || '', AssignedTo: a.assignedRep || '', Status: a.status, Notes: a.notes || '', CreatedAt: a.createdAt })));
-}
-
-// Single-store .xlsx export -- same buildXlsx()/downloadXLSX() writer as the chain-level export,
-// just scoped to one door's data across 5 sheets.
-function crExportStoreXLSX(doorKey) {
-  const door = DOORS_BY_KEY[doorKey];
-  if (!door) { console.warn('Store not found.'); return; }
-  const periodKeys = crPeriodMonthKeys(crPeriodEnd, crMonthsBack);
-  const invRows = crInventoryRowsForDoor(door, periodKeys);
-  const pop = crPopRowForDoor(door, periodKeys);
-  const { latestCiVisit, latestPromo } = crLatestVisitsForDoor(door, periodKeys);
-  const popLastUpdated = latestPromo ? (latestPromo.vd || 'Not Tracked') : (latestCiVisit ? (latestCiVisit.vd || 'Not Tracked') : 'Not Tracked');
-  const exceptions = crExceptionsForDoor(door, periodKeys);
-  const actions = loadActions().filter(a => a.doorKey === doorKey);
-
-  const storeInfoRows = [
-    ['Field','Value'],
-    ['Chain', door.chain], ['Address', door.address], ['City', door.city], ['State', door.state],
-    ['Last Visit Date', door.lastVisitDate || 'Not Tracked'], ['Status', door.visited ? 'Visited' : 'Not Visited'],
-    ['Assigned Rep', door.lastVisitedBy || 'Not Tracked'],
-    ['Velocity', (door.realVelocity !== null && door.realVelocity !== undefined) ? door.realVelocity : 'Not Tracked'],
-    ['Score', (door.latestScore !== null && door.latestScore !== undefined) ? door.latestScore : 'Not Tracked'],
-    ['Reporting Period', periodKeys.length ? `${periodKeys[0]} to ${periodKeys[periodKeys.length-1]}` : 'Not Tracked']
-  ];
-  const popInfoRows = [['Field','Value'], ['POP Item (Expected)', pop.popMaterialsExpected], ['Status', pop.popStatus], ['Last Updated', popLastUpdated]];
-  const invCols = [['SKU Name','skuName'],['SKU ID','skuId'],['Qty On Hand','qtyOnHand'],['Qty Faced','qtyFaced'],['OOS','oosIndicator'],['Status','inventoryStatus']];
-  const exceptionCols = [['Exception Type','exceptionType'],['Description','description'],['Severity','severity'],['Date Reported','dateReported']];
-  const actionCols = [['Action Required','type'],['Priority','priority'],['Due Date','dueDate'],['Assigned To','assignedRep'],['Status','status'],['Notes','notes']];
-
-  downloadXLSX((door.chain + '_' + door.address).replace(/[^A-Za-z0-9]/g,'_') + '_store_report.xlsx', [
-    { name: 'Store Info', rows: storeInfoRows },
-    { name: 'Inventory', rows: crRowsToAoA(invRows, invCols) },
-    { name: 'POP Details', rows: popInfoRows },
-    { name: 'Exceptions', rows: crRowsToAoA(exceptions, exceptionCols) },
-    { name: 'Action Items', rows: crRowsToAoA(actions, actionCols) }
-  ]);
-}
-
-// No blocking confirm()/alert() -- this project's own memory documents a real incident where a
-// native dialog froze the entire Browser pane tool during automated verification. While the
-// add-action mini-form has unsaved text, Esc/backdrop-click/store-switch are silently ignored
-// (see crModalDirty checks above) and an inline hint explains why; only clearing the note or
-// submitting the form re-enables closing.
-(function initCrModalKeydown() {
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && crModalDoorKey) crCloseStoreModal();
-  });
-})();
-
-function renderCrFilterPanel() {
-  const f = crFilters;
-  return `<div class="cr-filter-panel" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
-    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Store Search</label>
-      <input type="text" placeholder="Address or city…" value="${esc(f.store)}" oninput="crSetFilter('store', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
-    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Last Visit From</label>
-      <input type="date" value="${esc(f.dateFrom)}" onchange="crSetFilter('dateFrom', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
-    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Last Visit To</label>
-      <input type="date" value="${esc(f.dateTo)}" onchange="crSetFilter('dateTo', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
-    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Visit Status</label>
-      <select onchange="crSetFilter('visitStatus', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
-        <option value="">All</option><option value="Visited" ${f.visitStatus==='Visited'?'selected':''}>Visited</option><option value="Not Visited" ${f.visitStatus==='Not Visited'?'selected':''}>Not Visited</option>
-      </select></div>
-    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">POP Status</label>
-      <select onchange="crSetFilter('popStatus', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
-        <option value="">All</option>
-        ${['Complete','Partial','Missing','Not Tracked'].map(v=>`<option value="${v}" ${f.popStatus===v?'selected':''}>${v}</option>`).join('')}
-      </select></div>
-    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Inventory Status</label>
-      <select onchange="crSetFilter('inventoryStatus', this.value)" style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
-        <option value="">All</option>
-        ${['Good','Low','Critical','OOS','Not Tracked'].map(v=>`<option value="${v}" ${f.inventoryStatus===v?'selected':''}>${v}</option>`).join('')}
-      </select></div>
-    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Min Velocity</label>
-      <input type="number" placeholder="Min" value="${esc(f.minVelocity)}" onchange="crSetFilter('minVelocity', this.value)" style="width:80px;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
-    <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Max Velocity</label>
-      <input type="number" placeholder="Max" value="${esc(f.maxVelocity)}" onchange="crSetFilter('maxVelocity', this.value)" style="width:80px;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);"></div>
-    <div class="vd-reset" onclick="crResetFilters()">Reset filters</div>
-  </div>`;
-}
-
-function renderChainReport() {
-  const el = document.getElementById('view-chainreport');
-  if (!crPeriodEnd) crPeriodEnd = crLatestAvailableMonth();
-
-  // A store selection scoped to a different (or no-longer-selected) chain is stale -- drop it
-  // rather than silently showing/popping up a store that isn't even in view anymore.
-  if (crModalDoorKey && (!DOORS_BY_KEY[crModalDoorKey] || DOORS_BY_KEY[crModalDoorKey].chain !== crChain)) crModalDoorKey = null;
-  const storeOpts = crChain ? crStoreOptions() : [];
-  // Pre-fills the picker with a sensible default label (first store) WITHOUT opening the popup --
-  // the popup only ever opens on an explicit dropdown pick or store-row click, never just because
-  // a chain was selected.
-  const selectedStoreLabel = crModalDoorKey
-    ? ((storeOpts.find(o=>o.key===crModalDoorKey)||{}).label || '')
-    : (storeOpts[0] ? storeOpts[0].label : '');
-
-  const picker = `<div class="section-title" style="margin-top:0;">Chain Report Generator</div>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;">
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Chain</label>
-        <select onchange="crSelectChain(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;min-width:260px;">
-          <option value="">— Select a chain —</option>
-          ${[...CHAINS].sort((a,b)=>a.chain.localeCompare(b.chain)).map(c => `<option value="${esc(c.chain)}" ${crChain===c.chain?'selected':''}>${escHtml(c.chain)} (${fmtNum(c.total)} stores)</option>`).join('')}
-        </select></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Period Ending</label>
-        <input type="month" value="${esc(crPeriodEnd)}" onchange="crSetPeriodEnd(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;"></div>
-      <div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Reporting Window</label>
-        <div class="rr-view-toggle">${[3,6,12].map(n=>`<button class="${crMonthsBack===n?'active':''}" onclick="crSetMonthRange(${n})">${n} mo</button>`).join('')}</div></div>
-      ${crChain ? `<div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px;">Store Selection</label>
-        <input type="text" list="cr-store-datalist" placeholder="Search stores…" value="${escHtml(selectedStoreLabel)}" onchange="crSetStoreByLabel(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;min-width:260px;">
-        <datalist id="cr-store-datalist">${storeOpts.map(o=>`<option value="${escHtml(o.label)}"></option>`).join('')}</datalist></div>` : ''}
-    </div>`;
-
-  if (!crChain) {
-    el.innerHTML = picker + `<div style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center;">Select a chain above to generate its report.</div>`;
-    renderCrStoreModal();
-    return;
-  }
-
-  const report = crGetOrBuildReport(crChain, crPeriodEnd, crMonthsBack, crFilters);
-  const storePaged = crPagedSlice(report.storeRows, 'stores');
-
-  el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-      ${picker}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="ac-btn secondary" onclick="crExportCSV()">⬇ Export CSV</button>
-        <button class="ac-btn secondary" onclick="crExportXLSX()">⬇ Export Excel</button>
-        <button class="ac-btn secondary" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
-      </div>
-    </div>
-    ${renderCrFilterPanel()}
-    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">
-      Generated ${escHtml(new Date(report.generatedAt).toLocaleString())} · Reporting period: ${escHtml(report.periodLabel)}
-    </div>
-
-    ${crSectionHeader('summary','Executive Summary')}
-    ${!crCollapsed.summary ? crExecSummaryHtml(report) : ''}
-
-    <div class="cp-section-title">Store Details (${fmtNum(report.storeRows.length)})</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Select a store above, or click any row, to view its Inventory, POP, Exceptions, and Action Items.</div>
-    ${crStoreTableHtml(storePaged.pageRows)}${crPaginationHtml('stores', storePaged.totalPages)}
-  `;
-  renderCrStoreModal();
-}
-
-// CSV has no "sheet" concept -- one file per section (splitting Exceptions further into its 4
-// sub-categories, since they have different column shapes and forcing them into a single CSV
-// would produce inconsistent headers) is the honest way to "preserve all sections." Named
-// crExport* (not exportChainReportCSV, which is a different, pre-existing feature: the Action
-// Center's chain-scoped action-log export).
-function crExportCSV() {
-  if (!crChain) { console.warn('Select a chain first.'); return; }
-  const report = crGetOrBuildReport(crChain, crPeriodEnd, crMonthsBack, crFilters);
-  const prefix = crChain.replace(/[^A-Za-z0-9]/g,'_') + '_chain_report';
-  const s = report.summary;
-  downloadCSV(prefix + '_executive_summary.csv', [{
-    Chain: report.chainName, GeneratedAt: report.generatedAt, ReportingPeriod: report.periodLabel,
-    TotalStores: s.totalStores, MatchingFilters: s.filteredStores, Visited: s.visited, NotVisited: s.unvisited,
-    AvgHealthScore: s.avgScore, HealthStatus: s.health.label,
-    RecentVelocityUnits: s.velocity ? s.velocity.recentUnits : '',
-    POPTarget: s.popTarget, POPCompleted: s.popCompleted, POPCompletionPct: s.popCompletionPct, AssignedKit: s.popKit
-  }]);
-  downloadCSV(prefix + '_store_details.csv', report.storeRows);
-  downloadCSV(prefix + '_inventory_details.csv', report.inventoryRows);
-  downloadCSV(prefix + '_pop_details.csv', report.popRows);
-  if (report.exceptions.notVisited.length) downloadCSV(prefix + '_exceptions_not_visited.csv', report.exceptions.notVisited);
-  if (report.exceptions.lowOosSkus.length) downloadCSV(prefix + '_exceptions_low_oos_skus.csv', report.exceptions.lowOosSkus);
-  if (report.exceptions.missingPop.length) downloadCSV(prefix + '_exceptions_missing_pop.csv', report.exceptions.missingPop);
-  if (report.exceptions.followUps.length) downloadCSV(prefix + '_exceptions_followups.csv', report.exceptions.followUps);
-}
-
-function crRowsToAoA(rows, cols) {
-  return [cols.map(c => c[0]), ...rows.map(r => cols.map(c => r[c[1]]))];
-}
-
-// Real 5-sheet .xlsx export, reading from the same currently-active report (chain/period/filters)
-// as what's rendered on screen -- never re-derives from raw unfiltered data, matching how
-// exportRrCSV() sources from rrFilteredReports() rather than the raw dataset.
-function crExportXLSX() {
-  if (!crChain) { console.warn('Select a chain first.'); return; }
-  const report = crGetOrBuildReport(crChain, crPeriodEnd, crMonthsBack, crFilters);
-  const s = report.summary;
-
-  const execRows = [
-    ['Field','Value'],
-    ['Chain', report.chainName], ['Generated At', report.generatedAt], ['Reporting Period', report.periodLabel],
-    ['Total Stores', s.totalStores], ['Matching Current Filters', s.filteredStores],
-    ['Visited', s.visited], ['Not Visited', s.unvisited],
-    ['Avg Health Score', s.avgScore], ['Health Status', s.health.label],
-    ['Recent Velocity (units)', s.velocity ? s.velocity.recentUnits : 'Not Tracked'],
-    ['POP Target Locations', s.popTarget], ['POP Completed Locations', s.popCompleted],
-    ['POP Completion %', s.popCompletionPct], ['Assigned Kit', s.popKit]
-  ];
-
-  const storeCols = [['Address','address'],['City','city'],['State','state'],['Last Visit Date','mostRecentVisitDate'],['Last Visit Month','mostRecentVisitMonth'],['Status','doorStatus'],['Assigned Rep','assignedRep'],['Velocity','mostRecentVelocity'],['Score','latestScore']];
-  const inventoryCols = [['Address','address'],['City','city'],['State','state'],['SKU Name','skuName'],['SKU ID','skuId'],['Qty On Hand','qtyOnHand'],['Qty Faced','qtyFaced'],['OOS','oosIndicator'],['Low Inventory','lowInventoryIndicator'],['Status','inventoryStatus']];
-  const popCols = [['Address','address'],['City','city'],['State','state'],['POP Expected','popMaterialsExpected'],['POP Installed','popMaterialsInstalled'],['Compliance Status','popComplianceStatus'],['Missing Items','missingPOPItems'],['Completion %','popCompletionPct'],['Status','popStatus']];
-  const exceptionRows = [
-    ['Exception Type','Address','City','State','Detail'],
-    ...report.exceptions.notVisited.map(r=>['Not Visited Recently', r.address, r.city, r.state, 'Last visit: '+r.lastVisitMonth]),
-    ...report.exceptions.lowOosSkus.map(r=>['Low/OOS SKU', r.address, r.city, r.state, r.skuName+' — '+r.inventoryStatus]),
-    ...report.exceptions.missingPop.map(r=>['Missing POP', r.address, r.city, r.state, r.popMaterialsExpected]),
-    ...report.exceptions.followUps.map(r=>['Follow-Up', r.address, '', '', r.type+' ('+r.priority+', due '+r.dueDate+')'])
-  ];
-
-  downloadXLSX(crChain.replace(/[^A-Za-z0-9]/g,'_') + '_chain_report.xlsx', [
-    { name: 'Executive Summary', rows: execRows },
-    { name: 'Store Details', rows: crRowsToAoA(report.storeRows, storeCols) },
-    { name: 'Inventory Details', rows: crRowsToAoA(report.inventoryRows, inventoryCols) },
-    { name: 'POP Details', rows: crRowsToAoA(report.popRows, popCols) },
-    { name: 'Exceptions', rows: exceptionRows }
-  ]);
 }
 
 // Auto-scaled "nice number" Y-axis ticks (readable intervals like 5/10/25/50, not raw
