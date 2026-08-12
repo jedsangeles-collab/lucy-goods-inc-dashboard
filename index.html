@@ -1236,6 +1236,13 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .rr-flag-btn.flagged{background:var(--yellow-dim);border-color:var(--yellow);color:var(--yellow);font-weight:700;}
 .rr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:var(--surface2);border-top:1px solid var(--border);}
 .rr-notes-bar input{flex:1;font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;}
+.rr-bulk-bar{background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.rr-bulk-count{font-size:12px;color:var(--muted);}
+.rr-bulk-btn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-family:'DM Sans',sans-serif;}
+.rr-bulk-btn.no{border-color:var(--red);color:var(--red);}
+.rr-bulk-btn.yes{border-color:var(--green);color:var(--green);}
+.rr-bulk-btn.submit{border-color:var(--blue);color:var(--blue);}
+.rr-bulk-msg{font-size:12px;color:var(--green);font-weight:700;}
 .vd-filter-panel h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 8px;}
 .vd-filter-panel h4:first-child{margin-top:0;}
 .vd-filter-panel select,.vd-filter-panel input[type=number],.vd-filter-panel input[type=text]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;margin-bottom:4px;}
@@ -4507,6 +4514,9 @@ function reportDoor(rec) { return REPORT_TO_DOOR[rec.src+'|'+rec.id] || null; }
 
 // A "report" is one CI/EILEEN/poppromo visit record (this dataset has no separate report entity)
 // -- rebuilt by buildDerivedIndexes() once CI/EILEEN/DOORS have loaded (see loadAllData()).
+// Report Review itself is scoped down further to just these "site review" months -- see the
+// RR_ALL_REPORTS assignment below.
+const RR_SITE_REVIEW_MONTHS = ['2026-06', '2026-07', '2026-08'];
 let RR_ALL_REPORTS = [];
 // Flat poppromo report rows, mirroring CI/EILEEN's shape -- poppromo visits only exist nested
 // inside DOORS[key].visits[] (they're door-centric, not visit-centric like CI/EILEEN), so this is
@@ -4538,10 +4548,13 @@ function buildDerivedIndexes() {
     });
   }));
 
-  RR_ALL_REPORTS = CI.map(v => Object.assign({}, v, { src:'ci' }))
-    .concat(EILEEN.map(v => Object.assign({}, v, { src:'eileen' })))
-    .concat(POPPROMO_REPORTS)
-    .concat(CLARKS.map(v => Object.assign({}, v, { src:'clarks' })));
+  // Report Review is scoped to real "site review" (POP Marketing Check) visits from the June/
+  // July/August 2026 cycles only, confirmed with the user -- deliberately NOT "every poppromo
+  // record ever" or CI/Eileen/Clarks, so a future cycle doesn't silently start appearing here
+  // without a real decision to include it. CI/Eileen/Clarks stay fully visible everywhere else
+  // in the app (Stores tab, Chain Reports, Visit Planning, Map) -- this is scoping ONE tab, not
+  // removing those sources from the product.
+  RR_ALL_REPORTS = POPPROMO_REPORTS.filter(r => RR_SITE_REVIEW_MONTHS.includes(r.month));
 }
 
 function reportKey(rec) { return rec.src + '|' + rec.id; }
@@ -4601,10 +4614,10 @@ function rrSetViewMode(mode) { rrViewMode = mode; renderReportReview(); }
 
 function rrResetFilters() {
   rrFilters = { chain:'', storeSearch:'', state:'', territory:'', rep:'', dateFrom:'', dateTo:'', status:'', minScore:'', maxScore:'', minVelocity:'', maxVelocity:'' };
-  rrPage = 1; rrCardPage = 1;
+  rrPage = 1; rrCardPage = 1; rrBulkMsg = '';
   renderReportReview();
 }
-function rrSetFilter(key, val) { rrFilters[key] = val; rrPage = 1; rrCardPage = 1; renderReportReview(); }
+function rrSetFilter(key, val) { rrFilters[key] = val; rrPage = 1; rrCardPage = 1; rrBulkMsg = ''; renderReportReview(); }
 function rrSortBy(col) {
   rrSort = { col, dir: (rrSort.col === col && rrSort.dir === 'asc') ? 'desc' : 'asc' };
   renderReportReview();
@@ -4627,29 +4640,29 @@ function rrReportValue(rec, col) {
   }
 }
 
-// Normalizes "what did the rep themselves report" per source, for the verdict cards' comparison
-// hints -- real data only, null where a source genuinely has no comparable field (never guessed).
-// CI: si (carries, 1/0/null), sp (shelf-strip/POP present, 1/0 -- confirmed via merge_final.ps1's
-// `sp = popThere ? 1 : 0` formula), oo (out-of-stock items array, non-empty = needs product).
-// Eileen: no comparable per-field data at all on this source -- all three stay null.
-// Poppromo: shelfStripPresent maps directly to stripPresent; productPresent/needsProduct were
-// never persisted for this source (only the derived score was) -- left null rather than guessed.
+// Normalizes "what did the rep themselves report" for the verdict cards' comparison hints --
+// real data only, null where the field genuinely wasn't captured (never guessed). Report Review
+// only ever shows poppromo (site review) records now, so this is poppromo-only:
+// - stripPresent: direct from the rep's own "Shelf Strips Present?" answer.
+// - stripAdded: real shelfStripSizes are only recorded when a strip was actually placed via
+//   trunkstock during THIS visit, so a non-empty sizes list is a real "added" signal; if the
+//   strip-present question was answered at all but no size was recorded, that means a strip was
+//   already there (or wasn't), not added this visit.
+// - needsProduct: derived from real skuFacings counts -- if facings were counted at all and they
+//   sum to zero, the shelf was found empty; a non-empty sum means product is present. Left null
+//   when skuFacings was never captured (e.g. a refused visit never got that far).
+// - productPresent / revisit: no reliable rep-side field exists for either -- always null/absent,
+//   confirmed with the user these should stay independent manager judgment calls, never guessed.
 function rrRepHint(rec) {
-  if (rec.src === 'ci') {
-    return {
-      productPresent: rec.si === 1 ? true : rec.si === 0 ? false : null,
-      stripPresent: rec.sp === 1 ? true : rec.sp === 0 ? false : null,
-      needsProduct: Array.isArray(rec.oo) ? rec.oo.length > 0 : null
-    };
+  const stripPresent = rec.shelfStripPresent === true ? true : rec.shelfStripPresent === false ? false : null;
+  const sizes = Array.isArray(rec.shelfStripSizes) ? rec.shelfStripSizes : [];
+  const stripAdded = sizes.length > 0 ? true : (stripPresent !== null ? false : null);
+  let needsProduct = null;
+  if (rec.skuFacings && Object.keys(rec.skuFacings).length > 0) {
+    const total = Object.values(rec.skuFacings).reduce((s,v) => s + (Number(v) || 0), 0);
+    needsProduct = total === 0;
   }
-  if (rec.src === 'poppromo') {
-    return {
-      productPresent: null,
-      stripPresent: rec.shelfStripPresent === true ? true : rec.shelfStripPresent === false ? false : null,
-      needsProduct: null
-    };
-  }
-  return { productPresent: null, stripPresent: null, needsProduct: null };
+  return { productPresent: null, stripPresent, stripAdded, needsProduct };
 }
 
 function rrFilteredReports() {
@@ -4797,7 +4810,25 @@ function rrOpenReport(src, id) {
 let RR_VERDICT_DRAFT = {};
 function rrDraftVerdict(rec) {
   const k = reportKey(rec);
-  if (!RR_VERDICT_DRAFT[k]) RR_VERDICT_DRAFT[k] = Object.assign({}, getReportVerdict(rec));
+  if (!RR_VERDICT_DRAFT[k]) {
+    const saved = REPORT_VERDICT_CACHE[k];
+    if (saved) {
+      // Already reviewed before -- restore exactly what was saved, never overwrite a manager's
+      // real answer (even a "No" that happens to match the rep's own report) with the hint.
+      RR_VERDICT_DRAFT[k] = Object.assign({}, saved);
+    } else {
+      // First time this report has ever been opened for review: pre-fill Strip Present/Strip
+      // Added/Needs Product from the rep's own reported data as a starting point (confirmed with
+      // the user, patterned after the reference photo-review tool) -- the manager can still
+      // change any of these. Product There/Revisit always start blank: no reliable rep-side
+      // signal exists for either, and both are meant to be the manager's own independent call.
+      const hint = rrRepHint(rec);
+      RR_VERDICT_DRAFT[k] = {
+        productPresent: null, stripPresent: hint.stripPresent, stripAdded: hint.stripAdded,
+        needsProduct: hint.needsProduct, revisit: null, notes: '', flag: false
+      };
+    }
+  }
   return RR_VERDICT_DRAFT[k];
 }
 function rrSetVerdictAnswer(src, id, field, value) {
@@ -4824,6 +4855,31 @@ function rrUndoVerdict(src, id) {
   renderReportReview();
 }
 
+// Bulk actions (Review Cards view only) -- apply to every report matching the CURRENT filters,
+// not just the current page, mirroring the reference photo-review tool's "stores currently
+// filtered" scope. Deliberately no blocking confirm() dialog before acting -- this project has a
+// documented incident (round 2) where a native confirm/alert froze the whole Browser pane during
+// automated verification, so every bulk/destructive action here uses a plain inline "✓ done"
+// message instead, same convention already used elsewhere in this app.
+let rrBulkMsg = '';
+function rrBulkSetRevisit(val) {
+  const list = rrFilteredReports();
+  list.forEach(r => { rrDraftVerdict(r).revisit = val; });
+  rrBulkMsg = `✓ Marked ${list.length} report${list.length===1?'':'s'} — Revisit ${val ? 'Yes' : 'No'}`;
+  renderReportReview();
+}
+function rrBulkSubmit() {
+  const list = rrFilteredReports();
+  list.forEach(r => {
+    const draft = rrDraftVerdict(r);
+    setReportVerdict(r, draft);
+    setReportStatus(r, 'Reviewed');
+    delete RR_VERDICT_DRAFT[reportKey(r)];
+  });
+  rrBulkMsg = `✓ Submitted ${list.length} report${list.length===1?'':'s'}`;
+  renderReportReview();
+}
+
 const RR_VERDICT_QS = [
   ['productPresent', 'Product There?'],
   ['stripPresent', 'Strip There?'],
@@ -4833,30 +4889,21 @@ const RR_VERDICT_QS = [
 ];
 function rrHintLabel(v) { return v === true ? 'Yes' : v === false ? 'No' : '—'; }
 
-// Real per-source rep-reported detail rows only -- Eileen has none of these fields, so it
-// contributes no rows and the notes block simply doesn't render for that source.
+// Real rep-reported detail rows for the site-review (poppromo) record this card is showing --
+// Report Review only ever renders poppromo records now, so this is poppromo-only.
 function rrRepNotesHtml(rec) {
   const rows = [];
-  if (rec.src === 'ci') {
-    if (rec.n) rows.push(['Rep Note', rec.n, false]);
-    if (Array.isArray(rec.oo) && rec.oo.length) rows.push(['Out of Stock', rec.oo.join(', '), true]);
-  } else if (rec.src === 'poppromo') {
-    if (rec.kit) rows.push(['Kit', rec.kit, false]);
-    if (rec.outcome && rec.outcome !== 'visited') rows.push(['Outcome', rec.outcome, rec.outcome !== 'completed']);
-    if (rec.refusalManager) rows.push(['Refused By', rec.refusalManager, true]);
-    if (rec.refusalReason) rows.push(['Refusal Reason', rec.refusalReason, true]);
-    if (rec.promoRunning) rows.push(['Promo Running', rec.promoRunning, false]);
-    if (rec.promoCorrect === false) rows.push(['Promo Correct', 'No', true]);
-    if (rec.shelfStripMatchesPromo === false) rows.push(['Strip Matches Promo', 'No', true]);
-    if (Array.isArray(rec.shelfStripSizes) && rec.shelfStripSizes.length) rows.push(['Strip Sizes', rec.shelfStripSizes.join(', '), false]);
-    if (rec.observedPrice !== null && rec.observedPrice !== undefined) rows.push(['Observed Price', '$'+Number(rec.observedPrice).toFixed(2), false]);
-    if (rec.orderingIssue) rows.push(['Ordering Issue', rec.orderingIssue, true]);
-    if (rec.weekendRestricted) rows.push(['Weekend Restricted', 'Yes', true]);
-  } else if (rec.src === 'clarks') {
-    // Clark Post Report's whole value is this free-text compliance note -- no numeric score for
-    // this source, confirmed with the user: show the real note, never invent a score from it.
-    if (rec.n) rows.push(['Rep Note', rec.n, false]);
-  }
+  if (rec.kit) rows.push(['Kit', rec.kit, false]);
+  if (rec.outcome && rec.outcome !== 'visited') rows.push(['Outcome', rec.outcome, rec.outcome !== 'completed']);
+  if (rec.refusalManager) rows.push(['Refused By', rec.refusalManager, true]);
+  if (rec.refusalReason) rows.push(['Refusal Reason', rec.refusalReason, true]);
+  if (rec.promoRunning) rows.push(['Promo Running', rec.promoRunning, false]);
+  if (rec.promoCorrect === false) rows.push(['Promo Correct', 'No', true]);
+  if (rec.shelfStripMatchesPromo === false) rows.push(['Strip Matches Promo', 'No', true]);
+  if (Array.isArray(rec.shelfStripSizes) && rec.shelfStripSizes.length) rows.push(['Strip Sizes', rec.shelfStripSizes.join(', '), false]);
+  if (rec.observedPrice !== null && rec.observedPrice !== undefined) rows.push(['Observed Price', '$'+Number(rec.observedPrice).toFixed(2), false]);
+  if (rec.orderingIssue) rows.push(['Ordering Issue', rec.orderingIssue, true]);
+  if (rec.weekendRestricted) rows.push(['Weekend Restricted', 'Yes', true]);
   if (!rows.length) return '';
   return `<div class="rr-notes-block">
     <div class="rr-notes-title">Rep-Reported Details</div>
@@ -4866,23 +4913,21 @@ function rrRepNotesHtml(rec) {
 
 function rrBadgesHtml(rec, hint, status) {
   const badges = [];
-  if (rec.src === 'poppromo' && rec.kit) badges.push(['kit', rec.kit]);
+  if (rec.kit) badges.push(['kit', rec.kit]);
   if (hint.stripPresent === true) badges.push(['strip-yes', 'Strip Present']);
   if (hint.stripPresent === false) badges.push(['strip-no', 'Strip Missing']);
   if (hint.needsProduct === true) badges.push(['oos', 'Out of Stock']);
   if (hint.needsProduct === false) badges.push(['ok', 'Fully Stocked']);
-  if (rec.src === 'poppromo' && rec.refusalManager) badges.push(['access', 'Access Denied']);
+  if (rec.refusalManager) badges.push(['access', 'Access Denied']);
   if (status === 'Reviewed') badges.push(['lock', '✓ Submitted']);
   if (!badges.length) return '';
   return `<div class="rr-badges">${badges.map(([cls,label]) => `<span class="rr-badge ${cls}">${escHtml(label)}</span>`).join('')}</div>`;
 }
 
-// CI photos are already full URLs; Eileen's need PHOTO_BASE prefixing (matches visitPhotoUrls()
-// above); poppromo photos were backfilled from july_pop_array.json as full URLs, same as CI.
+// poppromo photos are already full URLs (backfilled from july_pop_array.json) -- Report Review
+// only ever shows poppromo records now, so no PHOTO_BASE prefixing is needed here.
 function rrPhotoUrls(rec) {
-  const arr = rec.ph || [];
-  if (!arr.length) return [];
-  return rec.src === 'eileen' ? arr.map(p => PHOTO_BASE + p) : arr;
+  return rec.ph || [];
 }
 function rrPhotosHtml(rec) {
   const urls = rrPhotoUrls(rec);
@@ -4998,6 +5043,13 @@ function renderReportReview() {
     const cardStart = (rrCardPage-1)*RR_CARD_PAGE_SIZE;
     const pageReports = sorted.slice(cardStart, cardStart+RR_CARD_PAGE_SIZE);
     bodyHtml = `
+      <div class="rr-bulk-bar">
+        <span class="rr-bulk-count">${fmtNum(sorted.length)} report${sorted.length===1?'':'s'} currently filtered</span>
+        <button class="rr-bulk-btn no" onclick="rrBulkSetRevisit(false)">✗ Mark all filtered — No Revisit</button>
+        <button class="rr-bulk-btn yes" onclick="rrBulkSetRevisit(true)">✓ Mark all filtered — Yes Revisit</button>
+        <button class="rr-bulk-btn submit" onclick="rrBulkSubmit()">⇧ Submit all filtered</button>
+        ${rrBulkMsg ? `<span class="rr-bulk-msg">${escHtml(rrBulkMsg)}</span>` : ''}
+      </div>
       ${pageReports.map(rrCardHtml).join('') || `<div style="text-align:center;color:var(--muted);padding:24px;">No reports match the selected filters. Try widening your date range or clearing a filter.</div>`}
       <div class="pg-row">
         <button class="pg-btn" onclick="rrCardChangePage(-1)" ${rrCardPage<=1?'disabled':''}>‹ Prev</button>
@@ -5021,7 +5073,10 @@ function renderReportReview() {
 
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-      <div class="section-title" style="margin-top:0;">Report Review</div>
+      <div>
+        <div class="section-title" style="margin-top:0;">Report Review</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:-4px;">Site Review (POP Marketing Check) visits, June–August 2026 only</div>
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <div class="rr-view-toggle">
           <button class="${rrViewMode==='table'?'active':''}" onclick="rrSetViewMode('table')">Table</button>
