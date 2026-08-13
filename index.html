@@ -1259,6 +1259,14 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
 #view-civisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
 #view-civisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-na{background:#eee;border-color:#888;color:#555;font-weight:700;}
+#view-civisitreview .civr-velocity-box{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+  background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;
+}
+#view-civisitreview .civr-velocity-label{color:#666;font-weight:600;}
+#view-civisitreview .civr-velocity-period{font-weight:400;color:#999;}
+#view-civisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
 #view-civisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
 #view-civisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
 #view-civisitreview .civr-submit-btn:hover{background:#144d88;}
@@ -3873,7 +3881,7 @@ function setReportStatus(rec, status) {
 // there's no separate "submitted" field here on purpose; Reviewed status IS submitted.
 let REPORT_VERDICT_CACHE = {};
 function getReportVerdict(rec) {
-  return REPORT_VERDICT_CACHE[reportKey(rec)] || { productPresent:null, stripPresent:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
+  return REPORT_VERDICT_CACHE[reportKey(rec)] || { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 function setReportVerdict(rec, verdict) {
   const updatedAt = new Date().toISOString();
@@ -3882,26 +3890,34 @@ function setReportVerdict(rec, verdict) {
     localStorage.setItem('lucyReportVerdicts_v1', JSON.stringify(REPORT_VERDICT_CACHE));
     return;
   }
+  // strip_accurate is a `text` column (not boolean) since it also allows a literal "N/A" answer
+  // (represented client-side as the string 'na') -- always sent as an explicit 'true'/'false'/'na'
+  // string, never a raw JS boolean, to avoid depending on Postgres/PostgREST's implicit
+  // boolean->text cast behavior for values arriving through the JS client.
+  const stripAccurateOut = verdict.stripAccurate === true ? 'true' : verdict.stripAccurate === false ? 'false' : verdict.stripAccurate === 'na' ? 'na' : null;
   sb.from('report_verdicts').upsert({
     src: rec.src, report_id: rec.id,
-    product_present: verdict.productPresent, strip_present: verdict.stripPresent, strip_added: verdict.stripAdded,
+    product_present: verdict.productPresent, strip_present: verdict.stripPresent, strip_accurate: stripAccurateOut, strip_added: verdict.stripAdded,
     needs_product: verdict.needsProduct, revisit: verdict.revisit, notes: verdict.notes, flag: verdict.flag,
     updated_at: updatedAt
   }).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
 }
 
-// The 5 manager-verdict questions -- shared by CI Visit Review's verdict bar (VERDICT_QS itself
+// The manager-verdict questions -- shared by CI Visit Review's verdict bar (VERDICT_QS itself
 // and rrHintLabel/rrYNCsv are the only "rr"-named symbols not exclusive to the now-removed Report
-// Review tab; kept here since CI Visit Review still depends on them).
+// Review tab; kept here since CI Visit Review still depends on them). Third array element (hasNA)
+// marks fields that offer a Yes/No/N/A tri-state instead of the plain Yes/No used everywhere else
+// -- currently only Strip Accurate?, since a store may have no strip at all to judge the accuracy of.
 const VERDICT_QS = [
   ['productPresent', 'Product There?'],
   ['stripPresent', 'Strip There?'],
+  ['stripAccurate', 'Strip Accurate?', true],
   ['stripAdded', 'Strip Added?'],
   ['needsProduct', 'Needs Product?'],
   ['revisit', 'Revisit?'],
 ];
 function rrHintLabel(v) { return v === true ? 'Yes' : v === false ? 'No' : '—'; }
-function rrYNCsv(v) { return v === true ? 'Yes' : v === false ? 'No' : ''; }
+function rrYNCsv(v) { return v === true ? 'Yes' : v === false ? 'No' : v === 'na' ? 'N/A' : ''; }
 
 // ══════════════════════════════════════════════════════════════════════════
 // CI VISIT REVIEW -- AUTH, SESSIONS, AUDIT LOG, VERSION HISTORY
@@ -4114,11 +4130,11 @@ function civPrevVersionFor(reportId, beforeVersionId) {
   const versions = civHistoryRows.filter(x => x.report_id === reportId && x.id < beforeVersionId).sort((a,b) => b.id - a.id);
   return versions[0] || null;
 }
-function civBlankVerdictSnapshot() { return { productPresent:null, stripPresent:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false }; }
+function civBlankVerdictSnapshot() { return { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false }; }
 
 function civDiffHtml(current, target) {
-  const fields = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
-  const fmt = (v) => typeof v === 'boolean' ? (v ? 'Yes' : 'No') : (v || '—');
+  const fields = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAccurate','Strip Accurate?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
+  const fmt = (v) => typeof v === 'boolean' ? (v ? 'Yes' : 'No') : v === 'na' ? 'N/A' : (v || '—');
   return fields.map(([f,label]) => {
     const changed = JSON.stringify(current[f]) !== JSON.stringify(target[f]);
     return `<div class="civauth-diff-row" style="${changed?'background:#fff8e8;':''}">
@@ -4306,10 +4322,12 @@ function civDraftVerdict(rec) {
       // Product from the rep's own reported data, same convention as Report Review. Strip Added
       // has no reliable rep-side signal for CI (see civRepHint) so stays blank; Product There
       // intentionally still stays an independent manager call even though `si` exists, matching
-      // the exact same design decision already confirmed for Report Review.
+      // the exact same design decision already confirmed for Report Review. Strip Accurate is a
+      // pure manager judgment call with no rep-side field at all (unlike Strip Present, no source
+      // column even attempts to capture it), so it always starts blank too.
       const hint = civRepHint(rec);
       CIV_VERDICT_DRAFT[k] = {
-        productPresent: null, stripPresent: hint.stripPresent, stripAdded: hint.stripAdded,
+        productPresent: null, stripPresent: hint.stripPresent, stripAccurate: null, stripAdded: hint.stripAdded,
         needsProduct: hint.needsProduct, revisit: null, notes: '', flag: false
       };
     }
@@ -4350,9 +4368,13 @@ function civSubmitVerdict(id) {
   const draft = civDraftVerdict(rec);
   setReportVerdict(rec, draft);
   setReportStatus(rec, 'Reviewed');
+  // Recent Door Velocity is captured into the saved version as a reference snapshot only --
+  // it's never a report_verdicts column (setReportVerdict above ignores unknown properties),
+  // just a contextual data point recorded alongside whatever the reviewer answered this time.
+  const versionSnapshot = Object.assign({}, draft, { velocitySnapshot: civrVelocitySnapshot(rec) });
   delete CIV_VERDICT_DRAFT[reportKey(rec)];
   civDirtySet.delete(reportKey(rec));
-  civSaveVersion(id, draft).then(version => {
+  civSaveVersion(id, versionSnapshot).then(version => {
     civLogAudit('save', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id, version_id: version ? version.id : null });
   });
   renderCiVisitReview();
@@ -4448,8 +4470,9 @@ function civrBulkSubmit() {
     const draft = civDraftVerdict(r);
     setReportVerdict(r, draft);
     setReportStatus(r, 'Reviewed');
+    const versionSnapshot = Object.assign({}, draft, { velocitySnapshot: civrVelocitySnapshot(r) });
     delete CIV_VERDICT_DRAFT[reportKey(r)];
-    civSaveVersion(r.id, draft).then(version => {
+    civSaveVersion(r.id, versionSnapshot).then(version => {
       civLogAudit('save', { chain: r.ch, door_key: civReportDoorKey(r.id), report_id: r.id, version_id: version ? version.id : null });
     });
   });
@@ -4509,7 +4532,7 @@ function civrVerdictBarHtml(rec, draft, hint, status) {
   const locked = status === 'Reviewed';
   const canEdit = civCanEdit(); // Viewer role (or logged-out/Artifact host) -- read-only, real gate is the RLS policy
   const dis = canEdit ? '' : 'disabled';
-  const qHtml = VERDICT_QS.map(([field,label]) => {
+  const qHtml = VERDICT_QS.map(([field,label,hasNA]) => {
     const val = draft[field];
     const hintVal = hint[field];
     const hintHtml = hintVal===undefined || hintVal===null ? `<div class="civr-vq-pre">&nbsp;</div>` : `<div class="civr-vq-pre">Rep said: ${rrHintLabel(hintVal)}</div>`;
@@ -4519,6 +4542,7 @@ function civrVerdictBarHtml(rec, draft, hint, status) {
       <div class="civr-tri-btn">
         <button class="civr-tbtn ${val===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', true)">Yes</button>
         <button class="civr-tbtn ${val===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', false)">No</button>
+        ${hasNA ? `<button class="civr-tbtn ${val==='na'?'civr-on-na':''}" ${dis} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', 'na')">N/A</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -4551,6 +4575,31 @@ function civrCardWrapperClass(rec) {
   return 'civr-store-card ' + (civDraftVerdict(rec).flag ? 'civr-submitted-flag' : 'civr-submitted');
 }
 
+// Recent Door Velocity: real per-store units/week from the door's most recent month with sales
+// data (door.realVelocity, the same figure shown elsewhere in the app as "real velocity") --
+// paired with which month it actually reflects, read straight off door.salesByMonth, since the
+// ETL doesn't separately expose that month. Read-only, purely contextual for the reviewer.
+function civFmtMonthLabel(monthKey) {
+  if (!monthKey || !/^\d{4}-\d{2}$/.test(monthKey)) return monthKey || null;
+  const [y,m] = monthKey.split('-').map(Number);
+  return new Date(y, m-1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+}
+function civrVelocitySnapshot(rec) {
+  const door = reportDoor(rec);
+  if (!door || door.realVelocity === null || door.realVelocity === undefined) return null;
+  const months = (door.salesByMonth||[]).map(sm => sm.month).filter(Boolean).sort();
+  const period = months.length ? months[months.length-1] : null;
+  return { value: door.realVelocity, period };
+}
+function civrVelocityHtml(rec) {
+  const snap = civrVelocitySnapshot(rec);
+  const periodLabel = snap && snap.period ? civFmtMonthLabel(snap.period) : 'most recent available month';
+  return `<div class="civr-velocity-box">
+    <span class="civr-velocity-label">Recent Door Velocity <span class="civr-velocity-period">(${escHtml(periodLabel)}, real, read-only)</span></span>
+    <span class="civr-velocity-val">${snap ? snap.value.toFixed(1) + ' units/wk' : 'Not Tracked'}</span>
+  </div>`;
+}
+
 function civrCardHtml(rec) {
   const status = getReportStatus(rec);
   const hint = civRepHint(rec);
@@ -4566,6 +4615,7 @@ function civrCardHtml(rec) {
   <div class="civr-card-body">
     ${civrRepNotesHtml(rec)}
     ${civrPhotosHtml(rec)}
+    ${civrVelocityHtml(rec)}
   </div>
   ${civrVerdictBarHtml(rec, draft, hint, status)}
   ${civrSubmittedBannerHtml(rec, draft, status)}`;
@@ -4579,9 +4629,11 @@ function civrExportCSV() {
       RepStripPresent: rec.sp===1?'yes':rec.sp===0?'no':'',
       RepOOS: Array.isArray(rec.oo)&&rec.oo.length?'yes':'no', RepOOSItems: Array.isArray(rec.oo)?rec.oo.join('; '):'',
       YourProductThere: rrYNCsv(draft.productPresent), YourStripWasThere: rrYNCsv(draft.stripPresent),
+      YourStripAccurate: rrYNCsv(draft.stripAccurate),
       YourStripAdded: rrYNCsv(draft.stripAdded), YourNeedsProduct: rrYNCsv(draft.needsProduct),
       Revisit: rrYNCsv(draft.revisit), Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
-      Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No'
+      Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No',
+      RecentDoorVelocity: (() => { const s = civrVelocitySnapshot(rec); return s ? s.value.toFixed(1)+' u/wk ('+(civFmtMonthLabel(s.period)||'unknown month')+')' : ''; })()
     };
   });
   downloadCSV('ci_visit_review.csv', rows);
@@ -5953,8 +6005,12 @@ async function loadAllData() {
   });
   REPORT_VERDICT_CACHE = {};
   reportVerdictsRows.forEach(rv => {
+    // strip_accurate round-trips as the literal text 'true'/'false'/'na' (see setReportVerdict) --
+    // normalize back to a real boolean/'na'/null here so client-side comparisons (val===true etc.)
+    // behave identically whether the value came from this hydration or from a same-session write.
+    const stripAccurateIn = rv.strip_accurate === 'true' ? true : rv.strip_accurate === 'false' ? false : rv.strip_accurate === 'na' ? 'na' : null;
     REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = {
-      productPresent: rv.product_present, stripPresent: rv.strip_present, stripAdded: rv.strip_added,
+      productPresent: rv.product_present, stripPresent: rv.strip_present, stripAccurate: stripAccurateIn, stripAdded: rv.strip_added,
       needsProduct: rv.needs_product, revisit: rv.revisit, notes: rv.notes || '', flag: !!rv.flag,
       updatedAt: rv.updated_at
     };
