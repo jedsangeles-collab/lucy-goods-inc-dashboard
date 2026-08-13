@@ -6219,6 +6219,12 @@ function crgSelectNoDataChains() {
   crgSelectedChains = new Set(crgAllChains().filter(c => crgReviewSummary(c).total === 0));
   renderChainReportGenerator();
 }
+// Chains with real reports this cycle but zero reviewed yet -- the "Needs Review" 🔴 state,
+// distinct from "No Data This Cycle" above (which has no reports to review at all).
+function crgSelectNeedsReviewChains() {
+  crgSelectedChains = new Set(crgAllChains().filter(c => { const s = crgReviewSummary(c); return s.total > 0 && s.reviewed === 0; }));
+  renderChainReportGenerator();
+}
 
 function crgChainRowData(chain) {
   return {
@@ -6280,6 +6286,7 @@ function crgLeftPanelHtml() {
       <div style="display:flex;gap:6px;margin-bottom:10px;">
         <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgSelectAllChains()">Select All</button>
         <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgSelectNoDataChains()">No Data</button>
+        <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgSelectNeedsReviewChains()">Needs Review</button>
         <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgClearAllChains()">Clear All</button>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${crgSelectedChains.size} of ${crgAllChains().length} selected</div>
