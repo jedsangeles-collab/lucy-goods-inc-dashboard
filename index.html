@@ -1457,6 +1457,34 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   background:#ffffff22;padding:4px 14px;border-radius:20px;
 }
 
+/* CHAIN REPORT GENERATOR: STORE DETAIL POPUP -- same overlay convention as .lightbox above. */
+.crg-modal-backdrop{
+  display:none;position:fixed;inset:0;background:#000c;z-index:1000;
+  align-items:center;justify-content:center;padding:20px;
+}
+.crg-modal-backdrop.open{display:flex;}
+.crg-modal{
+  position:relative;background:var(--surface);border-radius:14px;
+  width:100%;max-width:720px;max-height:85vh;overflow-y:auto;
+  padding-bottom:8px;
+}
+.crg-modal-close{
+  position:absolute;top:14px;right:14px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--muted);width:28px;height:28px;border-radius:7px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;
+  z-index:1;
+}
+.crg-modal-close:hover{color:var(--text);border-color:var(--text);}
+.crg-modal-header{padding:20px 50px 16px 22px;border-bottom:1px solid var(--border);}
+.crg-modal-section{padding:14px 22px;border-bottom:1px solid var(--border);}
+.crg-modal-section:last-child{border-bottom:none;}
+.crg-modal-section-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.crg-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block;}
+.crg-badge.reviewed{background:var(--green-dim);color:var(--green);}
+.crg-badge.unreviewed{background:var(--yellow-dim);color:var(--yellow);}
+.crg-badge.customer-impact{background:var(--red-dim);color:var(--red);}
+
 /* MAGNIFIER */
 .mag-lens{
   position:fixed;display:none;pointer-events:none;z-index:2000;
@@ -1560,6 +1588,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div class="tab" onclick="switchTab(&#39;chains&#39;)" id="tab-chains"><span class="tab-icon">⬡</span> Chains</div>
     <div class="tab" onclick="switchTab(&#39;stores&#39;)" id="tab-stores"><span class="tab-icon">⊞</span> Stores</div>
     <div class="tab" onclick="switchTab(&#39;civisitreview&#39;)" id="tab-civisitreview"><span class="tab-icon">📷</span> CI Visit Review</div>
+    <div class="tab" onclick="switchTab(&#39;chainreportgen&#39;)" id="tab-chainreportgen"><span class="tab-icon">🧾</span> Chain Report Generator</div>
   </div>
   <div class="topbar-right">
     <div class="recency-filter">
@@ -2335,6 +2364,11 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
       <div id="civauth-modal-root"></div>
     </div>
 
+    <!-- CHAIN REPORT GENERATOR VIEW -->
+    <div id="view-chainreportgen" style="display:none;flex-direction:column;overflow:auto;">
+      <div id="crg-main"></div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /body -->
 
@@ -2412,6 +2446,14 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   <img id="lb-img" src="file:///C:/Users/dgsul/Downloads/lucy_dashboard_v2_6.html" alt="">
   <span class="lb-nav next" id="lb-next" onclick="event.stopPropagation();lbNav(1);">›</span>
   <span class="lb-counter" id="lb-counter" style="display:none;"></span>
+</div>
+
+<!-- Chain Report Generator: per-store detail popup. Content is rendered into #crg-modal by
+     renderCrgStoreModal(); this container is deliberately outside any single tab's #view-* div
+     (position:fixed escapes normal layout regardless), same reasoning as #lightbox/.detail-panel
+     above. New ids (crg-*, not cr-*) -- distinct from the deleted Chain Reports module. -->
+<div class="crg-modal-backdrop" id="crg-modal-backdrop" onclick="if(event.target===this) crgCloseStoreModal()">
+  <div class="crg-modal" id="crg-modal"></div>
 </div>
 
 <script>
@@ -2940,7 +2982,7 @@ function switchTab(tab) {
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  const views = ['overview','map','chains','stores','civisitreview'];
+  const views = ['overview','map','chains','stores','civisitreview','chainreportgen'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
   if (tab === 'civisitreview') renderCiVisitReview();
@@ -2948,6 +2990,7 @@ function switchTab(tab) {
   if (tab === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
   if (tab === 'overview') renderOverview();
   if (tab === 'stores') renderStoresTab();
+  if (tab === 'chainreportgen') renderChainReportGenerator();
 }
 
 function civLeaveWarningHtml() {
@@ -4662,7 +4705,7 @@ function renderCiVisitReview() {
 // ══════════════════════════════════════════════════════════════════════════
 // ACTION CENTER + REVIEW WORKFLOW (localStorage-backed)
 // ══════════════════════════════════════════════════════════════════════════
-const ACTION_TYPES = ['Ship new shelf strip','Force out product','Schedule merchandising visit','Increase inventory','Replace display','Meet with store manager','Promotional follow-up','Other'];
+const ACTION_TYPES = ['Ship new shelf strip','Force out product','Schedule merchandising visit','Increase inventory','Replace display','Meet with store manager','Promotional follow-up','Customer impact visit','POP compliance issue','Follow up on missing data','Other'];
 
 // Shared across users/devices via Supabase (was localStorage-only) -- same optimistic-cache
 // pattern as REPORT_STATUS_CACHE above: caches populated in loadAllData(), reads stay
@@ -4699,12 +4742,14 @@ function updateActionStatus(id, status) {
     else { sb.from('actions').update({ status }).eq('id', id).then(({ error }) => { if (error) console.error('actions update failed', error); }); }
   }
   if (currentTab === 'stores') renderStoresTab();
+  if (crgModalDoorKey) renderCrgStoreModal();
 }
 function deleteAction(id) {
   ACTIONS_CACHE = ACTIONS_CACHE.filter(a => a.id !== id);
   if (usingEmbeddedSnapshot) { persistActionsLocal(); }
   else { sb.from('actions').delete().eq('id', id).then(({ error }) => { if (error) console.error('actions delete failed', error); }); }
   if (currentTab === 'stores') renderStoresTab();
+  if (crgModalDoorKey) renderCrgStoreModal();
 }
 
 function actionRowHtml(a) {
@@ -5091,7 +5136,7 @@ function printCurrentView() { window.print(); }
   style.textContent = `
     .topbar, .detail-panel, .ac-toolbar, .breadcrumb .bc-link, select, .ac-btn { display:none !important; }
     .body, .content { display:block !important; overflow:visible !important; height:auto !important; }
-    #view-overview, #view-civisitreview { display:block !important; overflow:visible !important; padding:0 !important; }
+    #view-overview, #view-civisitreview, #view-chainreportgen { display:block !important; overflow:visible !important; padding:0 !important; }
     .chart-card, .kpi-card, .drill-card { break-inside:avoid; }
     body { background:#fff !important; overflow:visible !important; height:auto !important; }
     /* When a report detail is open, print only the report: show .detail-panel in normal flow
@@ -5906,6 +5951,601 @@ function showLoadOverlay(mode, detail) {
 function hideLoadOverlay() {
   const el = document.getElementById('load-overlay');
   if (el) el.style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CHAIN REPORT GENERATOR (prototype) -- chain/store health reporting built on
+// top of CI Visit Review's own reviewed/unreviewed data. Covers ALL chains/doors
+// (same universe as Overview/Chains/Stores) -- only "is this record Reviewed"
+// comes from CI Visit Review's own June-Aug 2026 window (SITE_REVIEW_MONTHS/
+// CIV_ALL_REPORTS); a chain or door with zero reports in that window is simply
+// shown as fully Unreviewed / 100% missing for the current cycle, not hidden.
+// Never requires login: reads already-loaded live caches (CIV_ALL_REPORTS,
+// REPORT_STATUS_CACHE, REPORT_VERDICT_CACHE, ACTIONS_CACHE, DOORS) plus one
+// civ_report_versions fetch for reviewer names; its only write path (addAction)
+// already has open RLS, same as the Stores tab's own Action Tracker.
+// ══════════════════════════════════════════════════════════════════════════
+let crgSelectedChain = null;
+let crgChainSearch = '';
+let crgSort = { col: 'chain', dir: 'asc' };
+let crgCollapsed = {};
+let crgReviewerIndex = {};          // report_id -> {userName, createdAt}, latest civ_report_versions row
+let crgReviewerIndexLoaded = false;
+let crgModalDoorKey = null;         // store drill-down modal
+let crgReportView = null;           // null | chain name currently showing the generated report
+
+// The canonical chain roster used everywhere else in the app (Chains/Stores tabs) -- NOT a
+// raw distinct-count of DOORS.chain, which also contains ~160 one-off single-store entries
+// (individual independent stores whose "chain" field is really just their own name) that no
+// other tab treats as a real chain. "All chains" per the user's own correction means this
+// same 58-chain set, not that noisier long tail.
+function crgAllChains() { return CHAINS.map(c => c.chain).filter(Boolean).sort(); }
+function crgDoorsForChain(chain) { return DOORS.filter(d => d.chain === chain); }
+// This chain's real reports inside CI Visit Review's own window -- the only records with a
+// real Reviewed/Unreviewed status. Everything else in the roster (Eileen/Clarks visits, other
+// months) has no review record at all this cycle.
+function crgReportsForChain(chain) { return CIV_ALL_REPORTS.filter(r => r.ch === chain); }
+function crgReportedDoorsForChain(chain) {
+  const keys = new Set(crgReportsForChain(chain).map(r => { const d = reportDoor(r); return d ? d.key : null; }).filter(Boolean));
+  return crgDoorsForChain(chain).filter(d => keys.has(d.key));
+}
+
+async function crgLoadReviewerIndex() {
+  const rows = await civFetchVersions();
+  const idx = {};
+  rows.forEach(v => {
+    const existing = idx[v.report_id];
+    if (!existing || new Date(v.created_at) > new Date(existing.createdAt)) {
+      idx[v.report_id] = { userName: v.user_name || 'Unknown', createdAt: v.created_at };
+    }
+  });
+  crgReviewerIndex = idx;
+  crgReviewerIndexLoaded = true;
+  if (currentTab === 'chainreportgen') renderChainReportGenerator();
+}
+function crgRefreshReviewerIndex() { crgReviewerIndexLoaded = false; renderChainReportGenerator(); }
+
+// Ported from the recovered (deleted) Chain Reports module -- crLatestVisitsForDoor/
+// crDoorPopStatus/crDoorInventoryStatus, unchanged logic, restricted to SITE_REVIEW_MONTHS.
+function crgLatestVisitsForDoor(door) {
+  const ciVisits = (door.visits||[]).filter(v => v.src==='ci' && SITE_REVIEW_MONTHS.includes(v.month)).sort((a,b)=>(a.month||'').localeCompare(b.month||''));
+  const promoVisits = (door.visits||[]).filter(v => v.src==='poppromo' && SITE_REVIEW_MONTHS.includes(v.month)).sort((a,b)=>(a.month||'').localeCompare(b.month||''));
+  const latestCiVisit = ciVisits.length ? ciVisits[ciVisits.length-1] : null;
+  const latestPromo = promoVisits.length ? promoVisits[promoVisits.length-1] : null;
+  const ciRec = latestCiVisit ? CI.find(v => v.id === latestCiVisit.ciId) : null;
+  return { latestCiVisit, latestPromo, ciRec };
+}
+function crgDoorPopStatus(door) {
+  const { latestPromo, ciRec } = crgLatestVisitsForDoor(door);
+  if (latestPromo) {
+    if (latestPromo.shelfStripPresent === null || latestPromo.shelfStripPresent === undefined) return 'Not Tracked';
+    if (!latestPromo.shelfStripPresent) return 'Missing';
+    return latestPromo.shelfStripMatchesPromo ? 'Complete' : 'Partial';
+  }
+  if (ciRec) {
+    if (ciRec.sp === 1) return 'Complete';
+    if (ciRec.sp === 0) return 'Missing';
+  }
+  return 'Not Tracked';
+}
+function crgDoorInventoryStatus(door) {
+  const { ciRec } = crgLatestVisitsForDoor(door);
+  if (ciRec && Array.isArray(ciRec.oo) && ciRec.oo.length) return 'OOS';
+  if (ciRec && ciRec.ss !== null && ciRec.ss !== undefined) return ciRec.ss === 0 ? 'Critical' : ciRec.ss === 1 ? 'Low' : 'Good';
+  return 'Not Tracked';
+}
+
+// Review state as a plain object the UI badges consistently everywhere -- reviewer/date come
+// from crgReviewerIndex (civ_report_versions), NOT from report_status itself (that table has
+// no reviewer identity column; see migrate_civ_auth_schema.sql).
+function crgReviewStateForDoor(door) {
+  const { ciRec } = crgLatestVisitsForDoor(door);
+  if (!ciRec) return { state: 'unreviewed', label: 'Unreviewed — no visit this cycle', reviewer: null, reviewedAt: null, rec: null };
+  const status = getReportStatus(ciRec);
+  if (status !== 'Reviewed') return { state: 'unreviewed', label: 'Unreviewed — pending', reviewer: null, reviewedAt: null, rec: ciRec };
+  const rv = crgReviewerIndex[ciRec.id];
+  return { state: 'reviewed', label: 'Reviewed', reviewer: rv ? rv.userName : 'Unknown', reviewedAt: rv ? rv.createdAt : getReportStatusUpdatedAt(ciRec), rec: ciRec };
+}
+
+// Period velocity from real door-level salesByMonth, restricted to the review window; falls
+// back to chain-level chainVelocityStats() when no door has period-level sales data (ported
+// from the deleted module's crPeriodVelocity).
+function crgPeriodVelocity(doors) {
+  const byMonth = {};
+  doors.forEach(d => (d.salesByMonth||[]).forEach(sm => {
+    if (!sm || !sm.month || !SITE_REVIEW_MONTHS.includes(sm.month) || sm.units === null || sm.units === undefined) return;
+    if (!byMonth[sm.month]) byMonth[sm.month] = { units: 0 };
+    byMonth[sm.month].units += sm.units;
+  }));
+  const months = Object.keys(byMonth).sort();
+  if (!months.length) return null;
+  const recentMonth = months[months.length-1];
+  const recentUnits = byMonth[recentMonth].units;
+  const priorMonths = months.slice(0, -1);
+  const trailingAvgUnits = priorMonths.length ? priorMonths.reduce((s,m)=>s+byMonth[m].units,0)/priorMonths.length : null;
+  const changePct = (trailingAvgUnits && trailingAvgUnits > 0) ? ((recentUnits - trailingAvgUnits)/trailingAvgUnits*100) : null;
+  return { recentUnits, recentMonth, trailingAvgUnits, changePct, monthsAvailable: months.length };
+}
+function crgChainVelocity(chain) { return crgPeriodVelocity(crgDoorsForChain(chain)) || chainVelocityStats(chain); }
+
+// Missing % = data coverage gap: share of the chain's FULL door roster with zero CI visit
+// inside the current review window (confirmed definition via AskUserQuestion).
+function crgMissingPct(chain) {
+  const roster = crgDoorsForChain(chain);
+  if (!roster.length) return null;
+  return (1 - crgReportedDoorsForChain(chain).length / roster.length) * 100;
+}
+function crgReviewSummary(chain) {
+  const reports = crgReportsForChain(chain);
+  const reviewed = reports.filter(r => getReportStatus(r) === 'Reviewed').length;
+  return { total: reports.length, reviewed, remaining: reports.length - reviewed };
+}
+function crgVerifiedSplit(doors) {
+  let verified = 0, unreviewed = 0;
+  doors.forEach(d => { crgReviewStateForDoor(d).state === 'reviewed' ? verified++ : unreviewed++; });
+  return { verified, unreviewed };
+}
+function crgInventoryRollup(chain) {
+  const doors = crgReportedDoorsForChain(chain);
+  if (!doors.length) return { label: 'No data', issues: 0, total: 0 };
+  const issues = doors.filter(d => ['OOS','Critical'].includes(crgDoorInventoryStatus(d))).length;
+  return { label: `${issues}/${doors.length} issues`, issues, total: doors.length };
+}
+function crgPopRollup(chain) {
+  const doors = crgReportedDoorsForChain(chain);
+  if (!doors.length) return { label: 'No data', issues: 0, total: 0 };
+  const issues = doors.filter(d => ['Missing','Partial'].includes(crgDoorPopStatus(d))).length;
+  return { label: `${issues}/${doors.length} issues`, issues, total: doors.length };
+}
+
+// Store classifications -- heuristics, documented as such (this is a prototype meant to be
+// refined once real usage shows whether these definitions match how category managers think).
+function crgProblemDoors(chain) {
+  return crgDoorsForChain(chain).filter(d => {
+    const inv = crgDoorInventoryStatus(d), pop = crgDoorPopStatus(d);
+    const st = crgReviewStateForDoor(d);
+    const verdict = st.rec ? getReportVerdict(st.rec) : null;
+    return inv==='OOS' || inv==='Critical' || pop==='Missing' || pop==='Partial' || (verdict && (verdict.flag || verdict.revisit===true));
+  });
+}
+function crgPerformingWellDoors(chain) {
+  return crgDoorsForChain(chain).filter(d => {
+    const inv = crgDoorInventoryStatus(d), pop = crgDoorPopStatus(d);
+    const st = crgReviewStateForDoor(d);
+    const verdict = st.rec ? getReportVerdict(st.rec) : null;
+    return inv==='Good' && pop==='Complete' && st.state==='reviewed' && verdict && !verdict.flag && verdict.revisit!==true;
+  });
+}
+function crgCustomerImpactDoors(chain) {
+  return crgDoorsForChain(chain).filter(d => {
+    const st = crgReviewStateForDoor(d);
+    const verdict = st.rec ? getReportVerdict(st.rec) : null;
+    return verdict && verdict.revisit === true;
+  });
+}
+function crgActionableDoors(chain) {
+  const keys = new Set(loadActions().filter(a => a.status !== 'Done').map(a => a.doorKey));
+  return crgDoorsForChain(chain).filter(d => keys.has(d.key));
+}
+// Six categories for the Action Lists section, matching the spec's own naming. "Needs Review"
+// is deliberately NOT wired to addAction() -- it's an internal review-team nudge (go review a
+// pending report in CI Visit Review), not a field action a rep would carry out at a store.
+function crgActionListsForChain(chain) {
+  const doors = crgDoorsForChain(chain);
+  const posShelfStrip = [], customerImpact = [], inventoryIssue = [], popIssue = [], missingData = [], needsReview = [];
+  doors.forEach(d => {
+    const inv = crgDoorInventoryStatus(d), pop = crgDoorPopStatus(d);
+    const st = crgReviewStateForDoor(d);
+    const verdict = st.rec ? getReportVerdict(st.rec) : null;
+    if (pop === 'Missing') posShelfStrip.push(d);
+    if (verdict && verdict.revisit === true) customerImpact.push(d);
+    if (inv === 'OOS' || inv === 'Critical') inventoryIssue.push(d);
+    if (pop === 'Partial') popIssue.push(d);
+    if (!st.rec) missingData.push(d);
+    else if (st.state === 'unreviewed') needsReview.push(d);
+  });
+  return { posShelfStrip, customerImpact, inventoryIssue, popIssue, missingData, needsReview, performingWell: crgPerformingWellDoors(chain) };
+}
+
+function crgToggleSection(name) { crgCollapsed[name] = !crgCollapsed[name]; renderChainReportGenerator(); }
+function crgSectionHeader(name, label) {
+  return `<div class="cp-section-title" onclick="crgToggleSection('${name}')">${label} <span class="cp-collapse-icon">${crgCollapsed[name]?'▸ expand':'▾ collapse'}</span></div>`;
+}
+
+// ── Review Queue banner (global when chain is null, per-chain otherwise) ───────────────────
+function crgReviewQueueHtml(chain) {
+  const reports = chain ? crgReportsForChain(chain) : CIV_ALL_REPORTS;
+  const summary = { total: reports.length, reviewed: reports.filter(r=>getReportStatus(r)==='Reviewed').length };
+  const remaining = summary.total - summary.reviewed;
+  const idSet = new Set(reports.map(r=>r.id));
+  const byReviewer = {};
+  Object.keys(crgReviewerIndex).forEach(rid => {
+    const idNum = parseInt(rid,10);
+    if (!idSet.has(idNum)) return;
+    const rec = reports.find(r => r.id === idNum);
+    if (!rec || getReportStatus(rec) !== 'Reviewed') return;
+    const name = crgReviewerIndex[rid].userName;
+    byReviewer[name] = (byReviewer[name]||0) + 1;
+  });
+  const reviewerChips = Object.keys(byReviewer).sort().map(n => `<span class="badge badge-good" style="margin-right:6px;">${escHtml(n)}: ${byReviewer[n]}</span>`).join('');
+  const statusText = summary.total===0 ? '— No visits this cycle' : remaining===0 ? '✅ Fully Reviewed' : '◐ In Progress';
+  return `<div class="cp-section-title" style="margin-top:14px;">📋 Review Queue${chain?` — ${escHtml(chain)}`:''} <span class="cp-collapse-icon" onclick="crgRefreshReviewerIndex()" style="cursor:pointer;">↻ Refresh</span></div>
+    <div class="cp-kpi-grid">
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Total Items</div><div class="cp-kpi-value">${fmtNum(summary.total)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Reviewed</div><div class="cp-kpi-value" style="color:var(--green);">${fmtNum(summary.reviewed)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Remaining</div><div class="cp-kpi-value" style="color:${remaining===0?'var(--green)':'var(--yellow)'};">${fmtNum(remaining)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Status</div><div class="cp-kpi-value" style="font-size:13px;">${statusText}</div></div>
+    </div>
+    ${reviewerChips ? `<div style="font-size:11px;color:var(--muted);margin:-8px 0 14px;">Reviewed by: ${reviewerChips}</div>` : ''}`;
+}
+
+// ── Chain Grid (default view) ───────────────────────────────────────────────────────────────
+const CRG_GRID_COLS = [
+  ['chain','Chain'], ['doors','Doors'], ['reviewed','Reviewed / Unreviewed'], ['velocity','Velocity'],
+  ['missingPct','Missing %'], ['inventory','Inventory'], ['pop','POP'], ['problem','Problem Stores'],
+  ['action','Needs Action'], ['impact','Cust. Impact'], ['health','Health']
+];
+function crgSortBy(col) {
+  if (crgSort.col === col) crgSort.dir = crgSort.dir==='asc'?'desc':'asc'; else { crgSort.col = col; crgSort.dir = 'asc'; }
+  renderChainReportGenerator();
+}
+function crgSetChainSearch(v) { crgChainSearch = v; renderChainReportGenerator(); }
+function crgOpenChain(chain) { crgSelectedChain = chain; crgReportView = null; renderChainReportGenerator(); window.scrollTo({top:0,behavior:'smooth'}); }
+function crgBackToGrid() { crgSelectedChain = null; crgReportView = null; renderChainReportGenerator(); }
+
+function crgChainRowData(chain) {
+  return {
+    chain, doorCount: crgDoorsForChain(chain).length, reviewSummary: crgReviewSummary(chain),
+    vel: crgChainVelocity(chain), missingPct: crgMissingPct(chain),
+    inv: crgInventoryRollup(chain), pop: crgPopRollup(chain),
+    problem: crgProblemDoors(chain).length, action: crgActionableDoors(chain).length,
+    impact: crgCustomerImpactDoors(chain).length, health: chainHealthStatus(avgScoreForChain(chain))
+  };
+}
+function crgCompareRows(a, b, col, dir) {
+  const mul = dir==='asc'?1:-1;
+  let av, bv;
+  if (col==='chain') { av=a.chain.toLowerCase(); bv=b.chain.toLowerCase(); return av<bv?-mul:av>bv?mul:0; }
+  if (col==='doors') { av=a.doorCount; bv=b.doorCount; }
+  else if (col==='reviewed') { av=a.reviewSummary.total?a.reviewSummary.reviewed/a.reviewSummary.total:-1; bv=b.reviewSummary.total?b.reviewSummary.reviewed/b.reviewSummary.total:-1; }
+  else if (col==='velocity') { av=a.vel?a.vel.recentUnits:-Infinity; bv=b.vel?b.vel.recentUnits:-Infinity; }
+  else if (col==='missingPct') { av=a.missingPct??-1; bv=b.missingPct??-1; }
+  else if (col==='inventory') { av=a.inv.issues; bv=b.inv.issues; }
+  else if (col==='pop') { av=a.pop.issues; bv=b.pop.issues; }
+  else if (col==='problem') { av=a.problem; bv=b.problem; }
+  else if (col==='action') { av=a.action; bv=b.action; }
+  else if (col==='impact') { av=a.impact; bv=b.impact; }
+  else if (col==='health') { const order={healthy:3,warning:2,critical:1,unknown:0}; av=order[a.health.cls]; bv=order[b.health.cls]; }
+  else { av=0; bv=0; }
+  return (av-bv)*mul;
+}
+function crgChainGridHtml() {
+  let chains = crgAllChains();
+  if (crgChainSearch) { const s = crgChainSearch.toLowerCase(); chains = chains.filter(c => c.toLowerCase().includes(s)); }
+  const rows = chains.map(crgChainRowData);
+  rows.sort((a,b) => crgCompareRows(a,b,crgSort.col,crgSort.dir));
+
+  const headerHtml = CRG_GRID_COLS.map(([key,label]) => {
+    const arrow = crgSort.col===key ? (crgSort.dir==='asc'?' ▲':' ▼') : '';
+    return `<th onclick="crgSortBy('${key}')">${label}${arrow}</th>`;
+  }).join('');
+  const bodyHtml = rows.map(r => {
+    const pct = r.reviewSummary.total ? Math.round(r.reviewSummary.reviewed/r.reviewSummary.total*100) : null;
+    const velHtml = r.vel ? `${fmtNum(r.vel.recentUnits)} u${r.vel.changePct!==null&&r.vel.changePct!==undefined?(r.vel.changePct>=0?` <span style="color:var(--green);font-size:11px;">▲${r.vel.changePct.toFixed(0)}%</span>`:` <span style="color:var(--red);font-size:11px;">▼${Math.abs(r.vel.changePct).toFixed(0)}%</span>`):''}` : '—';
+    return `<tr onclick="crgOpenChain('${esc(r.chain)}')">
+      <td><strong>${escHtml(r.chain)}</strong></td>
+      <td>${fmtNum(r.doorCount)}</td>
+      <td>${r.reviewSummary.total ? `${fmtNum(r.reviewSummary.reviewed)} / ${fmtNum(r.reviewSummary.total)} <span style="color:var(--muted);">(${pct}%)</span>` : '<span style="color:var(--muted);">No data this cycle</span>'}</td>
+      <td>${velHtml}</td>
+      <td style="${r.missingPct!==null && r.missingPct>=75?'color:var(--red);font-weight:700;':''}">${r.missingPct===null?'—':r.missingPct.toFixed(0)+'%'}</td>
+      <td>${r.inv.total ? `<span class="badge ${r.inv.issues?'badge-warn':'badge-good'}">${r.inv.label}</span>` : '—'}</td>
+      <td>${r.pop.total ? `<span class="badge ${r.pop.issues?'badge-warn':'badge-good'}">${r.pop.label}</span>` : '—'}</td>
+      <td>${r.problem ? `<span class="badge badge-critical">${r.problem}</span>` : '0'}</td>
+      <td>${r.action ? `<span class="badge badge-warn">${r.action}</span>` : '0'}</td>
+      <td>${r.impact ? `<span class="badge badge-critical">${r.impact}</span>` : '0'}</td>
+      <td><span class="cc-health-badge ${r.health.cls}">${r.health.label}</span></td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="section-title" style="margin-top:18px;">Chain Health Grid</div>
+    <input type="text" placeholder="Search chains…" class="search-box" value="${esc(crgChainSearch)}" oninput="crgSetChainSearch(this.value)" style="margin-bottom:10px;max-width:280px;">
+    <div style="overflow-x:auto;">
+      <table class="ranked-table"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml || `<tr><td colspan="${CRG_GRID_COLS.length}" style="text-align:center;color:var(--muted);padding:20px;">No chains match your search.</td></tr>`}</tbody></table>
+    </div>`;
+}
+
+// ── Chain Detail ─────────────────────────────────────────────────────────────────────────────
+function crgStoreListHtml(name, label, doors, emptyText) {
+  if (!doors.length) return `${crgSectionHeader(name, label+' (0)')}${crgCollapsed[name]?'':`<div style="color:var(--muted);font-size:12px;padding:10px 0;">${emptyText}</div>`}`;
+  const body = doors.slice(0, 50).map(d => {
+    const st = crgReviewStateForDoor(d);
+    return `<div class="review-card" onclick="crgOpenStoreModal('${esc(d.key)}')" style="cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-size:12px;">${escHtml(d.address)}, ${escHtml(d.city)} ${escHtml(d.state)}</strong>
+        <span class="crg-badge ${st.state==='reviewed'?'reviewed':'unreviewed'}">${st.state==='reviewed'?'✓ Verified':'◐ Unreviewed'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Inventory: ${crgDoorInventoryStatus(d)} · POP: ${crgDoorPopStatus(d)}</div>
+    </div>`;
+  }).join('');
+  return `${crgSectionHeader(name, `${label} (${doors.length})`)}${crgCollapsed[name]?'':`<div style="display:flex;flex-direction:column;gap:6px;">${body}${doors.length>50?`<div style="color:var(--muted);font-size:11px;">+ ${doors.length-50} more</div>`:''}</div>`}`;
+}
+
+function crgChainDetailHtml(chain) {
+  const doors = crgDoorsForChain(chain);
+  const reportedDoors = crgReportedDoorsForChain(chain);
+  const vel = crgChainVelocity(chain);
+  const missingPct = crgMissingPct(chain);
+  const health = chainHealthStatus(avgScoreForChain(chain));
+  const invRollup = crgInventoryRollup(chain);
+  const popRollup = crgPopRollup(chain);
+  const invSplit = crgVerifiedSplit(reportedDoors);
+  const problem = crgProblemDoors(chain);
+  const performingWell = crgPerformingWellDoors(chain);
+  const customerImpact = crgCustomerImpactDoors(chain);
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px;">
+      <div><span class="ac-btn secondary" style="cursor:pointer;" onclick="crgBackToGrid()">← Back to chain grid</span></div>
+      <div style="display:flex;gap:8px;">
+        <button class="ac-btn secondary" onclick="civrFilters.chain='${esc(chain)}';civrPage=0;switchTab('civisitreview')">Open in CI Visit Review →</button>
+        <button class="ac-btn" onclick="crgGenerateReport('${esc(chain)}')">📄 Generate Chain Report</button>
+      </div>
+    </div>
+    <div class="section-title" style="display:flex;align-items:center;gap:10px;">${escHtml(chain)} <span class="cc-health-badge ${health.cls}">${health.label}</span></div>
+    <div class="cp-kpi-grid">
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Doors</div><div class="cp-kpi-value">${fmtNum(doors.length)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Velocity</div><div class="cp-kpi-value">${vel?fmtNum(vel.recentUnits)+' u':'—'} ${vel&&vel.changePct!==null?(vel.changePct>=0?`<span style="color:var(--green);font-size:11px;">▲${vel.changePct.toFixed(0)}%</span>`:`<span style="color:var(--red);font-size:11px;">▼${Math.abs(vel.changePct).toFixed(0)}%</span>`):''}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Missing % (coverage gap)</div><div class="cp-kpi-value" style="${missingPct!==null&&missingPct>=75?'color:var(--red);':''}">${missingPct===null?'—':missingPct.toFixed(0)+'%'}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Problem Stores</div><div class="cp-kpi-value" style="color:${problem.length?'var(--red)':'var(--green)'};">${fmtNum(problem.length)}</div></div>
+    </div>
+    ${crgReviewQueueHtml(chain)}
+    <div class="cp-section-title">Inventory &amp; POP Status <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--muted);">based on ${reportedDoors.length} door${reportedDoors.length===1?'':'s'} with a visit this cycle — ${invSplit.verified} verified, ${invSplit.unreviewed} unreviewed</span></div>
+    <div class="cp-kpi-grid" style="grid-template-columns:repeat(2,1fr);">
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Inventory Issues</div><div class="cp-kpi-value">${invRollup.total?invRollup.label:'No data'}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">POP Issues</div><div class="cp-kpi-value">${popRollup.total?popRollup.label:'No data'}</div></div>
+    </div>
+    ${crgStoreListHtml('crg-problem', '⚠ Stores Requiring Intervention', problem, 'No stores currently flagged for this chain.')}
+    ${crgStoreListHtml('crg-impact', '📞 Customer-Impact Visit Candidates', customerImpact, 'No customer-impact flags for this chain.')}
+    ${crgStoreListHtml('crg-well', '✓ Stores Performing Well', performingWell, 'No fully-verified, issue-free stores yet this cycle.')}
+    ${crgActionListsHtml(chain)}`;
+}
+
+// ── Action Lists ─────────────────────────────────────────────────────────────────────────────
+function crgQuickAddAction(doorKey, chain, type, priority, notes) {
+  addAction(doorKey, chain, type, priority, '', '', notes);
+  renderChainReportGenerator();
+}
+function crgActionListRowHtml(d, chain, type, priority, reasonText, notes) {
+  const alreadyOpen = loadActions().some(a => a.doorKey===d.key && a.status!=='Done' && a.type===type);
+  return `<div class="review-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong style="font-size:12px;">${escHtml(d.address)}, ${escHtml(d.city)} ${escHtml(d.state)}</strong>
+      <span style="font-size:10px;color:var(--muted);">${escHtml(chain)}</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">${escHtml(reasonText)}</div>
+    <div style="margin-top:6px;display:flex;gap:6px;">
+      <button class="ac-btn secondary" style="padding:4px 8px;font-size:11px;" onclick="crgOpenStoreModal('${esc(d.key)}')">View Store</button>
+      ${alreadyOpen
+        ? `<span class="badge badge-good" style="align-self:center;">Action already open</span>`
+        : `<button class="ac-btn" style="padding:4px 8px;font-size:11px;" onclick="crgQuickAddAction('${esc(d.key)}','${esc(chain)}','${esc(type)}','${priority}','${esc(notes)}')">+ Create Action</button>`}
+    </div>
+  </div>`;
+}
+function crgActionCategoryHtml(name, label, doors, chain, type, priority, reasonText) {
+  if (!doors.length) return '';
+  const body = doors.slice(0, 30).map(d => crgActionListRowHtml(d, chain, type, priority, reasonText, `${label} — auto-detected by Chain Report Generator`)).join('');
+  return `${crgSectionHeader(name, `${label} (${doors.length})`)}${crgCollapsed[name]?'':`<div style="display:flex;flex-direction:column;gap:6px;">${body}${doors.length>30?`<div style="color:var(--muted);font-size:11px;">+ ${doors.length-30} more</div>`:''}</div>`}`;
+}
+function crgActionListsHtml(chain) {
+  const lists = crgActionListsForChain(chain);
+  const needsReviewBody = lists.needsReview.length ? lists.needsReview.slice(0,30).map(d => `<div class="review-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-size:12px;">${escHtml(d.address)}, ${escHtml(d.city)} ${escHtml(d.state)}</strong>
+        <span class="crg-badge unreviewed">◐ Pending</span>
+      </div>
+      <div style="margin-top:6px;"><button class="ac-btn secondary" style="padding:4px 8px;font-size:11px;" onclick="crgOpenStoreModal('${esc(d.key)}')">View Store</button>
+        <button class="ac-btn secondary" style="padding:4px 8px;font-size:11px;" onclick="civrFilters.chain='${esc(chain)}';civrPage=0;switchTab('civisitreview')">Go Review →</button></div>
+    </div>`).join('') : '';
+  return `
+    <div class="section-title" style="margin-top:18px;">Action Items — ${escHtml(chain)}</div>
+    ${crgActionCategoryHtml('crg-al-pos', 'Needs POS / Shelf Strip Replacement', lists.posShelfStrip, chain, 'Ship new shelf strip', 'Medium', 'No shelf strip installed this cycle')}
+    ${crgActionCategoryHtml('crg-al-impact', 'Needs Customer Impact Visit', lists.customerImpact, chain, 'Customer impact visit', 'High', 'Flagged for revisit by reviewer verdict')}
+    ${crgActionCategoryHtml('crg-al-inv', 'Inventory Issue', lists.inventoryIssue, chain, 'Increase inventory', 'High', 'Out of stock or critically low')}
+    ${crgActionCategoryHtml('crg-al-pop', 'POP Issue', lists.popIssue, chain, 'POP compliance issue', 'Medium', 'POP materials installed but do not match the active promo')}
+    ${crgActionCategoryHtml('crg-al-missing', 'Missing / Incomplete Data', lists.missingData, chain, 'Follow up on missing data', 'Low', 'No visit recorded this cycle')}
+    ${lists.needsReview.length ? `${crgSectionHeader('crg-al-review', `Needs Review (${lists.needsReview.length})`)}${crgCollapsed['crg-al-review']?'':`<div style="display:flex;flex-direction:column;gap:6px;">${needsReviewBody}</div>`}` : ''}
+    ${crgSectionHeader('crg-al-well', `Performing Well (${lists.performingWell.length})`)}${crgCollapsed['crg-al-well']?'':(lists.performingWell.length?`<div style="color:var(--muted);font-size:12px;padding:6px 0;">${lists.performingWell.length} store(s) — see "Stores Performing Well" above.</div>`:`<div style="color:var(--muted);font-size:12px;padding:6px 0;">None yet this cycle.</div>`)}`;
+}
+
+// ── Store drill-down modal ───────────────────────────────────────────────────────────────────
+function crgOpenStoreModal(doorKey) { crgModalDoorKey = doorKey; renderCrgStoreModal(); }
+function crgCloseStoreModal() { crgModalDoorKey = null; renderCrgStoreModal(); }
+(function initCrgModalKeydown() {
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && crgModalDoorKey) crgCloseStoreModal(); });
+})();
+function crgPrintStoreModal() { window.print(); }
+
+function crgStoreModalContentHtml(door) {
+  const { latestPromo, ciRec } = crgLatestVisitsForDoor(door);
+  const st = crgReviewStateForDoor(door);
+  const verdict = st.rec ? getReportVerdict(st.rec) : null;
+  const inv = crgDoorInventoryStatus(door);
+  const pop = crgDoorPopStatus(door);
+  const trailing = (door.salesByMonth||[]).filter(sm=>SITE_REVIEW_MONTHS.includes(sm.month)).sort((a,b)=>(a.month||'').localeCompare(b.month||''));
+  const openActions = loadActions().filter(a => a.doorKey === door.key);
+  const oosItems = (ciRec && Array.isArray(ciRec.oo)) ? ciRec.oo : [];
+  const customerImpact = verdict && verdict.revisit === true;
+
+  return `
+    <div class="crg-modal-close" onclick="crgCloseStoreModal()">✕</div>
+    <div class="crg-modal-header">
+      <div class="dp-chain">${escHtml(door.chain)}</div>
+      <div class="dp-addr">${escHtml(door.address)}</div>
+      <div class="dp-city">${escHtml(door.city)}, ${escHtml(door.state)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+        <span class="crg-badge ${st.state==='reviewed'?'reviewed':'unreviewed'}">${st.state==='reviewed'?'✓ Verified / Reviewed':'◐ '+escHtml(st.label)}</span>
+        ${customerImpact ? `<span class="crg-badge customer-impact">📞 Customer Impact</span>` : ''}
+      </div>
+      ${st.state==='reviewed' ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;">Reviewed by <strong>${escHtml(st.reviewer)}</strong> on ${civFmtWhen(st.reviewedAt)}</div>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button class="ac-btn secondary" onclick="crgPrintStoreModal()">🖨 Print</button>
+        <button class="ac-btn secondary" onclick="civrFilters.chain='${esc(door.chain)}';civrPage=0;switchTab('civisitreview')">View full change history →</button>
+      </div>
+    </div>
+
+    <div class="crg-modal-section">
+      <div class="crg-modal-section-title">Velocity</div>
+      <div class="dp-row"><span class="dp-label">Current / Recent</span><span class="dp-val">${door.realVelocity!==null&&door.realVelocity!==undefined?door.realVelocity.toFixed(1)+' u/wk':'Not Tracked'}</span></div>
+      <div class="dp-row"><span class="dp-label">Trailing (this cycle)</span><span class="dp-val">${trailing.length?trailing.map(sm=>`${sm.month}: ${fmtNum(sm.units)}`).join(' · '):'Not Tracked'}</span></div>
+    </div>
+
+    <div class="crg-modal-section">
+      <div class="crg-modal-section-title">Inventory &amp; POP Status</div>
+      <div class="dp-row"><span class="dp-label">Inventory Status</span><span class="dp-val">${inv}</span></div>
+      <div class="dp-row"><span class="dp-label">POP Status</span><span class="dp-val">${pop}</span></div>
+      <div class="dp-row"><span class="dp-label">Data Coverage (this cycle)</span><span class="dp-val">${ciRec||latestPromo?'Reported':'Missing — no visit this cycle'}</span></div>
+    </div>
+
+    ${ciRec ? `<div class="crg-modal-section">
+      <div class="crg-modal-section-title">Visit / Audit Detail</div>
+      <div class="dp-row"><span class="dp-label">Visit Date</span><span class="dp-val">${escHtml(ciRec.vd||ciRec.month||'—')}</span></div>
+      <div class="dp-row"><span class="dp-label">Rep</span><span class="dp-val">${escHtml(ciRec.rep||'Unknown')}</span></div>
+      <div class="dp-row"><span class="dp-label">Score</span><span class="dp-val">${ciRec.sc!==null&&ciRec.sc!==undefined?ciRec.sc+'/4':'—'}</span></div>
+      ${ciRec.n ? `<div class="dp-row"><span class="dp-label">Rep Notes</span><span class="dp-val">${escHtml(ciRec.n)}</span></div>` : ''}
+      ${verdict ? `<div class="dp-row"><span class="dp-label">Manager Notes</span><span class="dp-val">${escHtml(verdict.notes||'—')}</span></div>` : ''}
+    </div>` : `<div class="crg-modal-section"><div class="crg-modal-section-title">Visit / Audit Detail</div><div style="color:var(--muted);font-size:12px;">No CI visit recorded for this door in the current review cycle (${SITE_REVIEW_MONTHS.join('/')}).</div></div>`}
+
+    ${oosItems.length ? `<div class="crg-modal-section">
+      <div class="crg-modal-section-title">Exceptions — Out of Stock</div>
+      <div style="font-size:12px;">${oosItems.map(escHtml).join(', ')}</div>
+    </div>` : ''}
+
+    ${ciRec ? `<div class="crg-modal-section">
+      <div class="crg-modal-section-title">Visit Photos</div>
+      ${visitPhotoGridHtml(ciRec.id, 'ci')}
+    </div>` : ''}
+
+    <div class="crg-modal-section">
+      <div class="crg-modal-section-title">Action Items (${openActions.length})</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">${openActions.length?openActions.map(actionRowHtml).join(''):'<div style="color:var(--muted);font-size:12px;">No actions logged for this store yet.</div>'}</div>
+      <button class="ac-btn secondary" onclick="crgQuickAddAction('${esc(door.key)}','${esc(door.chain)}','${esc(ACTION_TYPES[0])}','Medium','Added from Chain Report Generator drill-down')">+ Quick Add Action</button>
+    </div>`;
+}
+
+function renderCrgStoreModal() {
+  const backdrop = document.getElementById('crg-modal-backdrop');
+  const box = document.getElementById('crg-modal');
+  if (!backdrop || !box) return;
+  if (!crgModalDoorKey) { backdrop.classList.remove('open'); box.innerHTML = ''; return; }
+  const door = DOORS_BY_KEY[crgModalDoorKey];
+  if (!door) { crgModalDoorKey = null; backdrop.classList.remove('open'); box.innerHTML = ''; return; }
+  box.innerHTML = crgStoreModalContentHtml(door);
+  backdrop.classList.add('open');
+}
+
+// ── Generate Chain Report ────────────────────────────────────────────────────────────────────
+function crgGenerateReport(chain) { crgReportView = chain; renderChainReportGenerator(); window.scrollTo({top:0,behavior:'smooth'}); }
+function crgCloseReport() { crgReportView = null; renderChainReportGenerator(); }
+
+function crgExportChainCSV(chain) {
+  const doors = crgDoorsForChain(chain);
+  const rows = doors.map(d => {
+    const st = crgReviewStateForDoor(d);
+    return {
+      Chain: chain, Store: d.address, City: d.city, State: d.state,
+      InventoryStatus: crgDoorInventoryStatus(d), POPStatus: crgDoorPopStatus(d),
+      ReviewStatus: st.state === 'reviewed' ? 'Reviewed' : 'Unreviewed',
+      Reviewer: st.reviewer || '', ReviewedAt: st.reviewedAt || '',
+      Velocity: (d.realVelocity!==null&&d.realVelocity!==undefined) ? d.realVelocity : '',
+      ProblemStore: crgProblemDoors(chain).some(pd=>pd.key===d.key) ? 'Yes' : 'No',
+      CustomerImpact: crgCustomerImpactDoors(chain).some(cd=>cd.key===d.key) ? 'Yes' : 'No'
+    };
+  });
+  downloadCSV((chain.replace(/[^A-Za-z0-9]/g,'_')||'chain') + '_report.csv', rows);
+}
+
+function crgGenerateReportHtml(chain) {
+  const doors = crgDoorsForChain(chain);
+  const vel = crgChainVelocity(chain);
+  const missingPct = crgMissingPct(chain);
+  const health = chainHealthStatus(avgScoreForChain(chain));
+  const reviewSummary = crgReviewSummary(chain);
+  const invRollup = crgInventoryRollup(chain);
+  const popRollup = crgPopRollup(chain);
+  const problem = crgProblemDoors(chain);
+  const performingWell = crgPerformingWellDoors(chain);
+  const customerImpact = crgCustomerImpactDoors(chain);
+  const lists = crgActionListsForChain(chain);
+
+  const storeLine = (d) => `<div class="dp-row"><span class="dp-label">${escHtml(d.address)}, ${escHtml(d.city)} ${escHtml(d.state)}</span><span class="dp-val">${crgDoorInventoryStatus(d)} / ${crgDoorPopStatus(d)}</span></div>`;
+  const listOrNone = (arr) => arr.length ? arr.slice(0,25).map(storeLine).join('') + (arr.length>25?`<div style="color:var(--muted);font-size:11px;">+ ${arr.length-25} more</div>`:'') : `<div style="color:var(--muted);font-size:12px;">None.</div>`;
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px;">
+      <span class="ac-btn secondary" style="cursor:pointer;" onclick="crgCloseReport()">← Back to ${escHtml(chain)}</span>
+      <div style="display:flex;gap:8px;">
+        <button class="ac-btn secondary" onclick="crgExportChainCSV('${esc(chain)}')">⬇ Export CSV</button>
+        <button class="ac-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
+      </div>
+    </div>
+    <div class="section-title">Chain Report — ${escHtml(chain)} <span class="cc-health-badge ${health.cls}">${health.label}</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Generated ${new Date().toLocaleString()} · Review cycle: ${SITE_REVIEW_MONTHS.join(', ')}</div>
+
+    <div class="crg-modal-section" style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
+      <div class="crg-modal-section-title">Chain Overview</div>
+      <div class="dp-row"><span class="dp-label">Doors / Stores</span><span class="dp-val">${fmtNum(doors.length)}</span></div>
+      <div class="dp-row"><span class="dp-label">Velocity Performance</span><span class="dp-val">${vel?fmtNum(vel.recentUnits)+' units'+(vel.changePct!==null?` (${vel.changePct>=0?'▲':'▼'}${Math.abs(vel.changePct).toFixed(0)}%)`:''):'Not Tracked'}</span></div>
+      <div class="dp-row"><span class="dp-label">Missing % (coverage gap)</span><span class="dp-val">${missingPct===null?'—':missingPct.toFixed(0)+'%'}</span></div>
+      <div class="dp-row"><span class="dp-label">Inventory Status</span><span class="dp-val">${invRollup.total?invRollup.label:'No data'}</span></div>
+      <div class="dp-row"><span class="dp-label">POP Status</span><span class="dp-val">${popRollup.total?popRollup.label:'No data'}</span></div>
+      <div class="dp-row"><span class="dp-label">Reviewed / Unreviewed</span><span class="dp-val">${reviewSummary.total?`${reviewSummary.reviewed} / ${reviewSummary.total}`:'No visits this cycle'}</span></div>
+      <div class="dp-row"><span class="dp-label">Review Completion</span><span class="dp-val">${reviewSummary.total===0?'— No data this cycle':reviewSummary.remaining===0?'✅ Fully Reviewed':`◐ ${reviewSummary.remaining} remaining`}</span></div>
+    </div>
+
+    <div class="crg-modal-section" style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
+      <div class="crg-modal-section-title">Problem Stores (${problem.length})</div>
+      ${listOrNone(problem)}
+    </div>
+    <div class="crg-modal-section" style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
+      <div class="crg-modal-section-title">Key Exceptions</div>
+      <div class="dp-row"><span class="dp-label">Inventory Issues</span><span class="dp-val">${lists.inventoryIssue.length}</span></div>
+      <div class="dp-row"><span class="dp-label">POP Issues</span><span class="dp-val">${lists.popIssue.length}</span></div>
+      <div class="dp-row"><span class="dp-label">Needs POS / Shelf Strip</span><span class="dp-val">${lists.posShelfStrip.length}</span></div>
+      <div class="dp-row"><span class="dp-label">Missing / Incomplete Data</span><span class="dp-val">${lists.missingData.length}</span></div>
+    </div>
+    <div class="crg-modal-section" style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
+      <div class="crg-modal-section-title">Recommended Follow-Ups</div>
+      <div style="font-size:12px;color:var(--muted);">${lists.posShelfStrip.length+lists.inventoryIssue.length+lists.popIssue.length+lists.customerImpact.length} store(s) currently have an open or suggested action — see the Action Items section on the Chain Detail view to create/track them.</div>
+    </div>
+    <div class="crg-modal-section" style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
+      <div class="crg-modal-section-title">Customer-Impact Opportunities (${customerImpact.length})</div>
+      ${listOrNone(customerImpact)}
+    </div>
+    <div class="crg-modal-section" style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;">
+      <div class="crg-modal-section-title">Stores Performing Well (${performingWell.length})</div>
+      ${listOrNone(performingWell)}
+    </div>`;
+}
+
+// ── Main entry point ─────────────────────────────────────────────────────────────────────────
+function renderChainReportGenerator() {
+  const el = document.getElementById('crg-main');
+  if (!el) return;
+  if (!crgReviewerIndexLoaded) crgLoadReviewerIndex();
+  let html = `<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+    <div class="section-title" style="margin:0;">🧾 Chain Report Generator <span style="font-size:11px;font-weight:400;color:var(--muted);">— prototype: reviewed/unreviewed chain &amp; store reporting</span></div>
+    ${!crgReportView ? `<button class="ac-btn secondary" onclick="printCurrentView()">🖨 Print / Save as PDF</button>` : ''}
+  </div>`;
+  if (crgReportView) {
+    html += crgGenerateReportHtml(crgReportView);
+  } else if (crgSelectedChain) {
+    html += crgChainDetailHtml(crgSelectedChain);
+  } else {
+    html += crgReviewQueueHtml(null);
+    html += crgChainGridHtml();
+  }
+  el.innerHTML = html;
+  renderCrgStoreModal();
 }
 
 async function init() {
