@@ -1485,6 +1485,29 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .crg-badge.unreviewed{background:var(--yellow-dim);color:var(--yellow);}
 .crg-badge.customer-impact{background:var(--red-dim);color:var(--red);}
 
+/* CHAIN REPORT GENERATOR: two-panel dashboard (chain checklist + dynamic metrics) */
+.crg-dashboard-layout{display:flex;gap:16px;align-items:flex-start;margin-top:8px;}
+.crg-left-panel{
+  flex:0 0 260px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:12px;position:sticky;top:12px;
+}
+.crg-right-panel{flex:1 1 0;min-width:0;}
+.crg-chain-list{max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+.crg-chain-row{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;
+  font-size:12px;cursor:pointer;
+}
+.crg-chain-row:hover{background:var(--surface);}
+.crg-chain-row.selected{background:var(--orange);color:#fff;}
+.crg-chain-row input{cursor:pointer;}
+.crg-status-indicator{
+  font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;margin-bottom:14px;display:inline-block;
+}
+.crg-status-indicator.healthy{background:var(--green-dim);color:var(--green);}
+.crg-status-indicator.warning{background:var(--yellow-dim);color:var(--yellow);}
+.crg-status-indicator.critical{background:var(--red-dim);color:var(--red);}
+@media (max-width:900px){.crg-dashboard-layout{flex-direction:column;}.crg-left-panel{position:static;flex:1 1 auto;width:100%;box-sizing:border-box;}}
+
 /* MAGNIFIER */
 .mag-lens{
   position:fixed;display:none;pointer-events:none;z-index:2000;
@@ -5967,7 +5990,7 @@ function hideLoadOverlay() {
 // ══════════════════════════════════════════════════════════════════════════
 let crgSelectedChain = null;
 let crgChainSearch = '';
-let crgSort = { col: 'chain', dir: 'asc' };
+let crgSelectedChains = new Set(); // multi-select checklist state for the two-panel dashboard
 let crgCollapsed = {};
 let crgReviewerIndex = {};          // report_id -> {userName, createdAt}, latest civ_report_versions row
 let crgReviewerIndexLoaded = false;
@@ -6179,19 +6202,16 @@ function crgReviewQueueHtml(chain) {
     ${reviewerChips ? `<div style="font-size:11px;color:var(--muted);margin:-8px 0 14px;">Reviewed by: ${reviewerChips}</div>` : ''}`;
 }
 
-// ── Chain Grid (default view) ───────────────────────────────────────────────────────────────
-const CRG_GRID_COLS = [
-  ['chain','Chain'], ['doors','Doors'], ['reviewed','Reviewed / Unreviewed'], ['velocity','Velocity'],
-  ['missingPct','Missing %'], ['inventory','Inventory'], ['pop','POP'], ['problem','Problem Stores'],
-  ['action','Needs Action'], ['impact','Cust. Impact'], ['health','Health']
-];
-function crgSortBy(col) {
-  if (crgSort.col === col) crgSort.dir = crgSort.dir==='asc'?'desc':'asc'; else { crgSort.col = col; crgSort.dir = 'asc'; }
-  renderChainReportGenerator();
-}
+// ── Two-panel dashboard (default view): left chain checklist, right dynamic metrics ─────────
 function crgSetChainSearch(v) { crgChainSearch = v; renderChainReportGenerator(); }
 function crgOpenChain(chain) { crgSelectedChain = chain; crgReportView = null; renderChainReportGenerator(); window.scrollTo({top:0,behavior:'smooth'}); }
-function crgBackToGrid() { crgSelectedChain = null; crgReportView = null; renderChainReportGenerator(); }
+function crgBackToDashboard() { crgSelectedChain = null; crgReportView = null; renderChainReportGenerator(); }
+function crgToggleChainSelect(chain) {
+  if (crgSelectedChains.has(chain)) crgSelectedChains.delete(chain); else crgSelectedChains.add(chain);
+  renderChainReportGenerator();
+}
+function crgSelectAllChains() { crgAllChains().forEach(c => crgSelectedChains.add(c)); renderChainReportGenerator(); }
+function crgClearAllChains() { crgSelectedChains.clear(); renderChainReportGenerator(); }
 
 function crgChainRowData(chain) {
   return {
@@ -6202,55 +6222,129 @@ function crgChainRowData(chain) {
     impact: crgCustomerImpactDoors(chain).length, health: chainHealthStatus(avgScoreForChain(chain))
   };
 }
-function crgCompareRows(a, b, col, dir) {
-  const mul = dir==='asc'?1:-1;
-  let av, bv;
-  if (col==='chain') { av=a.chain.toLowerCase(); bv=b.chain.toLowerCase(); return av<bv?-mul:av>bv?mul:0; }
-  if (col==='doors') { av=a.doorCount; bv=b.doorCount; }
-  else if (col==='reviewed') { av=a.reviewSummary.total?a.reviewSummary.reviewed/a.reviewSummary.total:-1; bv=b.reviewSummary.total?b.reviewSummary.reviewed/b.reviewSummary.total:-1; }
-  else if (col==='velocity') { av=a.vel?a.vel.recentUnits:-Infinity; bv=b.vel?b.vel.recentUnits:-Infinity; }
-  else if (col==='missingPct') { av=a.missingPct??-1; bv=b.missingPct??-1; }
-  else if (col==='inventory') { av=a.inv.issues; bv=b.inv.issues; }
-  else if (col==='pop') { av=a.pop.issues; bv=b.pop.issues; }
-  else if (col==='problem') { av=a.problem; bv=b.problem; }
-  else if (col==='action') { av=a.action; bv=b.action; }
-  else if (col==='impact') { av=a.impact; bv=b.impact; }
-  else if (col==='health') { const order={healthy:3,warning:2,critical:1,unknown:0}; av=order[a.health.cls]; bv=order[b.health.cls]; }
-  else { av=0; bv=0; }
-  return (av-bv)*mul;
+// Sum-based aggregation across multiple selected chains -- same field shape as crgChainRowData()
+// so both feed the same crgMetricsCardsHtml() renderer. Missing % is recomputed from summed
+// roster/reported door counts (not an average-of-percentages, which would misweight small chains).
+function crgAggregateRows(chains) {
+  const rows = chains.map(crgChainRowData);
+  const doorCount = rows.reduce((s,r)=>s+r.doorCount,0);
+  const reviewTotal = rows.reduce((s,r)=>s+r.reviewSummary.total,0);
+  const reviewed = rows.reduce((s,r)=>s+r.reviewSummary.reviewed,0);
+  const recentUnits = rows.reduce((s,r)=>s+(r.vel?r.vel.recentUnits:0),0);
+  const trailingSum = rows.reduce((s,r)=>s+(r.vel&&r.vel.trailingAvgUnits?r.vel.trailingAvgUnits:0),0);
+  const changePct = trailingSum>0 ? ((recentUnits-trailingSum)/trailingSum*100) : null;
+  const rosterTotal = chains.reduce((s,c)=>s+crgDoorsForChain(c).length,0);
+  const reportedTotal = chains.reduce((s,c)=>s+crgReportedDoorsForChain(c).length,0);
+  const missingPct = rosterTotal ? (1-reportedTotal/rosterTotal)*100 : null;
+  const invIssues = rows.reduce((s,r)=>s+r.inv.issues,0), invTotal = rows.reduce((s,r)=>s+r.inv.total,0);
+  const popIssues = rows.reduce((s,r)=>s+r.pop.issues,0), popTotal = rows.reduce((s,r)=>s+r.pop.total,0);
+  return {
+    chain: null, doorCount, reviewSummary: { total: reviewTotal, reviewed, remaining: reviewTotal-reviewed },
+    vel: recentUnits ? { recentUnits, changePct } : null, missingPct,
+    inv: { label: `${invIssues}/${invTotal} issues`, issues: invIssues, total: invTotal },
+    pop: { label: `${popIssues}/${popTotal} issues`, issues: popIssues, total: popTotal },
+    problem: rows.reduce((s,r)=>s+r.problem,0), action: rows.reduce((s,r)=>s+r.action,0),
+    impact: rows.reduce((s,r)=>s+r.impact,0), rows
+  };
 }
-function crgChainGridHtml() {
+// 🟢/🟡/🔴 traffic-light summary of review reliability -- "no data this cycle" is its own red
+// state (needs attention) distinct from "reviewed=0 but items exist" (also red, needs review),
+// since both mean the displayed metrics can't be trusted as verified yet.
+function crgReviewStatusIndicator(reviewed, total) {
+  if (total === 0) return { emoji: '🔴', label: 'No Data This Cycle', cls: 'critical' };
+  if (reviewed === total) return { emoji: '🟢', label: 'Fully Reviewed', cls: 'healthy' };
+  if (reviewed === 0) return { emoji: '🔴', label: 'Needs Review', cls: 'critical' };
+  return { emoji: '🟡', label: 'Partially Reviewed', cls: 'warning' };
+}
+
+function crgLeftPanelHtml() {
   let chains = crgAllChains();
   if (crgChainSearch) { const s = crgChainSearch.toLowerCase(); chains = chains.filter(c => c.toLowerCase().includes(s)); }
-  const rows = chains.map(crgChainRowData);
-  rows.sort((a,b) => crgCompareRows(a,b,crgSort.col,crgSort.dir));
-
-  const headerHtml = CRG_GRID_COLS.map(([key,label]) => {
-    const arrow = crgSort.col===key ? (crgSort.dir==='asc'?' ▲':' ▼') : '';
-    return `<th onclick="crgSortBy('${key}')">${label}${arrow}</th>`;
-  }).join('');
-  const bodyHtml = rows.map(r => {
-    const pct = r.reviewSummary.total ? Math.round(r.reviewSummary.reviewed/r.reviewSummary.total*100) : null;
-    const velHtml = r.vel ? `${fmtNum(r.vel.recentUnits)} u${r.vel.changePct!==null&&r.vel.changePct!==undefined?(r.vel.changePct>=0?` <span style="color:var(--green);font-size:11px;">▲${r.vel.changePct.toFixed(0)}%</span>`:` <span style="color:var(--red);font-size:11px;">▼${Math.abs(r.vel.changePct).toFixed(0)}%</span>`):''}` : '—';
-    return `<tr onclick="crgOpenChain('${esc(r.chain)}')">
-      <td><strong>${escHtml(r.chain)}</strong></td>
-      <td>${fmtNum(r.doorCount)}</td>
-      <td>${r.reviewSummary.total ? `${fmtNum(r.reviewSummary.reviewed)} / ${fmtNum(r.reviewSummary.total)} <span style="color:var(--muted);">(${pct}%)</span>` : '<span style="color:var(--muted);">No data this cycle</span>'}</td>
-      <td>${velHtml}</td>
-      <td style="${r.missingPct!==null && r.missingPct>=75?'color:var(--red);font-weight:700;':''}">${r.missingPct===null?'—':r.missingPct.toFixed(0)+'%'}</td>
-      <td>${r.inv.total ? `<span class="badge ${r.inv.issues?'badge-warn':'badge-good'}">${r.inv.label}</span>` : '—'}</td>
-      <td>${r.pop.total ? `<span class="badge ${r.pop.issues?'badge-warn':'badge-good'}">${r.pop.label}</span>` : '—'}</td>
-      <td>${r.problem ? `<span class="badge badge-critical">${r.problem}</span>` : '0'}</td>
-      <td>${r.action ? `<span class="badge badge-warn">${r.action}</span>` : '0'}</td>
-      <td>${r.impact ? `<span class="badge badge-critical">${r.impact}</span>` : '0'}</td>
-      <td><span class="cc-health-badge ${r.health.cls}">${r.health.label}</span></td>
-    </tr>`;
+  const rows = chains.map(c => {
+    const checked = crgSelectedChains.has(c);
+    return `<label class="crg-chain-row ${checked?'selected':''}">
+      <input type="checkbox" ${checked?'checked':''} onchange="crgToggleChainSelect('${esc(c)}')">
+      <span>${escHtml(c)}</span>
+    </label>`;
   }).join('');
   return `
-    <div class="section-title" style="margin-top:18px;">Chain Health Grid</div>
-    <input type="text" placeholder="Search chains…" class="search-box" value="${esc(crgChainSearch)}" oninput="crgSetChainSearch(this.value)" style="margin-bottom:10px;max-width:280px;">
-    <div style="overflow-x:auto;">
-      <table class="ranked-table"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml || `<tr><td colspan="${CRG_GRID_COLS.length}" style="text-align:center;color:var(--muted);padding:20px;">No chains match your search.</td></tr>`}</tbody></table>
+    <div class="crg-left-panel">
+      <input type="text" placeholder="🔎 Search chains…" class="search-box" value="${esc(crgChainSearch)}" oninput="crgSetChainSearch(this.value)" style="width:100%;margin-bottom:8px;box-sizing:border-box;">
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgSelectAllChains()">Select All</button>
+        <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgClearAllChains()">Clear All</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${crgSelectedChains.size} of ${crgAllChains().length} selected</div>
+      <div class="crg-chain-list">${rows || '<div style="color:var(--muted);font-size:12px;padding:10px;">No chains match your search.</div>'}</div>
+    </div>`;
+}
+
+function crgMetricsCardsHtml(data, verifiedSplit, isAggregate) {
+  const pct = data.reviewSummary.total ? Math.round(data.reviewSummary.reviewed/data.reviewSummary.total*100) : null;
+  const status = crgReviewStatusIndicator(data.reviewSummary.reviewed, data.reviewSummary.total);
+  const velHtml = data.vel ? `${fmtNum(data.vel.recentUnits)} u${data.vel.changePct!==null&&data.vel.changePct!==undefined?(data.vel.changePct>=0?` <span style="color:var(--green);font-size:11px;">▲${data.vel.changePct.toFixed(0)}%</span>`:` <span style="color:var(--red);font-size:11px;">▼${Math.abs(data.vel.changePct).toFixed(0)}%</span>`):''}` : 'Not Tracked';
+  return `
+    <div class="crg-status-indicator ${status.cls}">${status.emoji} ${status.label}${isAggregate?' — across selected chains':''}</div>
+    <div class="cp-kpi-grid">
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Total Doors</div><div class="cp-kpi-value">${fmtNum(data.doorCount)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">CI Visits</div><div class="cp-kpi-value">${fmtNum(data.reviewSummary.total)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Reviewed Visits</div><div class="cp-kpi-value" style="color:var(--green);">${fmtNum(data.reviewSummary.reviewed)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Unreviewed Visits</div><div class="cp-kpi-value" style="color:${data.reviewSummary.remaining?'var(--yellow)':'var(--green)'};">${fmtNum(data.reviewSummary.remaining)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Review Completion %</div><div class="cp-kpi-value">${pct===null?'—':pct+'%'}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Velocity</div><div class="cp-kpi-value" style="font-size:14px;">${velHtml}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Missing %</div><div class="cp-kpi-value" style="${data.missingPct!==null&&data.missingPct>=75?'color:var(--red);':''}">${data.missingPct===null?'—':data.missingPct.toFixed(0)+'%'}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Inventory Issues</div><div class="cp-kpi-value" style="font-size:14px;">${data.inv.total?data.inv.label:'No data'}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">POP Issues</div><div class="cp-kpi-value" style="font-size:14px;">${data.pop.total?data.pop.label:'No data'}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Problem Stores</div><div class="cp-kpi-value" style="color:${data.problem?'var(--red)':'var(--green)'};">${fmtNum(data.problem)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Action Items</div><div class="cp-kpi-value" style="color:${data.action?'var(--yellow)':'var(--green)'};">${fmtNum(data.action)}</div></div>
+      <div class="cp-kpi" style="cursor:default;"><div class="cp-kpi-label">Customer Impact Opportunities</div><div class="cp-kpi-value" style="color:${data.impact?'var(--red)':'var(--green)'};">${fmtNum(data.impact)}</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:14px;">Inventory/POP/velocity figures based on ${data.inv.total||0} door(s) with a visit this cycle${verifiedSplit?` — ${verifiedSplit.verified} verified, ${verifiedSplit.unreviewed} unreviewed`:''}.</div>`;
+}
+
+function crgRightPanelHtml() {
+  const selected = [...crgSelectedChains];
+  if (!selected.length) {
+    return `<div class="crg-right-panel"><div style="color:var(--muted);font-size:13px;padding:40px 20px;text-align:center;">← Select one or more chains on the left to see their health.</div></div>`;
+  }
+  if (selected.length === 1) {
+    const chain = selected[0];
+    const data = crgChainRowData(chain);
+    const verifiedSplit = crgVerifiedSplit(crgReportedDoorsForChain(chain));
+    return `<div class="crg-right-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="margin:0;">📊 ${escHtml(chain)} <span class="cc-health-badge ${data.health.cls}">${data.health.label}</span></div>
+        <div style="display:flex;gap:8px;">
+          <button class="ac-btn secondary" onclick="crgOpenChain('${esc(chain)}')">View Full Chain Detail →</button>
+          <button class="ac-btn" onclick="crgGenerateReport('${esc(chain)}')">📄 Generate Report</button>
+        </div>
+      </div>
+      ${crgMetricsCardsHtml(data, verifiedSplit, false)}
+    </div>`;
+  }
+  const data = crgAggregateRows(selected);
+  const verifiedSplit = crgVerifiedSplit(selected.flatMap(crgReportedDoorsForChain));
+  const perChainRows = data.rows.map(r => `<div class="review-card" onclick="crgOpenChain('${esc(r.chain)}')" style="cursor:pointer;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong style="font-size:12px;">${escHtml(r.chain)}</strong>
+      <span class="cc-health-badge ${r.health.cls}">${r.health.label}</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">${fmtNum(r.doorCount)} doors · ${r.reviewSummary.total?`${r.reviewSummary.reviewed}/${r.reviewSummary.total} reviewed`:'no data this cycle'} · ${r.problem} problem store(s) · click to view full detail →</div>
+  </div>`).join('');
+  return `<div class="crg-right-panel">
+    <div class="section-title" style="margin:0;">📊 ${selected.length} Chains Selected <span style="font-size:11px;font-weight:400;color:var(--muted);">— showing aggregated metrics across multiple selected chains</span></div>
+    ${crgMetricsCardsHtml(data, verifiedSplit, true)}
+    <div class="cp-section-title">Selected Chains <span class="cp-collapse-icon">(click to view full detail)</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px;">${perChainRows}</div>
+  </div>`;
+}
+
+function crgDashboardHtml() {
+  return `
+    ${crgReviewQueueHtml(null)}
+    <div class="crg-dashboard-layout">
+      ${crgLeftPanelHtml()}
+      ${crgRightPanelHtml()}
     </div>`;
 }
 
@@ -6285,7 +6379,7 @@ function crgChainDetailHtml(chain) {
 
   return `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px;">
-      <div><span class="ac-btn secondary" style="cursor:pointer;" onclick="crgBackToGrid()">← Back to chain grid</span></div>
+      <div><span class="ac-btn secondary" style="cursor:pointer;" onclick="crgBackToDashboard()">← Back to dashboard</span></div>
       <div style="display:flex;gap:8px;">
         <button class="ac-btn secondary" onclick="civrFilters.chain='${esc(chain)}';civrPage=0;switchTab('civisitreview')">Open in CI Visit Review →</button>
         <button class="ac-btn" onclick="crgGenerateReport('${esc(chain)}')">📄 Generate Chain Report</button>
@@ -6541,8 +6635,7 @@ function renderChainReportGenerator() {
   } else if (crgSelectedChain) {
     html += crgChainDetailHtml(crgSelectedChain);
   } else {
-    html += crgReviewQueueHtml(null);
-    html += crgChainGridHtml();
+    html += crgDashboardHtml();
   }
   el.innerHTML = html;
   renderCrgStoreModal();
