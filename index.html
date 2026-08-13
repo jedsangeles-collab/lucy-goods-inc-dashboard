@@ -6212,6 +6212,13 @@ function crgToggleChainSelect(chain) {
 }
 function crgSelectAllChains() { crgAllChains().forEach(c => crgSelectedChains.add(c)); renderChainReportGenerator(); }
 function crgClearAllChains() { crgSelectedChains.clear(); renderChainReportGenerator(); }
+// Quick pick-list: chains with zero CI visits this review cycle (total===0 -- the "No Data
+// This Cycle" 🔴 state from crgReviewStatusIndicator, distinct from "Needs Review" which has
+// reports but none reviewed yet). Replaces the current selection, same as Select All/Clear All.
+function crgSelectNoDataChains() {
+  crgSelectedChains = new Set(crgAllChains().filter(c => crgReviewSummary(c).total === 0));
+  renderChainReportGenerator();
+}
 
 function crgChainRowData(chain) {
   return {
@@ -6272,6 +6279,7 @@ function crgLeftPanelHtml() {
       <input type="text" placeholder="🔎 Search chains…" class="search-box" value="${esc(crgChainSearch)}" oninput="crgSetChainSearch(this.value)" style="width:100%;margin-bottom:8px;box-sizing:border-box;">
       <div style="display:flex;gap:6px;margin-bottom:10px;">
         <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgSelectAllChains()">Select All</button>
+        <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgSelectNoDataChains()">No Data</button>
         <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgClearAllChains()">Clear All</button>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${crgSelectedChains.size} of ${crgAllChains().length} selected</div>
