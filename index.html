@@ -5991,6 +5991,7 @@ function hideLoadOverlay() {
 let crgSelectedChain = null;
 let crgChainSearch = '';
 let crgSelectedChains = new Set(); // multi-select checklist state for the two-panel dashboard
+let crgStatusFilter = 'all'; // 'all' | 'noData' | 'needsReview' | 'partial' | 'full' -- narrows the checklist
 let crgCollapsed = {};
 let crgReviewerIndex = {};          // report_id -> {userName, createdAt}, latest civ_report_versions row
 let crgReviewerIndexLoaded = false;
@@ -6210,20 +6211,28 @@ function crgToggleChainSelect(chain) {
   if (crgSelectedChains.has(chain)) crgSelectedChains.delete(chain); else crgSelectedChains.add(chain);
   renderChainReportGenerator();
 }
-function crgSelectAllChains() { crgAllChains().forEach(c => crgSelectedChains.add(c)); renderChainReportGenerator(); }
+// Select All / Clear All operate on the currently filtered+searched list, not the full 58 --
+// so "Select All" after narrowing to e.g. "Needs Review" selects just those chains, matching
+// what's actually visible in the checklist.
+function crgSelectAllChains() { crgFilteredChainList().forEach(c => crgSelectedChains.add(c)); renderChainReportGenerator(); }
 function crgClearAllChains() { crgSelectedChains.clear(); renderChainReportGenerator(); }
-// Quick pick-list: chains with zero CI visits this review cycle (total===0 -- the "No Data
-// This Cycle" 🔴 state from crgReviewStatusIndicator, distinct from "Needs Review" which has
-// reports but none reviewed yet). Replaces the current selection, same as Select All/Clear All.
-function crgSelectNoDataChains() {
-  crgSelectedChains = new Set(crgAllChains().filter(c => crgReviewSummary(c).total === 0));
-  renderChainReportGenerator();
-}
-// Chains with real reports this cycle but zero reviewed yet -- the "Needs Review" 🔴 state,
-// distinct from "No Data This Cycle" above (which has no reports to review at all).
-function crgSelectNeedsReviewChains() {
-  crgSelectedChains = new Set(crgAllChains().filter(c => { const s = crgReviewSummary(c); return s.total > 0 && s.reviewed === 0; }));
-  renderChainReportGenerator();
+function crgSetStatusFilter(v) { crgStatusFilter = v; renderChainReportGenerator(); }
+// Narrows the chain checklist by review-status category (same states as crgReviewStatusIndicator,
+// plus the two intermediate states it collapses into 🟡) combined with the search box.
+function crgFilteredChainList() {
+  let chains = crgAllChains();
+  if (crgChainSearch) { const s = crgChainSearch.toLowerCase(); chains = chains.filter(c => c.toLowerCase().includes(s)); }
+  if (crgStatusFilter !== 'all') {
+    chains = chains.filter(c => {
+      const s = crgReviewSummary(c);
+      if (crgStatusFilter === 'noData') return s.total === 0;
+      if (crgStatusFilter === 'needsReview') return s.total > 0 && s.reviewed === 0;
+      if (crgStatusFilter === 'partial') return s.total > 0 && s.reviewed > 0 && s.reviewed < s.total;
+      if (crgStatusFilter === 'full') return s.total > 0 && s.reviewed === s.total;
+      return true;
+    });
+  }
+  return chains;
 }
 
 function crgChainRowData(chain) {
@@ -6270,9 +6279,12 @@ function crgReviewStatusIndicator(reviewed, total) {
   return { emoji: '🟡', label: 'Partially Reviewed', cls: 'warning' };
 }
 
+const CRG_STATUS_FILTER_OPTIONS = [
+  ['all','All Chains'], ['noData','🔴 No Data This Cycle'], ['needsReview','🔴 Needs Review'],
+  ['partial','🟡 Partially Reviewed'], ['full','🟢 Fully Reviewed']
+];
 function crgLeftPanelHtml() {
-  let chains = crgAllChains();
-  if (crgChainSearch) { const s = crgChainSearch.toLowerCase(); chains = chains.filter(c => c.toLowerCase().includes(s)); }
+  const chains = crgFilteredChainList();
   const rows = chains.map(c => {
     const checked = crgSelectedChains.has(c);
     return `<label class="crg-chain-row ${checked?'selected':''}">
@@ -6280,16 +6292,18 @@ function crgLeftPanelHtml() {
       <span>${escHtml(c)}</span>
     </label>`;
   }).join('');
+  const isFiltered = crgStatusFilter !== 'all' || !!crgChainSearch;
   return `
     <div class="crg-left-panel">
       <input type="text" placeholder="🔎 Search chains…" class="search-box" value="${esc(crgChainSearch)}" oninput="crgSetChainSearch(this.value)" style="width:100%;margin-bottom:8px;box-sizing:border-box;">
+      <select onchange="crgSetStatusFilter(this.value)" style="width:100%;margin-bottom:8px;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 8px;font-family:'DM Sans',sans-serif;font-size:12px;">
+        ${CRG_STATUS_FILTER_OPTIONS.map(([v,label]) => `<option value="${v}" ${crgStatusFilter===v?'selected':''}>${label}</option>`).join('')}
+      </select>
       <div style="display:flex;gap:6px;margin-bottom:10px;">
         <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgSelectAllChains()">Select All</button>
-        <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgSelectNoDataChains()">No Data</button>
-        <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgSelectNeedsReviewChains()">Needs Review</button>
         <button class="ac-btn secondary" style="flex:1;font-size:11px;padding:5px;" onclick="crgClearAllChains()">Clear All</button>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${crgSelectedChains.size} of ${crgAllChains().length} selected</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${crgSelectedChains.size} of ${crgAllChains().length} selected${isFiltered?` · showing ${chains.length}`:''}</div>
       <div class="crg-chain-list">${rows || '<div style="color:var(--muted);font-size:12px;padding:10px;">No chains match your search.</div>'}</div>
     </div>`;
 }
