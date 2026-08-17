@@ -1271,6 +1271,15 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civr-velocity-label{color:#666;font-weight:600;}
 #view-civisitreview .civr-velocity-period{font-weight:400;color:#999;}
 #view-civisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
+#view-civisitreview .civr-sku-box{background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-sku-title{color:#666;font-weight:600;margin-bottom:6px;}
+#view-civisitreview .civr-sku-sub{font-weight:400;color:#999;}
+#view-civisitreview .civr-sku-empty{color:#999;font-style:italic;}
+#view-civisitreview .civr-sku-table{width:100%;border-collapse:collapse;}
+#view-civisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
+#view-civisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
+#view-civisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
+#view-civisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
 #view-civisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
 #view-civisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
 #view-civisitreview .civr-submit-btn:hover{background:#144d88;}
@@ -4690,6 +4699,47 @@ function civrVelocityHtml(rec) {
   </div>`;
 }
 
+// SKUs Observed: per-store breakdown of the raw "Breakers - Xmg - Flavor" / "Pouches - Xmg - Flavor"
+// facings columns (poppromo/GoSpotCheck source only -- CI never captured per-flavor facings, only
+// the aggregate sc/si/sp/ss scores) into a clean Category/Strength/Flavor/Facings table. Real data,
+// read-only, same "contextual for the reviewer" treatment as Recent Door Velocity above it.
+function civrSkuFacingsRows(rec) {
+  const facings = rec.skuFacings;
+  if (!facings || typeof facings !== 'object') return [];
+  const rows = [];
+  for (const key in facings) {
+    const m = /^(Breakers|Pouches) - (\d+mg) - (.+)$/.exec(key);
+    if (!m) continue;
+    const val = Number(facings[key]);
+    if (!Number.isFinite(val) || val <= 0) continue;
+    rows.push({ category: m[1], strength: m[2], flavor: m[3], facings: val });
+  }
+  rows.sort((a, b) => {
+    if (a.category !== b.category) return a.category === 'Breakers' ? -1 : 1;
+    return b.facings - a.facings;
+  });
+  return rows;
+}
+function civrSkuTableHtml(rec) {
+  if (rec.src !== 'poppromo') return '';
+  const rows = civrSkuFacingsRows(rec);
+  const header = `<div class="civr-sku-title">SKUs Observed <span class="civr-sku-sub">(Breakers &amp; Pouches, by flavor, real, read-only)</span></div>`;
+  if (!rows.length) {
+    return `<div class="civr-sku-box">${header}<div class="civr-sku-empty">No SKU facings recorded for this visit.</div></div>`;
+  }
+  const totalBreakers = rows.filter(r => r.category === 'Breakers').reduce((s, r) => s + r.facings, 0);
+  const totalPouches = rows.filter(r => r.category === 'Pouches').reduce((s, r) => s + r.facings, 0);
+  const body = rows.map(r => `<tr><td>${escHtml(r.category)}</td><td>${escHtml(r.strength)}</td><td>${escHtml(r.flavor)}</td><td class="civr-sku-num">${r.facings}</td></tr>`).join('');
+  return `<div class="civr-sku-box">
+    ${header}
+    <table class="civr-sku-table">
+      <thead><tr><th>Category</th><th>Strength</th><th>Flavor</th><th>Facings</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+    <div class="civr-sku-totals">Breakers: ${totalBreakers} facings · Pouches: ${totalPouches} facings · Total: ${totalBreakers + totalPouches}</div>
+  </div>`;
+}
+
 function civrCardHtml(rec) {
   const status = getReportStatus(rec);
   const hint = civRepHint(rec);
@@ -4706,6 +4756,7 @@ function civrCardHtml(rec) {
     ${civrRepNotesHtml(rec)}
     ${civrPhotosHtml(rec)}
     ${civrVelocityHtml(rec)}
+    ${civrSkuTableHtml(rec)}
   </div>
   ${civrVerdictBarHtml(rec, draft, hint, status)}
   ${civrSubmittedBannerHtml(rec, draft, status)}`;
