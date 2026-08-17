@@ -1227,6 +1227,8 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
 #view-civisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
 #view-civisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
+#view-civisitreview .civr-b-source-ci{background:#eef0fb;color:#39409a;border:1px solid #c0c6ee;}
+#view-civisitreview .civr-b-source-pop{background:#f5eefb;color:#7a3aa0;border:1px solid #d8bce8;}
 #view-civisitreview .civr-card-body{padding:0 16px 14px;}
 
 #view-civisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
@@ -1238,6 +1240,8 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civr-rep-val.alert{color:#a02020;}
 #view-civisitreview .civr-rep-val.good{color:#1a7a1a;}
 #view-civisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
+#view-civisitreview .civr-refusal-banner{background:#fdecea;border:1px solid #eeb0b0;border-radius:6px;padding:8px 10px;}
+#view-civisitreview .civr-refusal-title{display:block;color:#a02020;font-weight:700;font-size:12px;margin-bottom:5px;}
 
 #view-civisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
 #view-civisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
@@ -3038,7 +3042,14 @@ function civResolveLeaveWarning(action) {
   civModalOpen = null;
   renderCivModal();
   if (action === 'save') civSaveAllDirty();
-  else if (action === 'discard') { [...civDirtySet].forEach(k => civDiscardChanges(parseInt(k.split('|')[1], 10))); }
+  else if (action === 'discard') {
+    [...civDirtySet].forEach(k => {
+      const sepIdx = k.indexOf('|');
+      const src = k.slice(0, sepIdx);
+      const id = parseInt(k.slice(sepIdx + 1), 10);
+      if (!isNaN(id)) civDiscardChanges(src, id);
+    });
+  }
   else return; // cancel -- stay on the tab
   if (target) switchTab(target);
 }
@@ -3851,8 +3862,11 @@ function buildDerivedIndexes() {
 
   // CI Visit Review is scoped to real "site review" visits from the June/July/August 2026
   // cycles only -- deliberately NOT "every CI record ever", so a future cycle doesn't silently
-  // start appearing here without a real decision to include it.
-  CIV_ALL_REPORTS = CI.filter(r => SITE_REVIEW_MONTHS.includes(r.month));
+  // start appearing here without a real decision to include it. Poppromo (POP Marketing Check)
+  // visits are unioned in under the exact same month scope -- their real months already coincide
+  // with SITE_REVIEW_MONTHS's own values, so this is the same window, not a separate one.
+  CIV_ALL_REPORTS = CI.filter(r => SITE_REVIEW_MONTHS.includes(r.month))
+    .concat(POPPROMO_REPORTS.filter(r => SITE_REVIEW_MONTHS.includes(r.month)));
 }
 
 function reportKey(rec) { return rec.src + '|' + rec.id; }
@@ -4209,10 +4223,15 @@ function civActivityTableHtml() {
   </tbody></table>`;
 }
 
+// civ_report_versions has no src column of its own -- civSubmitVerdict/civrBulkSubmit (see above)
+// now always save src inside the snapshot JSONB itself, so it can be recovered here. `|| 'ci'`
+// only ever applies to version rows saved before this change existed, which are all necessarily
+// CI-only since poppromo wasn't reviewable yet.
 function civRevertPanelHtml() {
   const v = civHistoryRows.find(x => x.id === civRevertTargetVersionId);
   if (!v) return '<div>Version not found.</div>';
-  const current = getReportVerdict({ src:'ci', id: v.report_id });
+  const src = v.snapshot.src || 'ci';
+  const current = getReportVerdict({ src, id: v.report_id });
   const prevVersion = civPrevVersionFor(v.report_id, v.id);
   const target = prevVersion ? prevVersion.snapshot : civBlankVerdictSnapshot();
   return `<div class="civauth-warn-banner">Reverting undoes version ${civFmtVersion(v.id)} (saved by <strong>${escHtml(v.user_name)}</strong> on ${civFmtWhen(v.created_at)}), setting the record back to what it was ${prevVersion ? 'in ' + civFmtVersion(prevVersion.id) : 'before any verdict was ever saved'}. This creates a NEW version — nothing is deleted or overwritten.</div>
@@ -4225,7 +4244,8 @@ function civRevertPanelHtml() {
 function civRestorePanelHtml() {
   const v = civHistoryRows.find(x => x.id === civRevertTargetVersionId);
   if (!v) return '<div>Version not found.</div>';
-  const current = getReportVerdict({ src:'ci', id: v.report_id });
+  const src = v.snapshot.src || 'ci';
+  const current = getReportVerdict({ src, id: v.report_id });
   return `<div class="civauth-warn-banner">Restoring sets this record to exactly what it was in ${civFmtVersion(v.id)} (saved by <strong>${escHtml(v.user_name)}</strong> on ${civFmtWhen(v.created_at)}). This creates a NEW version — nothing is deleted or overwritten.</div>
     ${civDiffHtml(current, v.snapshot)}
     <div class="civauth-confirm-actions">
@@ -4238,13 +4258,14 @@ async function civConfirmRevert(versionId) {
   if (!civCanAdmin()) return;
   const v = civHistoryRows.find(x => x.id === versionId);
   if (!v) return;
+  const src = v.snapshot.src || 'ci';
   const prevVersion = civPrevVersionFor(v.report_id, v.id);
-  const target = prevVersion ? prevVersion.snapshot : civBlankVerdictSnapshot();
-  const rec = { src:'ci', id: v.report_id };
+  const target = Object.assign({}, prevVersion ? prevVersion.snapshot : civBlankVerdictSnapshot(), { src });
+  const rec = { src, id: v.report_id };
   setReportVerdict(rec, target);
   if (!prevVersion) setReportStatus(rec, 'Pending');
   const newVersion = await civSaveVersion(v.report_id, target, { isRevert: true, revertedFromVersionId: v.id });
-  civLogAudit('revert', { chain: civReportChain(v.report_id), door_key: civReportDoorKey(v.report_id), report_id: v.report_id, version_id: newVersion?newVersion.id:null, previous_value: JSON.stringify(v.snapshot), new_value: JSON.stringify(target) });
+  civLogAudit('revert', { chain: civReportChain(src, v.report_id), door_key: civReportDoorKey(src, v.report_id), report_id: v.report_id, version_id: newVersion?newVersion.id:null, previous_value: JSON.stringify(v.snapshot), new_value: JSON.stringify(target) });
   delete CIV_VERDICT_DRAFT[reportKey(rec)];
   civHistoryRows = await civFetchVersions();
   civModalOpen = 'history'; civRevertTargetVersionId = null;
@@ -4255,11 +4276,12 @@ async function civConfirmRestore(versionId) {
   if (!civCanAdmin()) return;
   const v = civHistoryRows.find(x => x.id === versionId);
   if (!v) return;
-  const rec = { src:'ci', id: v.report_id };
+  const src = v.snapshot.src || 'ci';
+  const rec = { src, id: v.report_id };
   setReportVerdict(rec, v.snapshot);
   setReportStatus(rec, 'Reviewed');
   const newVersion = await civSaveVersion(v.report_id, v.snapshot, { isRestore: true, restoredFromVersionId: v.id });
-  civLogAudit('restore', { chain: civReportChain(v.report_id), door_key: civReportDoorKey(v.report_id), report_id: v.report_id, version_id: newVersion?newVersion.id:null, new_value: JSON.stringify(v.snapshot) });
+  civLogAudit('restore', { chain: civReportChain(src, v.report_id), door_key: civReportDoorKey(src, v.report_id), report_id: v.report_id, version_id: newVersion?newVersion.id:null, new_value: JSON.stringify(v.snapshot) });
   delete CIV_VERDICT_DRAFT[reportKey(rec)];
   civHistoryRows = await civFetchVersions();
   civModalOpen = 'history'; civRevertTargetVersionId = null;
@@ -4301,7 +4323,24 @@ function renderCivModal() {
 // known-unreliable field on this source (documented in this project's own build notes: it's
 // always 0 by construction, never a real captured signal), so it's deliberately left null here
 // rather than surfaced as a false "No".
+//
+// Poppromo (POP Marketing Check) visits carry a genuinely different field set -- confirmed by
+// reading etl_poppromo_cycle.ps1's own visit-object construction, not assumed -- so this needs
+// its own branch rather than reusing CI's si/sp/oo (those are simply undefined on a poppromo
+// record, which would silently produce blank hints, not wrong ones, but still worth a real branch
+// so the genuinely-available poppromo signals actually get used). shelfStripMatchesPromo/
+// promoCorrect give poppromo a REAL rep-side signal for Strip Accurate? that CI never has at all.
 function civRepHint(rec) {
+  if (rec.src === 'poppromo') {
+    const facingsCount = rec.skuFacings && typeof rec.skuFacings === 'object' ? Object.keys(rec.skuFacings).length : 0;
+    return {
+      productPresent: facingsCount > 0 ? true : null,
+      stripPresent: rec.shelfStripPresent === true ? true : rec.shelfStripPresent === false ? false : null,
+      stripAccurate: rec.shelfStripMatchesPromo === true ? true : rec.shelfStripMatchesPromo === false ? false : (rec.promoCorrect === true ? true : rec.promoCorrect === false ? false : null),
+      stripAdded: null,
+      needsProduct: rec.orderingIssue ? true : null
+    };
+  }
   return {
     productPresent: rec.si === 1 ? true : rec.si === 0 ? false : null,
     stripPresent: rec.sp === 1 ? true : rec.sp === 0 ? false : null,
@@ -4334,81 +4373,95 @@ function civDraftVerdict(rec) {
   }
   return CIV_VERDICT_DRAFT[k];
 }
-function civReportChain(id) { const r = CI.find(x => x.id === id); return r ? r.ch : null; }
-function civReportDoorKey(id) { const d = reportDoor({ src: 'ci', id }); return d ? d.key : null; }
+// (src, id) rather than a bare id -- CI and poppromo ids are both raw integers from two totally
+// different source systems (CI's own small sequential ids vs. GoSpotCheck's ~9-digit Mission
+// Response IDs), so a bare id can't safely identify a record once both sources are reviewable.
+function civReportChain(src, id) {
+  const arr = src === 'poppromo' ? POPPROMO_REPORTS : CI;
+  const r = arr.find(x => x.id === id);
+  return r ? r.ch : null;
+}
+function civReportDoorKey(src, id) { const d = reportDoor({ src, id }); return d ? d.key : null; }
 
-function civSetVerdictAnswer(id, field, value) {
+function civSetVerdictAnswer(src, id, field, value) {
   if (!civCanEdit()) return; // real enforcement is the report_verdicts RLS policy; this just avoids a no-op round trip for a Viewer
-  const rec = { src: 'ci', id };
+  const rec = { src, id };
   const draft = civDraftVerdict(rec);
   const prev = draft[field];
   draft[field] = draft[field] === value ? null : value;
   civDirtySet.add(reportKey(rec));
-  civLogAudit('edit', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id, field, previous_value: prev===null?null:String(prev), new_value: draft[field]===null?null:String(draft[field]) });
+  civLogAudit('edit', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, field, previous_value: prev===null?null:String(prev), new_value: draft[field]===null?null:String(draft[field]) });
   renderCiVisitReview();
 }
-function civSetNote(id, value) {
+function civSetNote(src, id, value) {
   if (!civCanEdit()) return;
-  const rec = { src: 'ci', id };
+  const rec = { src, id };
   civDraftVerdict(rec).notes = value;
   civDirtySet.add(reportKey(rec));
 }
-function civToggleFlag(id) {
+function civToggleFlag(src, id) {
   if (!civCanEdit()) return;
-  const rec = { src: 'ci', id };
+  const rec = { src, id };
   const draft = civDraftVerdict(rec);
   draft.flag = !draft.flag;
   civDirtySet.add(reportKey(rec));
-  civLogAudit('edit', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id, field: 'flag', previous_value: String(!draft.flag), new_value: String(draft.flag) });
+  civLogAudit('edit', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, field: 'flag', previous_value: String(!draft.flag), new_value: String(draft.flag) });
   renderCiVisitReview();
 }
-function civSubmitVerdict(id) {
+function civSubmitVerdict(src, id) {
   if (!civCanEdit()) return;
-  const rec = { src: 'ci', id };
+  const rec = { src, id };
   const draft = civDraftVerdict(rec);
   setReportVerdict(rec, draft);
   setReportStatus(rec, 'Reviewed');
   // Recent Door Velocity is captured into the saved version as a reference snapshot only --
   // it's never a report_verdicts column (setReportVerdict above ignores unknown properties),
   // just a contextual data point recorded alongside whatever the reviewer answered this time.
-  const versionSnapshot = Object.assign({}, draft, { velocitySnapshot: civrVelocitySnapshot(rec) });
+  // `src` rides along too -- civ_report_versions has no src column of its own, so this is the
+  // only place Revert/Restore can later recover which source table a version belongs to.
+  const versionSnapshot = Object.assign({}, draft, { src: rec.src, velocitySnapshot: civrVelocitySnapshot(rec) });
   delete CIV_VERDICT_DRAFT[reportKey(rec)];
   civDirtySet.delete(reportKey(rec));
   civSaveVersion(id, versionSnapshot).then(version => {
-    civLogAudit('save', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id, version_id: version ? version.id : null });
+    civLogAudit('save', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, version_id: version ? version.id : null });
   });
   renderCiVisitReview();
 }
-function civUndoVerdict(id) {
+function civUndoVerdict(src, id) {
   if (!civCanEdit()) return;
-  setReportStatus({ src: 'ci', id }, 'Pending');
-  civLogAudit('discard', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id });
+  setReportStatus({ src, id }, 'Pending');
+  civLogAudit('discard', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id });
   renderCiVisitReview();
 }
 // Requirement 9: an in-progress edit that hasn't been saved yet -- discards the draft (reverting
 // to the last saved value / original rep-side hint), distinct from civUndoVerdict() above (which
 // un-submits an already-saved Reviewed record back to Pending).
-function civDiscardChanges(id) {
-  const rec = { src: 'ci', id };
+function civDiscardChanges(src, id) {
+  const rec = { src, id };
   delete CIV_VERDICT_DRAFT[reportKey(rec)];
   civDirtySet.delete(reportKey(rec));
-  civLogAudit('discard', { chain: civReportChain(id), door_key: civReportDoorKey(id), report_id: id });
+  civLogAudit('discard', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id });
   renderCiVisitReview();
 }
 // Activity dashboard's "Save Changes" quick action -- saves every currently-dirty record at once.
 function civSaveAllDirty() {
   if (!civCanEdit()) return;
-  [...civDirtySet].forEach(k => { const id = parseInt(k.split('|')[1], 10); if (!isNaN(id)) civSubmitVerdict(id); });
+  [...civDirtySet].forEach(k => {
+    const sepIdx = k.indexOf('|');
+    const src = k.slice(0, sepIdx);
+    const id = parseInt(k.slice(sepIdx + 1), 10);
+    if (!isNaN(id)) civSubmitVerdict(src, id);
+  });
 }
 
-let civrFilters = { chain:'', status:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
+let civrFilters = { chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
 let civrPage = 0;
 const CIVR_PAGE_SIZE = 6; // matches the reference prototype's own PER_PAGE exactly
 let civrBulkMsg = '';
 
 function civrSetFilter(key, val) { civrFilters[key] = val; civrPage = 0; civrBulkMsg = ''; renderCiVisitReview(); }
 function civrResetFilters() {
-  civrFilters = { chain:'', status:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
+  civrFilters = { chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
   civrPage = 0; civrBulkMsg = '';
   renderCiVisitReview();
 }
@@ -4417,15 +4470,20 @@ function civrChangePage(dir) { civrPage += dir; renderCiVisitReview(); window.sc
 function civrFilteredReports() {
   return CIV_ALL_REPORTS.filter(r => {
     if (civrFilters.chain && r.ch !== civrFilters.chain) return false;
+    if (civrFilters.source && r.src !== civrFilters.source) return false;
     const status = getReportStatus(r);
     if (civrFilters.status === 'pending' && status === 'Reviewed') return false;
     if (civrFilters.status === 'done' && status !== 'Reviewed') return false;
     const draft = civDraftVerdict(r);
     if (civrFilters.needsProduct === 'yes' && draft.needsProduct !== true) return false;
     if (civrFilters.needsProduct === 'no' && draft.needsProduct !== false) return false;
-    const repOos = Array.isArray(r.oo) && r.oo.length > 0;
-    if (civrFilters.repOos === 'yes' && !repOos) return false;
-    if (civrFilters.repOos === 'no' && repOos) return false;
+    if (r.src !== 'poppromo') {
+      const repOos = Array.isArray(r.oo) && r.oo.length > 0;
+      if (civrFilters.repOos === 'yes' && !repOos) return false;
+      if (civrFilters.repOos === 'no' && repOos) return false;
+    } else if (civrFilters.repOos === 'yes' || civrFilters.repOos === 'no') {
+      return false;
+    }
     if (civrFilters.productThere === 'yes' && draft.productPresent !== true) return false;
     if (civrFilters.productThere === 'no' && draft.productPresent !== false) return false;
     if (civrFilters.productThere === 'blank' && draft.productPresent !== null) return false;
@@ -4470,10 +4528,10 @@ function civrBulkSubmit() {
     const draft = civDraftVerdict(r);
     setReportVerdict(r, draft);
     setReportStatus(r, 'Reviewed');
-    const versionSnapshot = Object.assign({}, draft, { velocitySnapshot: civrVelocitySnapshot(r) });
+    const versionSnapshot = Object.assign({}, draft, { src: r.src, velocitySnapshot: civrVelocitySnapshot(r) });
     delete CIV_VERDICT_DRAFT[reportKey(r)];
     civSaveVersion(r.id, versionSnapshot).then(version => {
-      civLogAudit('save', { chain: r.ch, door_key: civReportDoorKey(r.id), report_id: r.id, version_id: version ? version.id : null });
+      civLogAudit('save', { chain: r.ch, door_key: civReportDoorKey(r.src, r.id), report_id: r.id, version_id: version ? version.id : null });
     });
   });
   civrBulkMsg = unsubmitted.length ? `✓ ${unsubmitted.length} report${unsubmitted.length===1?'':'s'} submitted` : 'All filtered reports are already submitted.';
@@ -4486,6 +4544,31 @@ function civrNoteRow(k, v, cls) {
 }
 
 function civrRepNotesHtml(rec) {
+  if (rec.src === 'poppromo') {
+    if (rec.outcome === 'refused') {
+      return `<div class="civr-rep-notes"><div class="civr-rep-notes-title">Rep field notes</div>
+        <div class="civr-refusal-banner">
+          <span class="civr-refusal-title">⚠ Visit refused</span>
+          ${rec.refusalManager ? `<div class="civr-rep-row"><span class="civr-rep-key">Manager</span><span class="civr-rep-val">${escHtml(rec.refusalManager)}</span></div>` : ''}
+          ${rec.refusalReason ? `<div class="civr-rep-row"><span class="civr-rep-key">Reason</span><span class="civr-rep-val">${escHtml(rec.refusalReason)}</span></div>` : ''}
+        </div></div>`;
+    }
+    const runningLabel = rec.promoRunning === true ? 'Yes' : rec.promoRunning === false ? 'No' : '—';
+    const correctLabel = rec.promoCorrect === true ? 'Yes' : rec.promoCorrect === false ? 'No' : '—';
+    const stripLabel = rec.shelfStripPresent === true ? 'Yes' : rec.shelfStripPresent === false ? 'No' : '—';
+    const matchLabel = rec.shelfStripMatchesPromo === true ? 'Yes' : rec.shelfStripMatchesPromo === false ? 'No' : '—';
+    const gridRows = [
+      civrNoteRow('Promo running', runningLabel, runningLabel==='No'?'alert':''),
+      civrNoteRow('Promo correct', correctLabel, correctLabel==='No'?'alert':''),
+      civrNoteRow('Strip present', stripLabel, stripLabel==='Yes'?'good':stripLabel==='No'?'alert':''),
+      civrNoteRow('Strip matches promo', matchLabel, matchLabel==='No'?'alert':''),
+      rec.orderingIssue ? civrNoteRow('Ordering issue', rec.orderingIssue, 'alert') : ''
+    ].join('');
+    let html = `<div class="civr-rep-notes"><div class="civr-rep-notes-title">Rep field notes</div><div class="civr-rep-grid">${gridRows}</div>`;
+    if (rec.observedPrice) html += `<div class="civr-rep-note-long">Observed price: ${escHtml(String(rec.observedPrice))}</div>`;
+    html += `</div>`;
+    return html;
+  }
   const shelfLabel = rec.si === 1 ? 'Yes' : rec.si === 0 ? 'No' : '—';
   const stripLabel = rec.sp === 1 ? 'Yes' : rec.sp === 0 ? 'No' : '—';
   const oosItems = Array.isArray(rec.oo) ? rec.oo : [];
@@ -4502,10 +4585,17 @@ function civrRepNotesHtml(rec) {
 
 function civrBadgesHtml(rec, hint, status) {
   let badges = '';
+  badges += rec.src === 'poppromo'
+    ? `<span class="civr-badge civr-b-source-pop">POP Marketing Check</span>`
+    : `<span class="civr-badge civr-b-source-ci">CI Visit</span>`;
   if (hint.stripPresent === true) badges += `<span class="civr-badge civr-b-strip-yes">Strip present</span>`;
   else if (hint.stripPresent === false) badges += `<span class="civr-badge civr-b-strip-no">No strip</span>`;
-  if (Array.isArray(rec.oo) && rec.oo.length) badges += `<span class="civr-badge civr-b-oos">Rep: OOS</span>`;
-  else badges += `<span class="civr-badge civr-b-ok">Rep: in stock</span>`;
+  if (rec.src !== 'poppromo') {
+    if (Array.isArray(rec.oo) && rec.oo.length) badges += `<span class="civr-badge civr-b-oos">Rep: OOS</span>`;
+    else badges += `<span class="civr-badge civr-b-ok">Rep: in stock</span>`;
+  } else if (rec.outcome === 'refused') {
+    badges += `<span class="civr-badge civr-b-oos">Refused</span>`;
+  }
   if (status === 'Reviewed') badges += `<span class="civr-badge civr-b-lock">✓ Submitted</span>`;
   return badges;
 }
@@ -4540,9 +4630,9 @@ function civrVerdictBarHtml(rec, draft, hint, status) {
       <div class="civr-vq-label">${label}</div>
       ${hintHtml}
       <div class="civr-tri-btn">
-        <button class="civr-tbtn ${val===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', true)">Yes</button>
-        <button class="civr-tbtn ${val===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', false)">No</button>
-        ${hasNA ? `<button class="civr-tbtn ${val==='na'?'civr-on-na':''}" ${dis} onclick="civSetVerdictAnswer(${JSON.stringify(rec.id)}, '${field}', 'na')">N/A</button>` : ''}
+        <button class="civr-tbtn ${val===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('${rec.src}', ${JSON.stringify(rec.id)}, '${field}', true)">Yes</button>
+        <button class="civr-tbtn ${val===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('${rec.src}', ${JSON.stringify(rec.id)}, '${field}', false)">No</button>
+        ${hasNA ? `<button class="civr-tbtn ${val==='na'?'civr-on-na':''}" ${dis} onclick="civSetVerdictAnswer('${rec.src}', ${JSON.stringify(rec.id)}, '${field}', 'na')">N/A</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -4550,14 +4640,14 @@ function civrVerdictBarHtml(rec, draft, hint, status) {
   return `<div class="civr-verdict-bar">
     ${qHtml}
     <div class="civr-submit-col">
-      <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict(${JSON.stringify(rec.id)})">${locked?'Submitted ✓':'Submit ✓'}</button>
-      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag(${JSON.stringify(rec.id)})">⚑ Flag</button>
-      ${isDirty && canEdit ? `<button class="civr-flag-btn" onclick="civDiscardChanges(${JSON.stringify(rec.id)})">Discard</button>` : ''}
+      <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict('${rec.src}', ${JSON.stringify(rec.id)})">${locked?'Submitted ✓':'Submit ✓'}</button>
+      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag('${rec.src}', ${JSON.stringify(rec.id)})">⚑ Flag</button>
+      ${isDirty && canEdit ? `<button class="civr-flag-btn" onclick="civDiscardChanges('${rec.src}', ${JSON.stringify(rec.id)})">Discard</button>` : ''}
     </div>
   </div>
   <div class="civr-notes-bar">
     <span class="civr-notes-label">Quick notes</span>
-    <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" ${dis} onchange="civSetNote(${JSON.stringify(rec.id)}, this.value)" oninput="civSetNote(${JSON.stringify(rec.id)}, this.value)">
+    <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" ${dis} onchange="civSetNote('${rec.src}', ${JSON.stringify(rec.id)}, this.value)" oninput="civSetNote('${rec.src}', ${JSON.stringify(rec.id)}, this.value)">
   </div>`;
 }
 
@@ -4565,7 +4655,7 @@ function civrSubmittedBannerHtml(rec, draft, status) {
   const locked = status === 'Reviewed';
   return `<div class="civr-submitted-banner${locked?' civr-show':''}">
     <span>✓ Submitted${draft.flag?' — flagged for follow-up':''}</span>
-    <button class="civr-undo-btn" onclick="civUndoVerdict(${JSON.stringify(rec.id)})">Undo</button>
+    <button class="civr-undo-btn" onclick="civUndoVerdict('${rec.src}', ${JSON.stringify(rec.id)})">Undo</button>
   </div>`;
 }
 
@@ -4723,6 +4813,12 @@ function renderCiVisitReview() {
       <option value="">All</option>
       <option value="pending" ${civrFilters.status==='pending'?'selected':''}>Pending</option>
       <option value="done" ${civrFilters.status==='done'?'selected':''}>Submitted</option>
+    </select>
+    <label>Source:</label>
+    <select class="civr-select" onchange="civrSetFilter('source', this.value)">
+      <option value="">All sources</option>
+      <option value="ci" ${civrFilters.source==='ci'?'selected':''}>CI Visit</option>
+      <option value="poppromo" ${civrFilters.source==='poppromo'?'selected':''}>POP Marketing Check</option>
     </select>
     <label>Needs product:</label>
     <select class="civr-select" onchange="civrSetFilter('needsProduct', this.value)">
