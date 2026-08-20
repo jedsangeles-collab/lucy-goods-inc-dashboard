@@ -1184,184 +1184,185 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
    layout), NOT from this dashboard's Report Review tab -- deliberately its own visual language,
    scoped entirely under #view-civisitreview / civr- prefixed classes so it can't leak into or
    collide with the rest of the app. */
-#view-civisitreview .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
-#view-civisitreview .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
-#view-civisitreview .civr-progress-bar{width:220px;height:4px;background:#e0ddd6;border-radius:2px;overflow:hidden;}
-#view-civisitreview .civr-progress-fill{height:100%;background:#2a7a2a;border-radius:2px;transition:width 0.3s;}
-#view-civisitreview .civr-progress-text{font-size:12px;color:#888;}
-#view-civisitreview .civr-export-btn{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid #bbb;background:#fff;color:#1a1a18;cursor:pointer;font-weight:500;}
-#view-civisitreview .civr-export-btn:hover{background:#f0efe8;}
-#view-civisitreview .civr-stats-bar{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;}
-#view-civisitreview .civr-stat{display:flex;flex-direction:column;gap:1px;}
-#view-civisitreview .civr-slabel{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;}
-#view-civisitreview .civr-sval{font-size:22px;font-weight:700;color:#1a1a18;}
-#view-civisitreview .civr-stat.civr-green .civr-sval{color:#1a7a1a;}
-#view-civisitreview .civr-stat.civr-red .civr-sval{color:#b03020;}
-#view-civisitreview .civr-stat.civr-blue .civr-sval{color:#1a5fa0;}
-#view-civisitreview .civr-stat.civr-amber .civr-sval{color:#8a5000;}
-#view-civisitreview .civr-filters{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-#view-civisitreview .civr-filters label{font-size:12px;color:#666;font-weight:500;}
-#view-civisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
-#view-civisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
-#view-civisitreview .civr-reset:hover{text-decoration:underline;}
-#view-civisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-#view-civisitreview .civr-bulk-count{font-size:13px;color:#666;}
-#view-civisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
-#view-civisitreview .civr-bulk-no{border-color:#c03020;background:#fdecea;color:#8a1010;}
-#view-civisitreview .civr-bulk-yes{border-color:#2a7a2a;background:#e6f5e6;color:#1a5a1a;}
-#view-civisitreview .civr-bulk-submit{border-color:#1a5fa0;background:#e3f0ff;color:#1a4a80;}
-#view-civisitreview .civr-bulk-msg{font-size:12px;color:#2a7a2a;font-weight:600;}
-#view-civisitreview .civr-main{max-width:1000px;width:100%;margin:0 auto;padding:16px;}
+#view-civisitreview .civr-header, #view-eileenvisitreview .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+#view-civisitreview .civr-header h1, #view-eileenvisitreview .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-progress-wrap, #view-eileenvisitreview .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
+#view-civisitreview .civr-progress-bar, #view-eileenvisitreview .civr-progress-bar{width:220px;height:4px;background:#e0ddd6;border-radius:2px;overflow:hidden;}
+#view-civisitreview .civr-progress-fill, #view-eileenvisitreview .civr-progress-fill{height:100%;background:#2a7a2a;border-radius:2px;transition:width 0.3s;}
+#view-civisitreview .civr-progress-text, #view-eileenvisitreview .civr-progress-text{font-size:12px;color:#888;}
+#view-civisitreview .civr-export-btn, #view-eileenvisitreview .civr-export-btn{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid #bbb;background:#fff;color:#1a1a18;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-export-btn:hover, #view-eileenvisitreview .civr-export-btn:hover{background:#f0efe8;}
+#view-civisitreview .civr-stats-bar, #view-eileenvisitreview .civr-stats-bar{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;}
+#view-civisitreview .civr-stat, #view-eileenvisitreview .civr-stat{display:flex;flex-direction:column;gap:1px;}
+#view-civisitreview .civr-slabel, #view-eileenvisitreview .civr-slabel{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;}
+#view-civisitreview .civr-sval, #view-eileenvisitreview .civr-sval{font-size:22px;font-weight:700;color:#1a1a18;}
+#view-civisitreview .civr-stat.civr-green .civr-sval, #view-eileenvisitreview .civr-stat.civr-green .civr-sval{color:#1a7a1a;}
+#view-civisitreview .civr-stat.civr-red .civr-sval, #view-eileenvisitreview .civr-stat.civr-red .civr-sval{color:#b03020;}
+#view-civisitreview .civr-stat.civr-blue .civr-sval, #view-eileenvisitreview .civr-stat.civr-blue .civr-sval{color:#1a5fa0;}
+#view-civisitreview .civr-stat.civr-amber .civr-sval, #view-eileenvisitreview .civr-stat.civr-amber .civr-sval{color:#8a5000;}
+#view-civisitreview .civr-filters, #view-eileenvisitreview .civr-filters{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+#view-civisitreview .civr-filters label, #view-eileenvisitreview .civr-filters label{font-size:12px;color:#666;font-weight:500;}
+#view-civisitreview .civr-select, #view-eileenvisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
+#view-civisitreview .civr-reset, #view-eileenvisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
+#view-civisitreview .civr-reset:hover, #view-eileenvisitreview .civr-reset:hover{text-decoration:underline;}
+#view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+#view-civisitreview .civr-bulk-count, #view-eileenvisitreview .civr-bulk-count{font-size:13px;color:#666;}
+#view-civisitreview .civr-bulk-btn, #view-eileenvisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
+#view-civisitreview .civr-bulk-no, #view-eileenvisitreview .civr-bulk-no{border-color:#c03020;background:#fdecea;color:#8a1010;}
+#view-civisitreview .civr-bulk-yes, #view-eileenvisitreview .civr-bulk-yes{border-color:#2a7a2a;background:#e6f5e6;color:#1a5a1a;}
+#view-civisitreview .civr-bulk-submit, #view-eileenvisitreview .civr-bulk-submit{border-color:#1a5fa0;background:#e3f0ff;color:#1a4a80;}
+#view-civisitreview .civr-bulk-msg, #view-eileenvisitreview .civr-bulk-msg{font-size:12px;color:#2a7a2a;font-weight:600;}
+#view-civisitreview .civr-main, #view-eileenvisitreview .civr-main{max-width:1000px;width:100%;margin:0 auto;padding:16px;}
 
-#view-civisitreview .civr-store-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;}
-#view-civisitreview .civr-store-card.civr-submitted{border-left:4px solid #1a7a1a;}
-#view-civisitreview .civr-store-card.civr-submitted-flag{border-left:4px solid #e08020;}
-#view-civisitreview .civr-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0;}
-#view-civisitreview .civr-card-title{font-size:14px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civr-card-sub{font-size:12px;color:#777;margin-top:2px;}
-#view-civisitreview .civr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-bottom:10px;}
-#view-civisitreview .civr-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
-#view-civisitreview .civr-b-strip-yes{background:#ddeeff;color:#1a5fa0;border:1px solid #aaccee;}
-#view-civisitreview .civr-b-strip-no{background:#fff3e0;color:#a06010;border:1px solid #e8c060;}
-#view-civisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
-#view-civisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
-#view-civisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
-#view-civisitreview .civr-b-source-ci{background:#eef0fb;color:#39409a;border:1px solid #c0c6ee;}
-#view-civisitreview .civr-b-source-pop{background:#f5eefb;color:#7a3aa0;border:1px solid #d8bce8;}
-#view-civisitreview .civr-card-body{padding:0 16px 14px;}
+#view-civisitreview .civr-store-card, #view-eileenvisitreview .civr-store-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;}
+#view-civisitreview .civr-store-card.civr-submitted, #view-eileenvisitreview .civr-store-card.civr-submitted{border-left:4px solid #1a7a1a;}
+#view-civisitreview .civr-store-card.civr-submitted-flag, #view-eileenvisitreview .civr-store-card.civr-submitted-flag{border-left:4px solid #e08020;}
+#view-civisitreview .civr-card-head, #view-eileenvisitreview .civr-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0;}
+#view-civisitreview .civr-card-title, #view-eileenvisitreview .civr-card-title{font-size:14px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-card-sub, #view-eileenvisitreview .civr-card-sub{font-size:12px;color:#777;margin-top:2px;}
+#view-civisitreview .civr-badges, #view-eileenvisitreview .civr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-bottom:10px;}
+#view-civisitreview .civr-badge, #view-eileenvisitreview .civr-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+#view-civisitreview .civr-b-strip-yes, #view-eileenvisitreview .civr-b-strip-yes{background:#ddeeff;color:#1a5fa0;border:1px solid #aaccee;}
+#view-civisitreview .civr-b-strip-no, #view-eileenvisitreview .civr-b-strip-no{background:#fff3e0;color:#a06010;border:1px solid #e8c060;}
+#view-civisitreview .civr-b-oos, #view-eileenvisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
+#view-civisitreview .civr-b-ok, #view-eileenvisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
+#view-civisitreview .civr-b-lock, #view-eileenvisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
+#view-civisitreview .civr-b-source-ci, #view-eileenvisitreview .civr-b-source-ci{background:#eef0fb;color:#39409a;border:1px solid #c0c6ee;}
+#view-civisitreview .civr-b-source-pop, #view-eileenvisitreview .civr-b-source-pop{background:#f5eefb;color:#7a3aa0;border:1px solid #d8bce8;}
+#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
+#view-civisitreview .civr-card-body, #view-eileenvisitreview .civr-card-body{padding:0 16px 14px;}
 
-#view-civisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
-#view-civisitreview .civr-rep-notes-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;}
-#view-civisitreview .civr-rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
-#view-civisitreview .civr-rep-row{display:flex;gap:6px;padding:2px 0;align-items:baseline;}
-#view-civisitreview .civr-rep-key{color:#999;flex-shrink:0;min-width:130px;font-size:11px;}
-#view-civisitreview .civr-rep-val{color:#1a1a18;font-weight:500;font-size:12px;}
-#view-civisitreview .civr-rep-val.alert{color:#a02020;}
-#view-civisitreview .civr-rep-val.good{color:#1a7a1a;}
-#view-civisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
-#view-civisitreview .civr-refusal-banner{background:#fdecea;border:1px solid #eeb0b0;border-radius:6px;padding:8px 10px;}
-#view-civisitreview .civr-refusal-title{display:block;color:#a02020;font-weight:700;font-size:12px;margin-bottom:5px;}
+#view-civisitreview .civr-rep-notes, #view-eileenvisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-rep-notes-title, #view-eileenvisitreview .civr-rep-notes-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;}
+#view-civisitreview .civr-rep-grid, #view-eileenvisitreview .civr-rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
+#view-civisitreview .civr-rep-row, #view-eileenvisitreview .civr-rep-row{display:flex;gap:6px;padding:2px 0;align-items:baseline;}
+#view-civisitreview .civr-rep-key, #view-eileenvisitreview .civr-rep-key{color:#999;flex-shrink:0;min-width:130px;font-size:11px;}
+#view-civisitreview .civr-rep-val, #view-eileenvisitreview .civr-rep-val{color:#1a1a18;font-weight:500;font-size:12px;}
+#view-civisitreview .civr-rep-val.alert, #view-eileenvisitreview .civr-rep-val.alert{color:#a02020;}
+#view-civisitreview .civr-rep-val.good, #view-eileenvisitreview .civr-rep-val.good{color:#1a7a1a;}
+#view-civisitreview .civr-rep-note-long, #view-eileenvisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
+#view-civisitreview .civr-refusal-banner, #view-eileenvisitreview .civr-refusal-banner{background:#fdecea;border:1px solid #eeb0b0;border-radius:6px;padding:8px 10px;}
+#view-civisitreview .civr-refusal-title, #view-eileenvisitreview .civr-refusal-title{display:block;color:#a02020;font-weight:700;font-size:12px;margin-bottom:5px;}
 
-#view-civisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
-#view-civisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
-#view-civisitreview .civr-photo-wrap{position:relative;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid #e0ddd6;background:#f5f4f0;cursor:pointer;}
-#view-civisitreview .civr-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
-#view-civisitreview .civr-photo-wrap img:hover{opacity:0.88;}
-#view-civisitreview .civr-photo-hint{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
-#view-civisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
-#view-civisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
-#view-civisitreview .civr-view-all:hover{text-decoration:underline;}
+#view-civisitreview .civr-photos-row, #view-eileenvisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
+#view-civisitreview .civr-plabel, #view-eileenvisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
+#view-civisitreview .civr-photo-wrap, #view-eileenvisitreview .civr-photo-wrap{position:relative;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid #e0ddd6;background:#f5f4f0;cursor:pointer;}
+#view-civisitreview .civr-photo-wrap img, #view-eileenvisitreview .civr-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+#view-civisitreview .civr-photo-wrap img:hover, #view-eileenvisitreview .civr-photo-wrap img:hover{opacity:0.88;}
+#view-civisitreview .civr-photo-hint, #view-eileenvisitreview .civr-photo-hint{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
+#view-civisitreview .civr-no-photo, #view-eileenvisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
+#view-civisitreview .civr-view-all, #view-eileenvisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
+#view-civisitreview .civr-view-all:hover, #view-eileenvisitreview .civr-view-all:hover{text-decoration:underline;}
 
-#view-civisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
-#view-civisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
-#view-civisitreview .civr-vq:last-of-type{border-right:none;padding-right:0;padding-left:12px;}
-#view-civisitreview .civr-vq-label{font-size:11px;font-weight:600;color:#666;margin-bottom:4px;}
-#view-civisitreview .civr-vq-pre{font-size:10px;color:#aaa;margin-bottom:2px;}
-#view-civisitreview .civr-tri-btn{display:flex;gap:3px;}
-#view-civisitreview .civr-tbtn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;cursor:pointer;font-weight:500;transition:all 0.12s;white-space:nowrap;}
-#view-civisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
-#view-civisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
-#view-civisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
-#view-civisitreview .civr-tbtn.civr-on-na{background:#eee;border-color:#888;color:#555;font-weight:700;}
-#view-civisitreview .civr-velocity-box{
+#view-civisitreview .civr-verdict-bar, #view-eileenvisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+#view-civisitreview .civr-vq, #view-eileenvisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
+#view-civisitreview .civr-vq:last-of-type, #view-eileenvisitreview .civr-vq:last-of-type{border-right:none;padding-right:0;padding-left:12px;}
+#view-civisitreview .civr-vq-label, #view-eileenvisitreview .civr-vq-label{font-size:11px;font-weight:600;color:#666;margin-bottom:4px;}
+#view-civisitreview .civr-vq-pre, #view-eileenvisitreview .civr-vq-pre{font-size:10px;color:#aaa;margin-bottom:2px;}
+#view-civisitreview .civr-tri-btn, #view-eileenvisitreview .civr-tri-btn{display:flex;gap:3px;}
+#view-civisitreview .civr-tbtn, #view-eileenvisitreview .civr-tbtn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;cursor:pointer;font-weight:500;transition:all 0.12s;white-space:nowrap;}
+#view-civisitreview .civr-tbtn:hover, #view-eileenvisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
+#view-civisitreview .civr-tbtn.civr-on-yes, #view-eileenvisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-no, #view-eileenvisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-na, #view-eileenvisitreview .civr-tbtn.civr-on-na{background:#eee;border-color:#888;color:#555;font-weight:700;}
+#view-civisitreview .civr-velocity-box, #view-eileenvisitreview .civr-velocity-box{
   display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
   background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;
 }
-#view-civisitreview .civr-velocity-label{color:#666;font-weight:600;}
-#view-civisitreview .civr-velocity-period{font-weight:400;color:#999;}
-#view-civisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
-#view-civisitreview .civr-sku-box{background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;}
-#view-civisitreview .civr-sku-title{color:#666;font-weight:600;margin-bottom:6px;}
-#view-civisitreview .civr-sku-sub{font-weight:400;color:#999;}
-#view-civisitreview .civr-sku-empty{color:#999;font-style:italic;}
-#view-civisitreview .civr-sku-table{width:100%;border-collapse:collapse;}
-#view-civisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
-#view-civisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
-#view-civisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
-#view-civisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
-#view-civisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
-#view-civisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
-#view-civisitreview .civr-submit-btn:hover{background:#144d88;}
-#view-civisitreview .civr-submit-btn.civr-submit-done{background:#2a7a2a;cursor:default;}
-#view-civisitreview .civr-flag-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;}
-#view-civisitreview .civr-flag-btn:hover{background:#fff8e0;border-color:#e0a020;color:#8a5000;}
-#view-civisitreview .civr-flag-btn.civr-flagged{background:#fff3e0;border-color:#e0a020;color:#8a5000;font-weight:600;}
+#view-civisitreview .civr-velocity-label, #view-eileenvisitreview .civr-velocity-label{color:#666;font-weight:600;}
+#view-civisitreview .civr-velocity-period, #view-eileenvisitreview .civr-velocity-period{font-weight:400;color:#999;}
+#view-civisitreview .civr-velocity-val, #view-eileenvisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
+#view-civisitreview .civr-sku-box, #view-eileenvisitreview .civr-sku-box{background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-sku-title, #view-eileenvisitreview .civr-sku-title{color:#666;font-weight:600;margin-bottom:6px;}
+#view-civisitreview .civr-sku-sub, #view-eileenvisitreview .civr-sku-sub{font-weight:400;color:#999;}
+#view-civisitreview .civr-sku-empty, #view-eileenvisitreview .civr-sku-empty{color:#999;font-style:italic;}
+#view-civisitreview .civr-sku-table, #view-eileenvisitreview .civr-sku-table{width:100%;border-collapse:collapse;}
+#view-civisitreview .civr-sku-table th, #view-eileenvisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
+#view-civisitreview .civr-sku-table td, #view-eileenvisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
+#view-civisitreview .civr-sku-num, #view-eileenvisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
+#view-civisitreview .civr-sku-totals, #view-eileenvisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+#view-civisitreview .civr-submit-col, #view-eileenvisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
+#view-civisitreview .civr-submit-btn, #view-eileenvisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
+#view-civisitreview .civr-submit-btn:hover, #view-eileenvisitreview .civr-submit-btn:hover{background:#144d88;}
+#view-civisitreview .civr-submit-btn.civr-submit-done, #view-eileenvisitreview .civr-submit-btn.civr-submit-done{background:#2a7a2a;cursor:default;}
+#view-civisitreview .civr-flag-btn, #view-eileenvisitreview .civr-flag-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;}
+#view-civisitreview .civr-flag-btn:hover, #view-eileenvisitreview .civr-flag-btn:hover{background:#fff8e0;border-color:#e0a020;color:#8a5000;}
+#view-civisitreview .civr-flag-btn.civr-flagged, #view-eileenvisitreview .civr-flag-btn.civr-flagged{background:#fff3e0;border-color:#e0a020;color:#8a5000;font-weight:600;}
 
-#view-civisitreview .civr-submitted-banner{display:none;background:#e8f5e8;border-top:1px solid #b0d8b0;padding:8px 16px;font-size:12px;color:#1a6a1a;font-weight:600;align-items:center;justify-content:space-between;}
-#view-civisitreview .civr-submitted-banner.civr-show{display:flex;}
-#view-civisitreview .civr-undo-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #88bb88;background:#fff;color:#1a6a1a;cursor:pointer;}
-#view-civisitreview .civr-undo-btn:hover{background:#d0ecd0;}
+#view-civisitreview .civr-submitted-banner, #view-eileenvisitreview .civr-submitted-banner{display:none;background:#e8f5e8;border-top:1px solid #b0d8b0;padding:8px 16px;font-size:12px;color:#1a6a1a;font-weight:600;align-items:center;justify-content:space-between;}
+#view-civisitreview .civr-submitted-banner.civr-show, #view-eileenvisitreview .civr-submitted-banner.civr-show{display:flex;}
+#view-civisitreview .civr-undo-btn, #view-eileenvisitreview .civr-undo-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #88bb88;background:#fff;color:#1a6a1a;cursor:pointer;}
+#view-civisitreview .civr-undo-btn:hover, #view-eileenvisitreview .civr-undo-btn:hover{background:#d0ecd0;}
 
-#view-civisitreview .civr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:#fafaf8;border-top:1px solid #eae8df;}
-#view-civisitreview .civr-notes-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;flex-shrink:0;}
-#view-civisitreview .civr-notes-input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;font-family:inherit;}
-#view-civisitreview .civr-notes-input:focus{outline:2px solid #4a90d0;border-color:#4a90d0;}
+#view-civisitreview .civr-notes-bar, #view-eileenvisitreview .civr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:#fafaf8;border-top:1px solid #eae8df;}
+#view-civisitreview .civr-notes-label, #view-eileenvisitreview .civr-notes-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;flex-shrink:0;}
+#view-civisitreview .civr-notes-input, #view-eileenvisitreview .civr-notes-input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;font-family:inherit;}
+#view-civisitreview .civr-notes-input:focus, #view-eileenvisitreview .civr-notes-input:focus{outline:2px solid #4a90d0;border-color:#4a90d0;}
 
-#view-civisitreview .civr-pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 0;}
-#view-civisitreview .civr-page-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:500;}
-#view-civisitreview .civr-page-btn:hover:not(:disabled){background:#f0efe8;}
-#view-civisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
-#view-civisitreview .civr-page-info{font-size:13px;color:#666;}
-#view-civisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
+#view-civisitreview .civr-pager, #view-eileenvisitreview .civr-pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 0;}
+#view-civisitreview .civr-page-btn, #view-eileenvisitreview .civr-page-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-page-btn:hover:not(:disabled), #view-eileenvisitreview .civr-page-btn:hover:not(:disabled){background:#f0efe8;}
+#view-civisitreview .civr-page-btn:disabled, #view-eileenvisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
+#view-civisitreview .civr-page-info, #view-eileenvisitreview .civr-page-info{font-size:13px;color:#666;}
+#view-civisitreview .civr-empty, #view-eileenvisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
 
 /* CI VISIT REVIEW -- AUTH / ACCESS CONTROL / AUDIT / VERSION HISTORY -- scoped entirely under
    #view-civisitreview like the rest of the civr-* rules, so none of this affects any other tab. */
-#view-civisitreview .civauth-gate{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:24px;}
-#view-civisitreview .civauth-gate-box{background:#fff;border:1px solid #e0ddd6;border-radius:12px;padding:32px;max-width:360px;width:100%;text-align:center;}
-#view-civisitreview .civauth-gate-title{font-size:16px;font-weight:700;color:#1a1a18;margin-bottom:6px;}
-#view-civisitreview .civauth-gate-sub{font-size:12px;color:#777;margin-bottom:16px;}
-#view-civisitreview .civauth-gate-input{width:100%;font-size:13px;padding:9px 12px;border:1px solid #ddd;border-radius:7px;margin-bottom:10px;font-family:inherit;}
-#view-civisitreview .civauth-gate-btn{width:100%;font-size:13px;font-weight:600;padding:9px 12px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;}
-#view-civisitreview .civauth-gate-btn:hover{background:#144d88;}
-#view-civisitreview .civauth-gate-msg{font-size:11px;color:#666;margin-top:10px;min-height:14px;}
-#view-civisitreview .civauth-readonly-banner{background:#fff3e0;border-bottom:1px solid #e0a020;padding:8px 24px;font-size:12px;color:#8a5000;font-weight:500;}
-#view-civisitreview .civauth-readonly-banner a{color:#1a5fa0;font-weight:600;}
-#view-civisitreview .civauth-identity{font-size:11px;color:#666;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-#view-civisitreview .civauth-identity strong{color:#1a1a18;}
-#view-civisitreview .civauth-signout{font-size:11px;color:#a02020;cursor:pointer;}
-#view-civisitreview .civauth-signout:hover{text-decoration:underline;}
-#view-civisitreview .civauth-dash{background:#fafaf8;border-bottom:1px solid #eae8df;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
-#view-civisitreview .civauth-dash-stats{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:#666;}
-#view-civisitreview .civauth-dash-stats b{color:#1a1a18;}
-#view-civisitreview .civauth-dash-actions{display:flex;gap:6px;flex-wrap:wrap;}
-#view-civisitreview .civauth-dash-btn{font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#333;cursor:pointer;font-weight:500;}
-#view-civisitreview .civauth-dash-btn:hover{background:#f0efe8;}
-#view-civisitreview .civauth-dash-btn:disabled{opacity:.4;cursor:default;}
-#view-civisitreview .civauth-dirty{display:inline-block;font-size:10px;font-weight:700;color:#8a5000;background:#fff3e0;border:1px solid #e0a020;border-radius:20px;padding:1px 8px;margin-left:8px;}
-#view-civisitreview .civauth-modal-backdrop{position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center;z-index:200;}
-#view-civisitreview .civauth-modal-backdrop.civauth-open{display:flex;}
-#view-civisitreview .civauth-modal{background:#fff;border-radius:12px;max-width:820px;width:92%;max-height:85vh;overflow-y:auto;padding:0;position:relative;}
-#view-civisitreview .civauth-modal-head{position:sticky;top:0;background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;}
-#view-civisitreview .civauth-modal-title{font-size:15px;font-weight:700;color:#1a1a18;}
-#view-civisitreview .civauth-modal-close{font-size:20px;color:#888;cursor:pointer;background:none;border:none;line-height:1;}
-#view-civisitreview .civauth-modal-body{padding:16px 20px;}
-#view-civisitreview .civauth-modal-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
-#view-civisitreview .civauth-modal-filters select,#view-civisitreview .civauth-modal-filters input{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit;}
-#view-civisitreview .civr-scroll-fab{position:fixed;right:24px;bottom:24px;z-index:250;pointer-events:none;}
-#view-civisitreview .civr-fab-group{display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:auto;}
-#view-civisitreview .civr-fab{font-size:12px;font-weight:600;padding:9px 16px;border-radius:20px;border:none;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.25);white-space:nowrap;}
-#view-civisitreview .civr-fab-top{background:#1a5fa0;color:#fff;}
-#view-civisitreview .civr-fab-top:hover{background:#144d88;}
-#view-civisitreview .civr-fab-back{background:#fff;color:#333;border:1px solid #ccc;}
-#view-civisitreview .civr-fab-back:hover{background:#f0efe8;}
-#view-civisitreview .civauth-table{width:100%;border-collapse:collapse;font-size:12px;}
-#view-civisitreview .civauth-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#999;padding:6px 8px;border-bottom:1px solid #e0ddd6;white-space:nowrap;}
-#view-civisitreview .civauth-table td{padding:6px 8px;border-bottom:1px solid #f0efe8;vertical-align:top;}
-#view-civisitreview .civauth-table tr:hover td{background:#fafaf8;}
-#view-civisitreview .civauth-tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;}
-#view-civisitreview .civauth-tag-revert{background:#fdecea;color:#a02020;}
-#view-civisitreview .civauth-tag-restore{background:#ddeeff;color:#1a5fa0;}
-#view-civisitreview .civauth-tag-save{background:#e8f5e8;color:#1a7a1a;}
-#view-civisitreview .civauth-confirm-actions{display:flex;gap:8px;margin-top:16px;}
-#view-civisitreview .civauth-confirm-btn{font-size:12px;font-weight:600;padding:8px 16px;border-radius:7px;border:none;cursor:pointer;}
-#view-civisitreview .civauth-confirm-btn.civauth-primary{background:#1a5fa0;color:#fff;}
-#view-civisitreview .civauth-confirm-btn.civauth-danger{background:#c03020;color:#fff;}
-#view-civisitreview .civauth-confirm-btn.civauth-secondary{background:#f0efe8;color:#333;}
-#view-civisitreview .civauth-diff-row{display:flex;gap:16px;padding:8px 0;border-bottom:1px solid #f0efe8;font-size:12px;}
-#view-civisitreview .civauth-diff-col{flex:1;}
-#view-civisitreview .civauth-diff-label{font-size:10px;text-transform:uppercase;color:#999;margin-bottom:2px;}
-#view-civisitreview .civauth-warn-banner{background:#fff3e0;border:1px solid #e0a020;border-radius:8px;padding:10px 14px;font-size:12px;color:#8a5000;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.civauth-gate{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:24px;}
+.civauth-gate-box{background:#fff;border:1px solid #e0ddd6;border-radius:12px;padding:32px;max-width:360px;width:100%;text-align:center;}
+.civauth-gate-title{font-size:16px;font-weight:700;color:#1a1a18;margin-bottom:6px;}
+.civauth-gate-sub{font-size:12px;color:#777;margin-bottom:16px;}
+.civauth-gate-input{width:100%;font-size:13px;padding:9px 12px;border:1px solid #ddd;border-radius:7px;margin-bottom:10px;font-family:inherit;}
+.civauth-gate-btn{width:100%;font-size:13px;font-weight:600;padding:9px 12px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;}
+.civauth-gate-btn:hover{background:#144d88;}
+.civauth-gate-msg{font-size:11px;color:#666;margin-top:10px;min-height:14px;}
+.civauth-readonly-banner{background:#fff3e0;border-bottom:1px solid #e0a020;padding:8px 24px;font-size:12px;color:#8a5000;font-weight:500;}
+.civauth-readonly-banner a{color:#1a5fa0;font-weight:600;}
+.civauth-identity{font-size:11px;color:#666;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.civauth-identity strong{color:#1a1a18;}
+.civauth-signout{font-size:11px;color:#a02020;cursor:pointer;}
+.civauth-signout:hover{text-decoration:underline;}
+.civauth-dash{background:#fafaf8;border-bottom:1px solid #eae8df;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.civauth-dash-stats{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:#666;}
+.civauth-dash-stats b{color:#1a1a18;}
+.civauth-dash-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.civauth-dash-btn{font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#333;cursor:pointer;font-weight:500;}
+.civauth-dash-btn:hover{background:#f0efe8;}
+.civauth-dash-btn:disabled{opacity:.4;cursor:default;}
+.civauth-dirty{display:inline-block;font-size:10px;font-weight:700;color:#8a5000;background:#fff3e0;border:1px solid #e0a020;border-radius:20px;padding:1px 8px;margin-left:8px;}
+.civauth-modal-backdrop{position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center;z-index:200;}
+.civauth-modal-backdrop.civauth-open{display:flex;}
+.civauth-modal{background:#fff;border-radius:12px;max-width:820px;width:92%;max-height:85vh;overflow-y:auto;padding:0;position:relative;}
+.civauth-modal-head{position:sticky;top:0;background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;}
+.civauth-modal-title{font-size:15px;font-weight:700;color:#1a1a18;}
+.civauth-modal-close{font-size:20px;color:#888;cursor:pointer;background:none;border:none;line-height:1;}
+.civauth-modal-body{padding:16px 20px;}
+.civauth-modal-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.civauth-modal-filters select,.civauth-modal-filters input{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit;}
+.civr-scroll-fab{position:fixed;right:24px;bottom:24px;z-index:250;pointer-events:none;}
+.civr-fab-group{display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:auto;}
+.civr-fab{font-size:12px;font-weight:600;padding:9px 16px;border-radius:20px;border:none;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.25);white-space:nowrap;}
+.civr-fab-top{background:#1a5fa0;color:#fff;}
+.civr-fab-top:hover{background:#144d88;}
+.civr-fab-back{background:#fff;color:#333;border:1px solid #ccc;}
+.civr-fab-back:hover{background:#f0efe8;}
+.civauth-table{width:100%;border-collapse:collapse;font-size:12px;}
+.civauth-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#999;padding:6px 8px;border-bottom:1px solid #e0ddd6;white-space:nowrap;}
+.civauth-table td{padding:6px 8px;border-bottom:1px solid #f0efe8;vertical-align:top;}
+.civauth-table tr:hover td{background:#fafaf8;}
+.civauth-tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;}
+.civauth-tag-revert{background:#fdecea;color:#a02020;}
+.civauth-tag-restore{background:#ddeeff;color:#1a5fa0;}
+.civauth-tag-save{background:#e8f5e8;color:#1a7a1a;}
+.civauth-confirm-actions{display:flex;gap:8px;margin-top:16px;}
+.civauth-confirm-btn{font-size:12px;font-weight:600;padding:8px 16px;border-radius:7px;border:none;cursor:pointer;}
+.civauth-confirm-btn.civauth-primary{background:#1a5fa0;color:#fff;}
+.civauth-confirm-btn.civauth-danger{background:#c03020;color:#fff;}
+.civauth-confirm-btn.civauth-secondary{background:#f0efe8;color:#333;}
+.civauth-diff-row{display:flex;gap:16px;padding:8px 0;border-bottom:1px solid #f0efe8;font-size:12px;}
+.civauth-diff-col{flex:1;}
+.civauth-diff-label{font-size:10px;text-transform:uppercase;color:#999;margin-bottom:2px;}
+.civauth-warn-banner{background:#fff3e0;border:1px solid #e0a020;border-radius:8px;padding:10px 14px;font-size:12px;color:#8a5000;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
 
 .rr-status-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block;}
 .rr-status-badge.pending{background:var(--yellow-dim);color:var(--yellow);}
@@ -1639,6 +1640,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div class="tab" onclick="switchTab(&#39;chains&#39;)" id="tab-chains"><span class="tab-icon">⬡</span> Chains</div>
     <div class="tab" onclick="switchTab(&#39;stores&#39;)" id="tab-stores"><span class="tab-icon">⊞</span> Stores</div>
     <div class="tab" onclick="switchTab(&#39;civisitreview&#39;)" id="tab-civisitreview"><span class="tab-icon">📷</span> CI Visit Review</div>
+    <div class="tab" onclick="switchTab(&#39;eileenvisitreview&#39;)" id="tab-eileenvisitreview"><span class="tab-icon">🛍</span> Eileen Visit Review</div>
     <div class="tab" onclick="switchTab(&#39;chainreportgen&#39;)" id="tab-chainreportgen"><span class="tab-icon">🧾</span> Chain Report Generator</div>
   </div>
   <div class="topbar-right">
@@ -2412,14 +2414,24 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <!-- CI VISIT REVIEW VIEW -->
     <div id="view-civisitreview" style="display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:0;">
       <div id="civ-main"></div>
-      <div id="civauth-modal-root"></div>
-      <div id="civr-scroll-fab" class="civr-scroll-fab"></div>
+    </div>
+
+    <!-- EILEEN VISIT REVIEW VIEW -->
+    <div id="view-eileenvisitreview" style="display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:0;">
+      <div id="eiv-main"></div>
     </div>
 
     <!-- CHAIN REPORT GENERATOR VIEW -->
     <div id="view-chainreportgen" style="display:none;flex-direction:column;overflow:auto;">
       <div id="crg-main"></div>
     </div>
+
+    <!-- Shared across every tab (not nested inside any single view's display:none toggle) --
+         civr-scroll-fab is scoped to CI Visit Review + Eileen Visit Review specifically via
+         civrUpdateScrollFab()'s own currentTab check; civauth-modal-root serves both tabs' shared
+         History/Activity Log/Revert/Restore modal. -->
+    <div id="civauth-modal-root"></div>
+    <div id="civr-scroll-fab" class="civr-scroll-fab"></div>
 
   </div><!-- /content -->
 </div><!-- /body -->
@@ -2521,7 +2533,6 @@ let CHAIN_PROGRAMS = [];  // real chain-level POP target/completed counts; [] un
 // -- Actions/Report Status/Reviews fall back to localStorage there instead of trying (and
 // failing) to reach Supabase; set inside loadAllData().
 let usingEmbeddedSnapshot = false;
-const PHOTO_BASE = "https://shopwitheileen.com/";
 
 const SCORE_COLORS = ['#DC2626','#EA580C','#CA8A04','#16A34A','#059669'];
 const SCORE_LABELS = ['Not Carrying','Needs Work','Partial','Good','Full'];
@@ -2825,13 +2836,13 @@ function openDetail(s, source) {
   let photosBlock = '';
   if (isEileen && s.ph && s.ph.length) {
     const photos = s.ph.slice(0,4);
-    const allUrls = photos.map(p => PHOTO_BASE + p);
+    const allUrls = photos.slice();
     const allUrlsLit = jsArrayLiteral(allUrls);
     photosBlock = `<div class="dp-section">
       <div class="dp-section-title">Visit Photos</div>
       <div class="photo-grid">
         ${photos.map((p,i) => {
-          const fullUrl = PHOTO_BASE + p;
+          const fullUrl = p;
           const escapedUrl = fullUrl.replace(/'/g, "\\'");
           const escapedP = p.replace(/'/g, "\\'");
           return `
@@ -3022,22 +3033,24 @@ document.addEventListener('click', closePanelOnOutsideClick, true);
 let civPendingTabSwitch = null;
 
 function switchTab(tab) {
-  if (currentTab === 'civisitreview' && tab !== 'civisitreview' && civDirtySet.size > 0) {
+  const leavingReviewTab = currentTab === 'civisitreview' || currentTab === 'eileenvisitreview';
+  if (leavingReviewTab && tab !== currentTab && civDirtySet.size > 0) {
     civPendingTabSwitch = tab;
     civModalOpen = 'leave-warning';
     renderCivModal();
     return;
   }
-  if (tab === 'civisitreview' && currentTab !== 'civisitreview') civLogAudit('access', {});
+  if ((tab === 'civisitreview' || tab === 'eileenvisitreview') && currentTab !== tab) civLogAudit('access', {});
   // Right-hand detail panel is contextual to whatever was selected in the PREVIOUS view --
   // never carry it over into a different tab; reopening always requires a fresh selection.
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  const views = ['overview','map','chains','stores','civisitreview','chainreportgen'];
+  const views = ['overview','map','chains','stores','civisitreview','eileenvisitreview','chainreportgen'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
   if (tab === 'civisitreview') renderCiVisitReview();
+  if (tab === 'eileenvisitreview') renderEileenVisitReview();
   if (tab === 'map' && !leafletMap) initMap();
   if (tab === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
   if (tab === 'overview') renderOverview();
@@ -3047,7 +3060,8 @@ function switchTab(tab) {
 }
 
 function civLeaveWarningHtml() {
-  return `<div class="civauth-warn-banner">You have ${civDirtySet.size} unsaved change${civDirtySet.size===1?'':'s'} on CI Visit Review. Save or discard before leaving this tab.</div>
+  const tabLabel = currentTab === 'eileenvisitreview' ? 'Eileen Visit Review' : 'CI Visit Review';
+  return `<div class="civauth-warn-banner">You have ${civDirtySet.size} unsaved change${civDirtySet.size===1?'':'s'} on ${tabLabel}. Save or discard before leaving this tab.</div>
     <div class="civauth-confirm-actions">
       <button class="civauth-confirm-btn civauth-primary" onclick="civResolveLeaveWarning('save')">Save Changes</button>
       <button class="civauth-confirm-btn civauth-danger" onclick="civResolveLeaveWarning('discard')">Discard Changes</button>
@@ -3517,7 +3531,7 @@ function visitPhotoUrls(ciId, src) {
   const arr = src === 'eileen' ? EILEEN : src === 'clarks' ? CLARKS : CI;
   const rec = arr.find(x => x.id === ciId);
   if (!rec || !rec.ph || !rec.ph.length) return [];
-  return rec.ph.map(p => src === 'eileen' ? (PHOTO_BASE + p) : p);
+  return rec.ph.slice();
 }
 
 function visitPhotoGridHtml(ciId, src) {
@@ -3854,6 +3868,10 @@ let CIV_ALL_REPORTS = [];
 // inside DOORS[key].visits[] (they're door-centric, not visit-centric like CI/EILEEN), so this is
 // built by walking DOORS and pulling chain/address/city/state from the PARENT door.
 let POPPROMO_REPORTS = [];
+// Eileen Visit Review's own scoped report list -- unlike CI, Eileen has no "review cycle" concept
+// (the source CSV is a straight cumulative export, not a monthly kit cycle), so every ingested
+// visit is reviewable -- no SITE_REVIEW_MONTHS-style month filter applied.
+let EIV_ALL_REPORTS = [];
 
 // Rebuilds every in-memory index/derived array that depends on CI/EILEEN/DOORS being populated.
 // These used to be synchronous top-level statements (safe when data was always already embedded
@@ -3886,6 +3904,8 @@ function buildDerivedIndexes() {
   // with SITE_REVIEW_MONTHS's own values, so this is the same window, not a separate one.
   CIV_ALL_REPORTS = CI.filter(r => SITE_REVIEW_MONTHS.includes(r.month))
     .concat(POPPROMO_REPORTS.filter(r => SITE_REVIEW_MONTHS.includes(r.month)));
+
+  EIV_ALL_REPORTS = EILEEN.slice();
 }
 
 function reportKey(rec) { return rec.src + '|' + rec.id; }
@@ -3914,13 +3934,28 @@ function setReportStatus(rec, status) {
 // there's no separate "submitted" field here on purpose; Reviewed status IS submitted.
 let REPORT_VERDICT_CACHE = {};
 function getReportVerdict(rec) {
-  return REPORT_VERDICT_CACHE[reportKey(rec)] || { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
+  const cached = REPORT_VERDICT_CACHE[reportKey(rec)];
+  if (cached) return cached;
+  // Eileen Visit Review's verdict shape is genuinely different (Stock Status + Promo %, not CI's
+  // 5 yes/no questions) -- there is no rep-reported signal to hint from either (see eivRepHint),
+  // so the blank shape starts fully null, same honesty convention as every other blank verdict.
+  return rec.src === 'eileen'
+    ? { stockStatus:null, promoPct:null, notes:'', flag:false }
+    : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 function setReportVerdict(rec, verdict) {
   const updatedAt = new Date().toISOString();
   REPORT_VERDICT_CACHE[reportKey(rec)] = Object.assign({}, verdict, { updatedAt });
   if (usingEmbeddedSnapshot) {
     localStorage.setItem('lucyReportVerdicts_v1', JSON.stringify(REPORT_VERDICT_CACHE));
+    return;
+  }
+  if (rec.src === 'eileen') {
+    sb.from('report_verdicts').upsert({
+      src: rec.src, report_id: rec.id,
+      stock_status: verdict.stockStatus, promo_pct: verdict.promoPct, notes: verdict.notes, flag: verdict.flag,
+      updated_at: updatedAt
+    }).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
     return;
   }
   // strip_accurate is a `text` column (not boolean) since it also allows a literal "N/A" answer
@@ -4000,14 +4035,14 @@ async function civAuthInit() {
   if (civSession) { civUserProfile = await civLoadProfile(civSession.user.id); civSessionLoginAt = new Date().toISOString(); }
   civAuthReady = true;
   if (civSession) { civLogAudit('login', {}); civRefreshDashboardStats(); }
-  if (currentTab === 'civisitreview') renderCiVisitReview();
+  civRerenderActive();
   sb.auth.onAuthStateChange(async (event, session) => {
     const hadSession = !!civSession;
     civSession = session;
     if (session && (!civUserProfile || civUserProfile.id !== session.user.id)) civUserProfile = await civLoadProfile(session.user.id);
     if (!session) civUserProfile = null;
     if (session && !hadSession) { civSessionLoginAt = new Date().toISOString(); civLogAudit('login', {}); civRefreshDashboardStats(); }
-    if (currentTab === 'civisitreview') renderCiVisitReview();
+    civRerenderActive();
   });
 }
 
@@ -4021,7 +4056,7 @@ async function civRefreshDashboardStats() {
   ]);
   civChangesTodayCount = changesToday.count || 0;
   civLastSavedVersionId = lastVersion.data ? lastVersion.data.id : null;
-  if (currentTab === 'civisitreview') renderCiVisitReview();
+  civRerenderActive();
 }
 
 async function civSendMagicLink(email) {
@@ -4033,7 +4068,7 @@ async function civSignOut() {
   civLogAudit('logout', {});
   await sb.auth.signOut();
   civSession = null; civUserProfile = null;
-  renderCiVisitReview();
+  civRerenderActive();
 }
 
 function civTouchActivity() { civLastActivityAt = new Date().toISOString(); }
@@ -4153,7 +4188,9 @@ function civOpenRestorePanel(versionId) {
 function civHistorySetFilter(key, val) { civHistoryFilters[key] = val; renderCivModal(); }
 
 function civVersionRowMeta(v) {
-  const rec = CI.find(x => x.id === v.report_id);
+  const src = (v.snapshot && v.snapshot.src) || 'ci';
+  const arr = src === 'poppromo' ? POPPROMO_REPORTS : src === 'eileen' ? EILEEN : CI;
+  const rec = arr.find(x => x.id === v.report_id);
   return { chain: rec ? rec.ch : '—', store: rec ? rec.a : '—' };
 }
 // The version immediately before `beforeVersionId` for the same report -- this is what "Revert"
@@ -4163,11 +4200,18 @@ function civPrevVersionFor(reportId, beforeVersionId) {
   const versions = civHistoryRows.filter(x => x.report_id === reportId && x.id < beforeVersionId).sort((a,b) => b.id - a.id);
   return versions[0] || null;
 }
-function civBlankVerdictSnapshot() { return { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false }; }
+function civBlankVerdictSnapshot(src) {
+  return src === 'eileen'
+    ? { stockStatus:null, promoPct:null, notes:'', flag:false }
+    : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
+}
 
+const EIV_DIFF_FIELDS = [['stockStatus','Stock Status'],['promoPct','Promo %'],['notes','Notes'],['flag','Flagged']];
+const CIV_DIFF_FIELDS = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAccurate','Strip Accurate?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
 function civDiffHtml(current, target) {
-  const fields = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAccurate','Strip Accurate?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
-  const fmt = (v) => typeof v === 'boolean' ? (v ? 'Yes' : 'No') : v === 'na' ? 'N/A' : (v || '—');
+  const src = current.src || target.src;
+  const fields = src === 'eileen' ? EIV_DIFF_FIELDS : CIV_DIFF_FIELDS;
+  const fmt = (v) => typeof v === 'boolean' ? (v ? 'Yes' : 'No') : v === 'na' ? 'N/A' : (v || v === 0 ? v : '—');
   return fields.map(([f,label]) => {
     const changed = JSON.stringify(current[f]) !== JSON.stringify(target[f]);
     return `<div class="civauth-diff-row" style="${changed?'background:#fff8e8;':''}">
@@ -4252,7 +4296,7 @@ function civRevertPanelHtml() {
   const src = v.snapshot.src || 'ci';
   const current = getReportVerdict({ src, id: v.report_id });
   const prevVersion = civPrevVersionFor(v.report_id, v.id);
-  const target = prevVersion ? prevVersion.snapshot : civBlankVerdictSnapshot();
+  const target = prevVersion ? prevVersion.snapshot : civBlankVerdictSnapshot(src);
   return `<div class="civauth-warn-banner">Reverting undoes version ${civFmtVersion(v.id)} (saved by <strong>${escHtml(v.user_name)}</strong> on ${civFmtWhen(v.created_at)}), setting the record back to what it was ${prevVersion ? 'in ' + civFmtVersion(prevVersion.id) : 'before any verdict was ever saved'}. This creates a NEW version — nothing is deleted or overwritten.</div>
     ${civDiffHtml(current, target)}
     <div class="civauth-confirm-actions">
@@ -4279,7 +4323,7 @@ async function civConfirmRevert(versionId) {
   if (!v) return;
   const src = v.snapshot.src || 'ci';
   const prevVersion = civPrevVersionFor(v.report_id, v.id);
-  const target = Object.assign({}, prevVersion ? prevVersion.snapshot : civBlankVerdictSnapshot(), { src });
+  const target = Object.assign({}, prevVersion ? prevVersion.snapshot : civBlankVerdictSnapshot(src), { src });
   const rec = { src, id: v.report_id };
   setReportVerdict(rec, target);
   if (!prevVersion) setReportStatus(rec, 'Pending');
@@ -4289,7 +4333,7 @@ async function civConfirmRevert(versionId) {
   civHistoryRows = await civFetchVersions();
   civModalOpen = 'history'; civRevertTargetVersionId = null;
   renderCivModal();
-  renderCiVisitReview();
+  civRerenderActive();
 }
 async function civConfirmRestore(versionId) {
   if (!civCanAdmin()) return;
@@ -4305,7 +4349,7 @@ async function civConfirmRestore(versionId) {
   civHistoryRows = await civFetchVersions();
   civModalOpen = 'history'; civRevertTargetVersionId = null;
   renderCivModal();
-  renderCiVisitReview();
+  civRerenderActive();
 }
 
 function renderCivModal() {
@@ -4334,11 +4378,13 @@ function renderCivModal() {
 // scrolls (body is 100vh/overflow:hidden by design), each tab's view panel scrolls within itself,
 // so #view-civisitreview (not window) is the element both buttons act on.
 function civrScrollFabInit() {
-  const container = document.getElementById('view-civisitreview');
-  if (container) container.addEventListener('scroll', civrUpdateScrollFab);
+  ['view-civisitreview', 'view-eileenvisitreview'].forEach(id => {
+    const container = document.getElementById(id);
+    if (container) container.addEventListener('scroll', civrUpdateScrollFab);
+  });
 }
 function civrScrollToTop() {
-  const container = document.getElementById('view-civisitreview');
+  const container = document.getElementById('view-' + currentTab);
   if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function civrFabBack() {
@@ -4349,8 +4395,8 @@ function civrFabBack() {
 function civrUpdateScrollFab() {
   const el = document.getElementById('civr-scroll-fab');
   if (!el) return;
-  if (currentTab !== 'civisitreview') { el.innerHTML = ''; return; }
-  const container = document.getElementById('view-civisitreview');
+  if (currentTab !== 'civisitreview' && currentTab !== 'eileenvisitreview') { el.innerHTML = ''; return; }
+  const container = document.getElementById('view-' + currentTab);
   const lightbox = document.getElementById('lightbox');
   const showBack = !!civModalOpen || !!(lightbox && lightbox.classList.contains('open'));
   const showTop = !!container && container.scrollTop > 300;
@@ -4409,6 +4455,11 @@ function civDraftVerdict(rec) {
     const saved = REPORT_VERDICT_CACHE[k];
     if (saved) {
       CIV_VERDICT_DRAFT[k] = Object.assign({}, saved);
+    } else if (rec.src === 'eileen') {
+      // Eileen's source CSV is a pure photo log -- no rep-reported stock/promo field of any
+      // kind exists to pre-fill from (confirmed by direct inspection), so this always starts
+      // fully blank, same honesty convention as every other blank verdict in this app.
+      CIV_VERDICT_DRAFT[k] = { stockStatus: null, promoPct: null, notes: '', flag: false };
     } else {
       // First time this CI visit has ever been opened for review: pre-fill Strip Present/Needs
       // Product from the rep's own reported data, same convention as Report Review. Strip Added
@@ -4430,11 +4481,18 @@ function civDraftVerdict(rec) {
 // different source systems (CI's own small sequential ids vs. GoSpotCheck's ~9-digit Mission
 // Response IDs), so a bare id can't safely identify a record once both sources are reviewable.
 function civReportChain(src, id) {
-  const arr = src === 'poppromo' ? POPPROMO_REPORTS : CI;
+  const arr = src === 'poppromo' ? POPPROMO_REPORTS : src === 'eileen' ? EILEEN : CI;
   const r = arr.find(x => x.id === id);
   return r ? r.ch : null;
 }
 function civReportDoorKey(src, id) { const d = reportDoor({ src, id }); return d ? d.key : null; }
+// Both CI Visit Review and Eileen Visit Review share every interaction handler below (they're
+// already generic over (src,id)) -- this dispatches the post-edit re-render to whichever tab is
+// actually active, instead of each handler hardcoding renderCiVisitReview().
+function civRerenderActive() {
+  if (currentTab === 'civisitreview') renderCiVisitReview();
+  else if (currentTab === 'eileenvisitreview') renderEileenVisitReview();
+}
 
 function civSetVerdictAnswer(src, id, field, value) {
   if (!civCanEdit()) return; // real enforcement is the report_verdicts RLS policy; this just avoids a no-op round trip for a Viewer
@@ -4444,7 +4502,7 @@ function civSetVerdictAnswer(src, id, field, value) {
   draft[field] = draft[field] === value ? null : value;
   civDirtySet.add(reportKey(rec));
   civLogAudit('edit', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, field, previous_value: prev===null?null:String(prev), new_value: draft[field]===null?null:String(draft[field]) });
-  renderCiVisitReview();
+  civRerenderActive();
 }
 function civSetNote(src, id, value) {
   if (!civCanEdit()) return;
@@ -4459,7 +4517,7 @@ function civToggleFlag(src, id) {
   draft.flag = !draft.flag;
   civDirtySet.add(reportKey(rec));
   civLogAudit('edit', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, field: 'flag', previous_value: String(!draft.flag), new_value: String(draft.flag) });
-  renderCiVisitReview();
+  civRerenderActive();
 }
 function civSubmitVerdict(src, id) {
   if (!civCanEdit()) return;
@@ -4478,13 +4536,13 @@ function civSubmitVerdict(src, id) {
   civSaveVersion(id, versionSnapshot).then(version => {
     civLogAudit('save', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, version_id: version ? version.id : null });
   });
-  renderCiVisitReview();
+  civRerenderActive();
 }
 function civUndoVerdict(src, id) {
   if (!civCanEdit()) return;
   setReportStatus({ src, id }, 'Pending');
   civLogAudit('discard', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id });
-  renderCiVisitReview();
+  civRerenderActive();
 }
 // Requirement 9: an in-progress edit that hasn't been saved yet -- discards the draft (reverting
 // to the last saved value / original rep-side hint), distinct from civUndoVerdict() above (which
@@ -4494,7 +4552,7 @@ function civDiscardChanges(src, id) {
   delete CIV_VERDICT_DRAFT[reportKey(rec)];
   civDirtySet.delete(reportKey(rec));
   civLogAudit('discard', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id });
-  renderCiVisitReview();
+  civRerenderActive();
 }
 // Activity dashboard's "Save Changes" quick action -- saves every currently-dirty record at once.
 function civSaveAllDirty() {
@@ -4969,6 +5027,329 @@ function renderCiVisitReview() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// EILEEN VISIT REVIEW -- same civr-* cards-only queue layout/interactions as CI Visit Review
+// (sticky header/progress bar, stats bar, filters, bulk bar, single-column paginated cards,
+// photo row, notes bar, submitted banner, pager -- all the shared CSS classes/markup patterns
+// reused directly), but a genuinely different verdict model: a single-select Stock Status
+// instead of CI's 5 yes/no questions, plus a Promo % field that's only editable for stock
+// statuses where a promo could actually be running. This source (a raw Eileen/shopwitheileen
+// photo-log export) has zero rep-reported compliance fields of any kind, confirmed by direct
+// inspection -- so there is no rep-notes grid here and every verdict starts fully blank, same
+// honesty convention as everywhere else in this app.
+// ══════════════════════════════════════════════════════════════════════════
+const EIVR_STOCK_STATUSES = [
+  ['good', 'Good stock'],
+  ['out', 'Out of stock'],
+  ['low', 'Low stock'],
+  ['not_carried', 'Product not carried'],
+  ['brand_missing', 'Brand missing']
+];
+// Product not carried / Brand missing mean there is no product on the shelf to run a promo on --
+// Promo % is hidden (shows "N/A") for those two, editable for the other three.
+function eivrPromoApplies(stockStatus) { return stockStatus !== 'not_carried' && stockStatus !== 'brand_missing'; }
+
+// Separate id space from civauth-email/civauth-gate-msg (CI Visit Review's own login gate) --
+// both tabs' rendered HTML can coexist in the DOM at once (switching tabs only toggles
+// display:none, it doesn't clear the previous tab's #civ-main/#eiv-main content), so reusing
+// the same element ids across both gates would make document.getElementById() ambiguous.
+function eivSubmitMagicLink() {
+  const input = document.getElementById('eivauth-email');
+  const msgEl = document.getElementById('eivauth-gate-msg');
+  const email = (input && input.value || '').trim();
+  if (!email) { msgEl.textContent = 'Enter an email address.'; return; }
+  msgEl.textContent = 'Sending…';
+  civSendMagicLink(email).then(err => {
+    msgEl.textContent = err ? ('Error: ' + err) : `Check ${email} for a sign-in link, then return to this tab.`;
+  });
+}
+function renderEivLoginGate() {
+  return `<div class="civauth-gate">
+    <div class="civauth-gate-box">
+      <div class="civauth-gate-title">Eileen Visit Review — sign in required</div>
+      <div class="civauth-gate-sub">Enter your work email to get a one-time sign-in link. No password needed.</div>
+      <input type="email" class="civauth-gate-input" id="eivauth-email" placeholder="you@lucy.co">
+      <button class="civauth-gate-btn" onclick="eivSubmitMagicLink()">Send magic link</button>
+      <div class="civauth-gate-msg" id="eivauth-gate-msg"></div>
+    </div>
+  </div>`;
+}
+
+// The 6 shared interaction handlers (civSetVerdictAnswer/civSetNote/civToggleFlag/
+// civSubmitVerdict/civUndoVerdict/civDiscardChanges) are already generic over (src,id) and are
+// called directly with 'eileen' hardcoded as src below -- only Stock Status/Promo % need their
+// own setters, since civSetVerdictAnswer's toggle-on-same-value semantics (right for CI's
+// tri-buttons) and bare-value assignment don't fit a <select> string or a numeric percentage.
+function eivSetStockStatus(id, value) {
+  if (!civCanEdit()) return;
+  const rec = { src: 'eileen', id };
+  const draft = civDraftVerdict(rec);
+  const prev = draft.stockStatus;
+  draft.stockStatus = value || null;
+  if (!eivrPromoApplies(draft.stockStatus)) draft.promoPct = null; // N/A once disqualified
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'stockStatus', previous_value: prev, new_value: draft.stockStatus });
+  civRerenderActive();
+}
+function eivSetPromoPct(id, value) {
+  if (!civCanEdit()) return;
+  const rec = { src: 'eileen', id };
+  const draft = civDraftVerdict(rec);
+  const prev = draft.promoPct;
+  const trimmed = String(value).trim();
+  draft.promoPct = trimmed === '' ? null : Math.max(0, Math.min(100, Number(trimmed)));
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'promoPct', previous_value: prev===null?null:String(prev), new_value: draft.promoPct===null?null:String(draft.promoPct) });
+  civRerenderActive();
+}
+
+let eivrFilters = { chain:'', status:'', stockStatus:'', promo:'', flagged:'' };
+let eivrPage = 0;
+const EIVR_PAGE_SIZE = 6;
+let eivrBulkMsg = '';
+
+function eivrSetFilter(key, val) { eivrFilters[key] = val; eivrPage = 0; eivrBulkMsg = ''; renderEileenVisitReview(); }
+function eivrResetFilters() {
+  eivrFilters = { chain:'', status:'', stockStatus:'', promo:'', flagged:'' };
+  eivrPage = 0; eivrBulkMsg = '';
+  renderEileenVisitReview();
+}
+function eivrChangePage(dir) { eivrPage += dir; renderEileenVisitReview(); civrScrollToTop(); }
+
+function eivrFilteredReports() {
+  return EIV_ALL_REPORTS.filter(r => {
+    if (eivrFilters.chain && r.ch !== eivrFilters.chain) return false;
+    const status = getReportStatus(r);
+    if (eivrFilters.status === 'pending' && status === 'Reviewed') return false;
+    if (eivrFilters.status === 'done' && status !== 'Reviewed') return false;
+    const draft = civDraftVerdict(r);
+    if (eivrFilters.stockStatus && draft.stockStatus !== eivrFilters.stockStatus) return false;
+    const hasPromo = draft.promoPct !== null && draft.promoPct !== undefined;
+    if (eivrFilters.promo === 'yes' && !hasPromo) return false;
+    if (eivrFilters.promo === 'no' && hasPromo) return false;
+    if (eivrFilters.flagged === 'yes' && !draft.flag) return false;
+    return true;
+  });
+}
+
+function eivrStats() {
+  let sub = 0, outOfStock = 0, onPromo = 0, flagC = 0;
+  EIV_ALL_REPORTS.forEach(r => {
+    const status = getReportStatus(r);
+    const draft = civDraftVerdict(r);
+    if (status === 'Reviewed') sub++;
+    if (draft.stockStatus === 'out') outOfStock++;
+    if (draft.promoPct !== null && draft.promoPct !== undefined) onPromo++;
+    if (draft.flag) flagC++;
+  });
+  const total = EIV_ALL_REPORTS.length;
+  return { total, sub, outOfStock, onPromo, flagC, pend: total - sub };
+}
+
+function eivrBulkSubmit() {
+  if (!civCanEdit()) return;
+  const list = eivrFilteredReports();
+  const unsubmitted = list.filter(r => getReportStatus(r) !== 'Reviewed');
+  unsubmitted.forEach(r => {
+    const draft = civDraftVerdict(r);
+    setReportVerdict(r, draft);
+    setReportStatus(r, 'Reviewed');
+    const versionSnapshot = Object.assign({}, draft, { src: r.src });
+    delete CIV_VERDICT_DRAFT[reportKey(r)];
+    civSaveVersion(r.id, versionSnapshot).then(version => {
+      civLogAudit('save', { chain: r.ch, door_key: civReportDoorKey(r.src, r.id), report_id: r.id, version_id: version ? version.id : null });
+    });
+  });
+  eivrBulkMsg = unsubmitted.length ? `✓ ${unsubmitted.length} report${unsubmitted.length===1?'':'s'} submitted` : 'All filtered reports are already submitted.';
+  renderEileenVisitReview();
+}
+
+function eivrBadgesHtml(rec, status) {
+  let badges = `<span class="civr-badge civr-b-source-eileen">Eileen Visit</span>`;
+  if (status === 'Reviewed') badges += `<span class="civr-badge civr-b-lock">✓ Submitted</span>`;
+  return badges;
+}
+
+function eivrVerdictBarHtml(rec, draft, status) {
+  const locked = status === 'Reviewed';
+  const canEdit = civCanEdit();
+  const dis = canEdit ? '' : 'disabled';
+  const promoOk = eivrPromoApplies(draft.stockStatus);
+  const isDirty = civDirtySet.has(reportKey(rec));
+  return `<div class="civr-verdict-bar">
+    <div class="civr-vq">
+      <div class="civr-vq-label">Stock Status</div>
+      <select class="civr-select" ${dis} onchange="eivSetStockStatus(${rec.id}, this.value)">
+        <option value="">Not answered</option>
+        ${EIVR_STOCK_STATUSES.map(([k,label]) => `<option value="${k}" ${draft.stockStatus===k?'selected':''}>${escHtml(label)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="civr-vq">
+      <div class="civr-vq-label">Promo % Running</div>
+      ${promoOk
+        ? `<input type="number" min="0" max="100" class="civr-notes-input" style="max-width:100px;" placeholder="e.g. 20" value="${draft.promoPct===null||draft.promoPct===undefined?'':draft.promoPct}" ${dis} onchange="eivSetPromoPct(${rec.id}, this.value)">`
+        : `<div class="civr-vq-pre">N/A — no product on shelf</div>`}
+    </div>
+    <div class="civr-submit-col">
+      <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict('eileen', ${rec.id})">${locked?'Submitted ✓':'Submit ✓'}</button>
+      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag('eileen', ${rec.id})">⚑ Flag</button>
+      ${isDirty && canEdit ? `<button class="civr-flag-btn" onclick="civDiscardChanges('eileen', ${rec.id})">Discard</button>` : ''}
+    </div>
+  </div>
+  <div class="civr-notes-bar">
+    <span class="civr-notes-label">Quick notes</span>
+    <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" ${dis} onchange="civSetNote('eileen', ${rec.id}, this.value)" oninput="civSetNote('eileen', ${rec.id}, this.value)">
+  </div>`;
+}
+
+function eivrCardHtml(rec) {
+  const status = getReportStatus(rec);
+  const draft = civDraftVerdict(rec);
+  const isDirty = civDirtySet.has(reportKey(rec));
+  return `<div class="civr-card-head">
+    <div>
+      <div class="civr-card-title">${escHtml(rec.ch||'—')} — ${escHtml(rec.a||'—')}${isDirty ? '<span class="civauth-dirty">● Unsaved Changes</span>' : ''}</div>
+      <div class="civr-card-sub">${escHtml(rec.ci||'')}${rec.ci&&rec.st?', ':''}${escHtml(rec.st||'')} • ${escHtml(rec.vd||rec.month||'—')}</div>
+      <div class="civr-badges">${eivrBadgesHtml(rec, status)}</div>
+    </div>
+  </div>
+  <div class="civr-card-body">
+    ${civrPhotosHtml(rec)}
+  </div>
+  ${eivrVerdictBarHtml(rec, draft, status)}
+  ${civrSubmittedBannerHtml(rec, draft, status)}`;
+}
+
+function eivrExportCSV() {
+  const rows = EIV_ALL_REPORTS.map(rec => {
+    const draft = civDraftVerdict(rec);
+    const label = EIVR_STOCK_STATUSES.find(([k]) => k === draft.stockStatus);
+    return {
+      Store: rec.a||'', City: rec.ci||'', State: rec.st||'', Chain: rec.ch||'', VisitDate: rec.vd||rec.month||'',
+      StockStatus: label ? label[1] : '', PromoPct: draft.promoPct===null||draft.promoPct===undefined?'':draft.promoPct,
+      Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
+      Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No'
+    };
+  });
+  downloadCSV('eileen_visit_review.csv', rows);
+}
+
+function renderEileenVisitReview() {
+  const el = document.getElementById('eiv-main');
+
+  if (!usingEmbeddedSnapshot) {
+    if (!civAuthReady) { el.innerHTML = `<div class="civauth-gate"><div class="civauth-gate-box"><div class="civauth-gate-title">Checking session…</div></div></div>`; return; }
+    if (!civCurrentUser()) { el.innerHTML = renderEivLoginGate(); return; }
+  }
+
+  const filtered = eivrFilteredReports();
+  const stats = eivrStats();
+  const chains = [...new Set(EIV_ALL_REPORTS.map(r=>r.ch).filter(Boolean))].sort();
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / EIVR_PAGE_SIZE));
+  if (eivrPage >= totalPages) eivrPage = totalPages - 1;
+  if (eivrPage < 0) eivrPage = 0;
+  const start = eivrPage * EIVR_PAGE_SIZE;
+  const pageReports = filtered.slice(start, start + EIVR_PAGE_SIZE);
+
+  const cardsHtml = filtered.length === 0
+    ? `<div class="civr-empty">No reports match the current filters.</div>`
+    : pageReports.map(rec => `<div class="${civrCardWrapperClass(rec)}" id="eivr-card-${rec.id}">${eivrCardHtml(rec)}</div>`).join('');
+
+  const u = civCurrentUser();
+  const topBannerHtml = usingEmbeddedSnapshot ? renderCivReadOnlyBanner() : '';
+  const identityHtml = u ? `<div class="civauth-identity">Logged in as: <strong>${escHtml(u.fullName)}</strong> (${escHtml(u.role)}) · Last Activity: ${civLastActivityAt ? new Date(civLastActivityAt).toLocaleTimeString() : '—'} <span class="civauth-signout" onclick="civSignOut()">Log out</span></div>` : '';
+  const dashHtml = u ? `<div class="civauth-dash">
+    <div class="civauth-dash-stats">
+      <span>Current User: <b>${escHtml(u.fullName)}</b></span>
+      <span>Last Login: <b>${civFmtWhen(civSessionLoginAt)}</b></span>
+      <span>Unsaved Changes: <b>${fmtNum(civDirtySet.size)}</b></span>
+      <span>Changes Today: <b>${fmtNum(civChangesTodayCount)}</b></span>
+      <span>Last Saved Version: <b>${civLastSavedVersionId ? civFmtVersion(civLastSavedVersionId) : '—'}</b></span>
+    </div>
+    <div class="civauth-dash-actions">
+      <button class="civauth-dash-btn" ${civCanEdit() && civDirtySet.size ? '' : 'disabled'} onclick="civSaveAllDirty()">Save Changes</button>
+      <button class="civauth-dash-btn" onclick="civOpenHistoryModal()">Change History</button>
+      <button class="civauth-dash-btn" onclick="civOpenActivityModal()">Activity Log</button>
+      ${civCanAdmin() ? `<button class="civauth-dash-btn" onclick="civOpenHistoryModal()">Restore Version</button>` : ''}
+    </div>
+  </div>` : '';
+
+  el.innerHTML = `
+  ${topBannerHtml}
+  <div class="civr-header">
+    <div>
+      <h1>Eileen Visit Review — real Eileen (shopwitheileen) store visits</h1>
+      <div class="civr-progress-wrap">
+        <div class="civr-progress-bar"><div class="civr-progress-fill" style="width:${stats.total?Math.round(stats.sub/stats.total*100):0}%"></div></div>
+        <span class="civr-progress-text">${fmtNum(stats.sub)} of ${fmtNum(stats.total)} submitted</span>
+      </div>
+      ${identityHtml}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="civr-export-btn" onclick="eivrExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
+    </div>
+  </div>
+  ${dashHtml}
+
+  <div class="civr-stats-bar">
+    <div class="civr-stat"><span class="civr-slabel">Total</span><span class="civr-sval">${fmtNum(stats.total)}</span></div>
+    <div class="civr-stat civr-blue"><span class="civr-slabel">Submitted</span><span class="civr-sval">${fmtNum(stats.sub)}</span></div>
+    <div class="civr-stat civr-red"><span class="civr-slabel">Out of Stock</span><span class="civr-sval">${fmtNum(stats.outOfStock)}</span></div>
+    <div class="civr-stat civr-green"><span class="civr-slabel">On Promo</span><span class="civr-sval">${fmtNum(stats.onPromo)}</span></div>
+    <div class="civr-stat civr-amber"><span class="civr-slabel">Flagged</span><span class="civr-sval">${fmtNum(stats.flagC)}</span></div>
+    <div class="civr-stat"><span class="civr-slabel">Pending</span><span class="civr-sval">${fmtNum(stats.pend)}</span></div>
+  </div>
+
+  <div class="civr-filters">
+    <label>Chain:</label>
+    <select class="civr-select" onchange="eivrSetFilter('chain', this.value)">
+      <option value="">All chains</option>
+      ${chains.map(c=>`<option value="${esc(c)}" ${eivrFilters.chain===c?'selected':''}>${escHtml(c)}</option>`).join('')}
+    </select>
+    <label>Status:</label>
+    <select class="civr-select" onchange="eivrSetFilter('status', this.value)">
+      <option value="">All</option>
+      <option value="pending" ${eivrFilters.status==='pending'?'selected':''}>Pending</option>
+      <option value="done" ${eivrFilters.status==='done'?'selected':''}>Submitted</option>
+    </select>
+    <label>Stock Status:</label>
+    <select class="civr-select" onchange="eivrSetFilter('stockStatus', this.value)">
+      <option value="">All</option>
+      ${EIVR_STOCK_STATUSES.map(([k,label])=>`<option value="${k}" ${eivrFilters.stockStatus===k?'selected':''}>${escHtml(label)}</option>`).join('')}
+    </select>
+    <label>On Promo?:</label>
+    <select class="civr-select" onchange="eivrSetFilter('promo', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${eivrFilters.promo==='yes'?'selected':''}>On promo</option>
+      <option value="no" ${eivrFilters.promo==='no'?'selected':''}>Not set</option>
+    </select>
+    <label>Flagged:</label>
+    <select class="civr-select" onchange="eivrSetFilter('flagged', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${eivrFilters.flagged==='yes'?'selected':''}>Flagged only</option>
+    </select>
+    <span class="civr-reset" onclick="eivrResetFilters()">Reset filters</span>
+  </div>
+
+  ${civCanEdit() ? `<div class="civr-bulk-bar">
+    <span class="civr-bulk-count">${fmtNum(filtered.length)} report${filtered.length===1?'':'s'} currently filtered</span>
+    <button class="civr-bulk-btn civr-bulk-submit" onclick="eivrBulkSubmit()">⇧ Submit all filtered</button>
+    ${eivrBulkMsg ? `<span class="civr-bulk-msg">${escHtml(eivrBulkMsg)}</span>` : ''}
+  </div>` : ''}
+
+  <div class="civr-main">
+    ${cardsHtml}
+    <div class="civr-pager">
+      <button class="civr-page-btn" onclick="eivrChangePage(-1)" ${eivrPage<=0?'disabled':''}>← Prev</button>
+      <span class="civr-page-info">${filtered.length===0?'':`${start+1}–${Math.min(start+EIVR_PAGE_SIZE, filtered.length)} of ${filtered.length}`}</span>
+      <button class="civr-page-btn" onclick="eivrChangePage(1)" ${eivrPage>=totalPages-1?'disabled':''}>Next →</button>
+    </div>
+  </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // ACTION CENTER + REVIEW WORKFLOW (localStorage-backed)
 // ══════════════════════════════════════════════════════════════════════════
 const ACTION_TYPES = ['Ship new shelf strip','Force out product','Schedule merchandising visit','Increase inventory','Replace display','Meet with store manager','Promotional follow-up','Customer impact visit','POP compliance issue','Follow up on missing data','Other'];
@@ -5402,7 +5783,7 @@ function printCurrentView() { window.print(); }
   style.textContent = `
     .topbar, .detail-panel, .ac-toolbar, .breadcrumb .bc-link, select, .ac-btn { display:none !important; }
     .body, .content { display:block !important; overflow:visible !important; height:auto !important; }
-    #view-overview, #view-civisitreview, #view-chainreportgen { display:block !important; overflow:visible !important; padding:0 !important; }
+    #view-overview, #view-civisitreview, #view-eileenvisitreview, #view-chainreportgen { display:block !important; overflow:visible !important; padding:0 !important; }
     .chart-card, .kpi-card, .drill-card { break-inside:avoid; }
     body { background:#fff !important; overflow:visible !important; height:auto !important; }
     /* When a report detail is open, print only the report: show .detail-panel in normal flow
@@ -6111,7 +6492,7 @@ function applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, do
     month: v.month, source: v.source, rep: v.rep
   }));
   EILEEN = visitsRows.filter(v => v.src === 'eileen').map(v => ({
-    id: v.id, ch: v.ch, a: v.a, ci: v.ci, st: v.st, la: v.la, lo: v.lo, vd: v.vd, src: 'eileen', ph: v.ph || []
+    id: v.id, ch: v.ch, a: v.a, ci: v.ci, st: v.st, la: v.la, lo: v.lo, vd: v.vd, month: v.month, src: 'eileen', ph: v.ph || []
   }));
   // Clark Post Report (MS/AL, June 2026) -- real address/date/note per visit, no numeric score
   // (confirmed with the user: show real notes only, never invent a scoring formula from them).
@@ -6199,6 +6580,13 @@ async function loadAllData() {
     // strip_accurate round-trips as the literal text 'true'/'false'/'na' (see setReportVerdict) --
     // normalize back to a real boolean/'na'/null here so client-side comparisons (val===true etc.)
     // behave identically whether the value came from this hydration or from a same-session write.
+    if (rv.src === 'eileen') {
+      REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = {
+        stockStatus: rv.stock_status, promoPct: rv.promo_pct, notes: rv.notes || '', flag: !!rv.flag,
+        updatedAt: rv.updated_at
+      };
+      return;
+    }
     const stripAccurateIn = rv.strip_accurate === 'true' ? true : rv.strip_accurate === 'false' ? false : rv.strip_accurate === 'na' ? 'na' : null;
     REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = {
       productPresent: rv.product_present, stripPresent: rv.strip_present, stripAccurate: stripAccurateIn, stripAdded: rv.strip_added,
