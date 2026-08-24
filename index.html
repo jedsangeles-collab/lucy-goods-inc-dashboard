@@ -3936,11 +3936,12 @@ let REPORT_VERDICT_CACHE = {};
 function getReportVerdict(rec) {
   const cached = REPORT_VERDICT_CACHE[reportKey(rec)];
   if (cached) return cached;
-  // Eileen Visit Review's verdict shape is genuinely different (Stock Status + Promo %, not CI's
-  // 5 yes/no questions) -- there is no rep-reported signal to hint from either (see eivRepHint),
-  // so the blank shape starts fully null, same honesty convention as every other blank verdict.
+  // Eileen Visit Review's verdict shape is genuinely different (facings status + count + shelf
+  // strip present/correct, not CI's 5 yes/no questions) -- there is no rep-reported signal to
+  // hint from either (see eivRepHint), so the blank shape starts fully null, same honesty
+  // convention as every other blank verdict.
   return rec.src === 'eileen'
-    ? { stockStatus:null, promoPct:null, notes:'', flag:false }
+    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, notes:'', flag:false }
     : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 function setReportVerdict(rec, verdict) {
@@ -3951,9 +3952,14 @@ function setReportVerdict(rec, verdict) {
     return;
   }
   if (rec.src === 'eileen') {
+    // shelf_strip_correct is a `text` column (not boolean) for the same reason CI's
+    // strip_accurate is -- it also allows a literal "N/A" answer.
+    const shelfStripCorrectOut = verdict.shelfStripCorrect === true ? 'true' : verdict.shelfStripCorrect === false ? 'false' : verdict.shelfStripCorrect === 'na' ? 'na' : null;
     sb.from('report_verdicts').upsert({
       src: rec.src, report_id: rec.id,
-      stock_status: verdict.stockStatus, promo_pct: verdict.promoPct, notes: verdict.notes, flag: verdict.flag,
+      facings_status: verdict.facingsStatus, facings_empty_count: verdict.facingsEmptyCount,
+      shelf_strip_present: verdict.shelfStripPresent, shelf_strip_correct: shelfStripCorrectOut,
+      notes: verdict.notes, flag: verdict.flag,
       updated_at: updatedAt
     }).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
     return;
@@ -4202,11 +4208,11 @@ function civPrevVersionFor(reportId, beforeVersionId) {
 }
 function civBlankVerdictSnapshot(src) {
   return src === 'eileen'
-    ? { stockStatus:null, promoPct:null, notes:'', flag:false }
+    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, notes:'', flag:false }
     : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 
-const EIV_DIFF_FIELDS = [['stockStatus','Stock Status'],['promoPct','Promo %'],['notes','Notes'],['flag','Flagged']];
+const EIV_DIFF_FIELDS = [['facingsStatus','Total Lucy Facings'],['facingsEmptyCount','# of Facings Empty'],['shelfStripPresent','Shelf Strip Present?'],['shelfStripCorrect','Shelf Strip Correct?'],['notes','Notes'],['flag','Flagged']];
 const CIV_DIFF_FIELDS = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAccurate','Strip Accurate?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
 function civDiffHtml(current, target) {
   const src = current.src || target.src;
@@ -4459,7 +4465,7 @@ function civDraftVerdict(rec) {
       // Eileen's source CSV is a pure photo log -- no rep-reported stock/promo field of any
       // kind exists to pre-fill from (confirmed by direct inspection), so this always starts
       // fully blank, same honesty convention as every other blank verdict in this app.
-      CIV_VERDICT_DRAFT[k] = { stockStatus: null, promoPct: null, notes: '', flag: false };
+      CIV_VERDICT_DRAFT[k] = { facingsStatus: null, facingsEmptyCount: null, shelfStripPresent: null, shelfStripCorrect: null, notes: '', flag: false };
     } else {
       // First time this CI visit has ever been opened for review: pre-fill Strip Present/Needs
       // Product from the rep's own reported data, same convention as Report Review. Strip Added
@@ -5037,17 +5043,6 @@ function renderCiVisitReview() {
 // inspection -- so there is no rep-notes grid here and every verdict starts fully blank, same
 // honesty convention as everywhere else in this app.
 // ══════════════════════════════════════════════════════════════════════════
-const EIVR_STOCK_STATUSES = [
-  ['good', 'Good stock'],
-  ['out', 'Out of stock'],
-  ['low', 'Low stock'],
-  ['not_carried', 'Product not carried'],
-  ['brand_missing', 'Brand missing']
-];
-// Product not carried / Brand missing mean there is no product on the shelf to run a promo on --
-// Promo % is hidden (shows "N/A") for those two, editable for the other three.
-function eivrPromoApplies(stockStatus) { return stockStatus !== 'not_carried' && stockStatus !== 'brand_missing'; }
-
 // Separate id space from civauth-email/civauth-gate-msg (CI Visit Review's own login gate) --
 // both tabs' rendered HTML can coexist in the DOM at once (switching tabs only toggles
 // display:none, it doesn't clear the previous tab's #civ-main/#eiv-main content), so reusing
@@ -5075,41 +5070,31 @@ function renderEivLoginGate() {
 }
 
 // The 6 shared interaction handlers (civSetVerdictAnswer/civSetNote/civToggleFlag/
-// civSubmitVerdict/civUndoVerdict/civDiscardChanges) are already generic over (src,id) and are
-// called directly with 'eileen' hardcoded as src below -- only Stock Status/Promo % need their
-// own setters, since civSetVerdictAnswer's toggle-on-same-value semantics (right for CI's
-// tri-buttons) and bare-value assignment don't fit a <select> string or a numeric percentage.
-function eivSetStockStatus(id, value) {
+// civSubmitVerdict/civUndoVerdict/civDiscardChanges) are already generic over (src,id) and cover
+// 3 of these 4 fields directly -- civSetVerdictAnswer('eileen', id, 'facingsStatus', 'full'/'empty'),
+// ('shelfStripPresent', true/false), ('shelfStripCorrect', true/false/'na') all reuse its existing
+// toggle-on-same-value semantics exactly like CI's tri-buttons do. Only the free-text facings-empty
+// count needs its own setter, since a text field doesn't fit that toggle behavior.
+function eivSetFacingsEmptyCount(id, value) {
   if (!civCanEdit()) return;
   const rec = { src: 'eileen', id };
   const draft = civDraftVerdict(rec);
-  const prev = draft.stockStatus;
-  draft.stockStatus = value || null;
-  if (!eivrPromoApplies(draft.stockStatus)) draft.promoPct = null; // N/A once disqualified
-  civDirtySet.add(reportKey(rec));
-  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'stockStatus', previous_value: prev, new_value: draft.stockStatus });
-  civRerenderActive();
-}
-function eivSetPromoPct(id, value) {
-  if (!civCanEdit()) return;
-  const rec = { src: 'eileen', id };
-  const draft = civDraftVerdict(rec);
-  const prev = draft.promoPct;
+  const prev = draft.facingsEmptyCount;
   const trimmed = String(value).trim();
-  draft.promoPct = trimmed === '' ? null : Math.max(0, Math.min(100, Number(trimmed)));
+  draft.facingsEmptyCount = trimmed === '' ? null : trimmed;
   civDirtySet.add(reportKey(rec));
-  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'promoPct', previous_value: prev===null?null:String(prev), new_value: draft.promoPct===null?null:String(draft.promoPct) });
+  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'facingsEmptyCount', previous_value: prev, new_value: draft.facingsEmptyCount });
   civRerenderActive();
 }
 
-let eivrFilters = { chain:'', status:'', stockStatus:'', promo:'', flagged:'' };
+let eivrFilters = { chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' };
 let eivrPage = 0;
 const EIVR_PAGE_SIZE = 6;
 let eivrBulkMsg = '';
 
 function eivrSetFilter(key, val) { eivrFilters[key] = val; eivrPage = 0; eivrBulkMsg = ''; renderEileenVisitReview(); }
 function eivrResetFilters() {
-  eivrFilters = { chain:'', status:'', stockStatus:'', promo:'', flagged:'' };
+  eivrFilters = { chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' };
   eivrPage = 0; eivrBulkMsg = '';
   renderEileenVisitReview();
 }
@@ -5122,27 +5107,27 @@ function eivrFilteredReports() {
     if (eivrFilters.status === 'pending' && status === 'Reviewed') return false;
     if (eivrFilters.status === 'done' && status !== 'Reviewed') return false;
     const draft = civDraftVerdict(r);
-    if (eivrFilters.stockStatus && draft.stockStatus !== eivrFilters.stockStatus) return false;
-    const hasPromo = draft.promoPct !== null && draft.promoPct !== undefined;
-    if (eivrFilters.promo === 'yes' && !hasPromo) return false;
-    if (eivrFilters.promo === 'no' && hasPromo) return false;
+    if (eivrFilters.facingsStatus && draft.facingsStatus !== eivrFilters.facingsStatus) return false;
+    if (eivrFilters.shelfStripPresent === 'yes' && draft.shelfStripPresent !== true) return false;
+    if (eivrFilters.shelfStripPresent === 'no' && draft.shelfStripPresent !== false) return false;
+    if (eivrFilters.shelfStripCorrect && String(draft.shelfStripCorrect) !== eivrFilters.shelfStripCorrect) return false;
     if (eivrFilters.flagged === 'yes' && !draft.flag) return false;
     return true;
   });
 }
 
 function eivrStats() {
-  let sub = 0, outOfStock = 0, onPromo = 0, flagC = 0;
+  let sub = 0, stripPresentY = 0, facingsEmptyY = 0, flagC = 0;
   EIV_ALL_REPORTS.forEach(r => {
     const status = getReportStatus(r);
     const draft = civDraftVerdict(r);
     if (status === 'Reviewed') sub++;
-    if (draft.stockStatus === 'out') outOfStock++;
-    if (draft.promoPct !== null && draft.promoPct !== undefined) onPromo++;
+    if (draft.shelfStripPresent === true) stripPresentY++;
+    if (draft.facingsStatus === 'empty') facingsEmptyY++;
     if (draft.flag) flagC++;
   });
   const total = EIV_ALL_REPORTS.length;
-  return { total, sub, outOfStock, onPromo, flagC, pend: total - sub };
+  return { total, sub, stripPresentY, facingsEmptyY, flagC, pend: total - sub };
 }
 
 function eivrBulkSubmit() {
@@ -5173,21 +5158,33 @@ function eivrVerdictBarHtml(rec, draft, status) {
   const locked = status === 'Reviewed';
   const canEdit = civCanEdit();
   const dis = canEdit ? '' : 'disabled';
-  const promoOk = eivrPromoApplies(draft.stockStatus);
   const isDirty = civDirtySet.has(reportKey(rec));
   return `<div class="civr-verdict-bar">
     <div class="civr-vq">
-      <div class="civr-vq-label">Stock Status</div>
-      <select class="civr-select" ${dis} onchange="eivSetStockStatus(${rec.id}, this.value)">
-        <option value="">Not answered</option>
-        ${EIVR_STOCK_STATUSES.map(([k,label]) => `<option value="${k}" ${draft.stockStatus===k?'selected':''}>${escHtml(label)}</option>`).join('')}
-      </select>
+      <div class="civr-vq-label">Total Lucy Facings</div>
+      <div class="civr-tri-btn">
+        <button class="civr-tbtn ${draft.facingsStatus==='full'?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'facingsStatus', 'full')">Full</button>
+        <button class="civr-tbtn ${draft.facingsStatus==='empty'?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'facingsStatus', 'empty')">Empty</button>
+      </div>
     </div>
     <div class="civr-vq">
-      <div class="civr-vq-label">Promo % Running</div>
-      ${promoOk
-        ? `<input type="number" min="0" max="100" class="civr-notes-input" style="max-width:100px;" placeholder="e.g. 20" value="${draft.promoPct===null||draft.promoPct===undefined?'':draft.promoPct}" ${dis} onchange="eivSetPromoPct(${rec.id}, this.value)">`
-        : `<div class="civr-vq-pre">N/A — no product on shelf</div>`}
+      <div class="civr-vq-label"># of Facings Empty</div>
+      <input type="text" class="civr-notes-input" style="max-width:100px;" placeholder="e.g. 3" value="${esc(draft.facingsEmptyCount||'')}" ${dis} onchange="eivSetFacingsEmptyCount(${rec.id}, this.value)">
+    </div>
+    <div class="civr-vq">
+      <div class="civr-vq-label">Shelf Strip Present?</div>
+      <div class="civr-tri-btn">
+        <button class="civr-tbtn ${draft.shelfStripPresent===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripPresent', true)">Yes</button>
+        <button class="civr-tbtn ${draft.shelfStripPresent===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripPresent', false)">No</button>
+      </div>
+    </div>
+    <div class="civr-vq">
+      <div class="civr-vq-label">Shelf Strip Correct?</div>
+      <div class="civr-tri-btn">
+        <button class="civr-tbtn ${draft.shelfStripCorrect===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripCorrect', true)">Yes</button>
+        <button class="civr-tbtn ${draft.shelfStripCorrect===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripCorrect', false)">No</button>
+        <button class="civr-tbtn ${draft.shelfStripCorrect==='na'?'civr-on-na':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripCorrect', 'na')">N/A</button>
+      </div>
     </div>
     <div class="civr-submit-col">
       <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict('eileen', ${rec.id})">${locked?'Submitted ✓':'Submit ✓'}</button>
@@ -5222,10 +5219,11 @@ function eivrCardHtml(rec) {
 function eivrExportCSV() {
   const rows = EIV_ALL_REPORTS.map(rec => {
     const draft = civDraftVerdict(rec);
-    const label = EIVR_STOCK_STATUSES.find(([k]) => k === draft.stockStatus);
     return {
       Store: rec.a||'', City: rec.ci||'', State: rec.st||'', Chain: rec.ch||'', VisitDate: rec.vd||rec.month||'',
-      StockStatus: label ? label[1] : '', PromoPct: draft.promoPct===null||draft.promoPct===undefined?'':draft.promoPct,
+      TotalLucyFacings: draft.facingsStatus === 'full' ? 'Full' : draft.facingsStatus === 'empty' ? 'Empty' : '',
+      FacingsEmptyCount: draft.facingsEmptyCount||'',
+      ShelfStripPresent: rrYNCsv(draft.shelfStripPresent), ShelfStripCorrect: rrYNCsv(draft.shelfStripCorrect),
       Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No'
     };
@@ -5295,8 +5293,8 @@ function renderEileenVisitReview() {
   <div class="civr-stats-bar">
     <div class="civr-stat"><span class="civr-slabel">Total</span><span class="civr-sval">${fmtNum(stats.total)}</span></div>
     <div class="civr-stat civr-blue"><span class="civr-slabel">Submitted</span><span class="civr-sval">${fmtNum(stats.sub)}</span></div>
-    <div class="civr-stat civr-red"><span class="civr-slabel">Out of Stock</span><span class="civr-sval">${fmtNum(stats.outOfStock)}</span></div>
-    <div class="civr-stat civr-green"><span class="civr-slabel">On Promo</span><span class="civr-sval">${fmtNum(stats.onPromo)}</span></div>
+    <div class="civr-stat civr-green"><span class="civr-slabel">Strip Present</span><span class="civr-sval">${fmtNum(stats.stripPresentY)}</span></div>
+    <div class="civr-stat civr-red"><span class="civr-slabel">Facings Empty</span><span class="civr-sval">${fmtNum(stats.facingsEmptyY)}</span></div>
     <div class="civr-stat civr-amber"><span class="civr-slabel">Flagged</span><span class="civr-sval">${fmtNum(stats.flagC)}</span></div>
     <div class="civr-stat"><span class="civr-slabel">Pending</span><span class="civr-sval">${fmtNum(stats.pend)}</span></div>
   </div>
@@ -5313,16 +5311,24 @@ function renderEileenVisitReview() {
       <option value="pending" ${eivrFilters.status==='pending'?'selected':''}>Pending</option>
       <option value="done" ${eivrFilters.status==='done'?'selected':''}>Submitted</option>
     </select>
-    <label>Stock Status:</label>
-    <select class="civr-select" onchange="eivrSetFilter('stockStatus', this.value)">
+    <label>Total Lucy Facings:</label>
+    <select class="civr-select" onchange="eivrSetFilter('facingsStatus', this.value)">
       <option value="">All</option>
-      ${EIVR_STOCK_STATUSES.map(([k,label])=>`<option value="${k}" ${eivrFilters.stockStatus===k?'selected':''}>${escHtml(label)}</option>`).join('')}
+      <option value="full" ${eivrFilters.facingsStatus==='full'?'selected':''}>Full</option>
+      <option value="empty" ${eivrFilters.facingsStatus==='empty'?'selected':''}>Empty</option>
     </select>
-    <label>On Promo?:</label>
-    <select class="civr-select" onchange="eivrSetFilter('promo', this.value)">
+    <label>Shelf Strip Present?:</label>
+    <select class="civr-select" onchange="eivrSetFilter('shelfStripPresent', this.value)">
       <option value="">All</option>
-      <option value="yes" ${eivrFilters.promo==='yes'?'selected':''}>On promo</option>
-      <option value="no" ${eivrFilters.promo==='no'?'selected':''}>Not set</option>
+      <option value="yes" ${eivrFilters.shelfStripPresent==='yes'?'selected':''}>Yes</option>
+      <option value="no" ${eivrFilters.shelfStripPresent==='no'?'selected':''}>No</option>
+    </select>
+    <label>Shelf Strip Correct?:</label>
+    <select class="civr-select" onchange="eivrSetFilter('shelfStripCorrect', this.value)">
+      <option value="">All</option>
+      <option value="true" ${eivrFilters.shelfStripCorrect==='true'?'selected':''}>Yes</option>
+      <option value="false" ${eivrFilters.shelfStripCorrect==='false'?'selected':''}>No</option>
+      <option value="na" ${eivrFilters.shelfStripCorrect==='na'?'selected':''}>N/A</option>
     </select>
     <label>Flagged:</label>
     <select class="civr-select" onchange="eivrSetFilter('flagged', this.value)">
@@ -6581,8 +6587,11 @@ async function loadAllData() {
     // normalize back to a real boolean/'na'/null here so client-side comparisons (val===true etc.)
     // behave identically whether the value came from this hydration or from a same-session write.
     if (rv.src === 'eileen') {
+      const shelfStripCorrectIn = rv.shelf_strip_correct === 'true' ? true : rv.shelf_strip_correct === 'false' ? false : rv.shelf_strip_correct === 'na' ? 'na' : null;
       REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = {
-        stockStatus: rv.stock_status, promoPct: rv.promo_pct, notes: rv.notes || '', flag: !!rv.flag,
+        facingsStatus: rv.facings_status, facingsEmptyCount: rv.facings_empty_count,
+        shelfStripPresent: rv.shelf_strip_present, shelfStripCorrect: shelfStripCorrectIn,
+        notes: rv.notes || '', flag: !!rv.flag,
         updatedAt: rv.updated_at
       };
       return;
