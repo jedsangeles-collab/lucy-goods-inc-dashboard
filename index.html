@@ -3941,7 +3941,7 @@ function getReportVerdict(rec) {
   // hint from either (see eivRepHint), so the blank shape starts fully null, same honesty
   // convention as every other blank verdict.
   return rec.src === 'eileen'
-    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, notes:'', flag:false }
+    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, notes:'', flag:false }
     : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 function setReportVerdict(rec, verdict) {
@@ -3959,6 +3959,7 @@ function setReportVerdict(rec, verdict) {
       src: rec.src, report_id: rec.id,
       facings_status: verdict.facingsStatus, facings_empty_count: verdict.facingsEmptyCount,
       shelf_strip_present: verdict.shelfStripPresent, shelf_strip_correct: shelfStripCorrectOut,
+      sku_observed: verdict.skuObserved || {},
       notes: verdict.notes, flag: verdict.flag,
       updated_at: updatedAt
     }).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
@@ -4208,16 +4209,26 @@ function civPrevVersionFor(reportId, beforeVersionId) {
 }
 function civBlankVerdictSnapshot(src) {
   return src === 'eileen'
-    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, notes:'', flag:false }
+    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, notes:'', flag:false }
     : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 
-const EIV_DIFF_FIELDS = [['facingsStatus','Total Lucy Facings'],['facingsEmptyCount','# of Facings Empty'],['shelfStripPresent','Shelf Strip Present?'],['shelfStripCorrect','Shelf Strip Correct?'],['notes','Notes'],['flag','Flagged']];
+const EIV_DIFF_FIELDS = [['facingsStatus','Total Lucy Facings'],['facingsEmptyCount','# of Facings Empty'],['shelfStripPresent','Shelf Strip Present?'],['shelfStripCorrect','Shelf Strip Correct?'],['skuObserved','SKUs Observed'],['notes','Notes'],['flag','Flagged']];
 const CIV_DIFF_FIELDS = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAccurate','Strip Accurate?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
 function civDiffHtml(current, target) {
   const src = current.src || target.src;
   const fields = src === 'eileen' ? EIV_DIFF_FIELDS : CIV_DIFF_FIELDS;
-  const fmt = (v) => typeof v === 'boolean' ? (v ? 'Yes' : 'No') : v === 'na' ? 'N/A' : (v || v === 0 ? v : '—');
+  // skuObserved is the one verdict field shaped as an object (per-flavor {present,count}) rather
+  // than a primitive -- summarized to "Flavor: Present (count)" pairs here so Change History
+  // reads like the rest of this diff instead of showing "[object Object]".
+  const fmt = (v) => {
+    if (v && typeof v === 'object') {
+      const parts = Object.keys(v).filter(k => v[k] && (v[k].present === true || v[k].present === false))
+        .map(k => `${k}: ${v[k].present ? 'Present' : 'Not Present'}${v[k].count ? ' ('+v[k].count+')' : ''}`);
+      return parts.length ? parts.join('; ') : '—';
+    }
+    return typeof v === 'boolean' ? (v ? 'Yes' : 'No') : v === 'na' ? 'N/A' : (v || v === 0 ? v : '—');
+  };
   return fields.map(([f,label]) => {
     const changed = JSON.stringify(current[f]) !== JSON.stringify(target[f]);
     return `<div class="civauth-diff-row" style="${changed?'background:#fff8e8;':''}">
@@ -4465,7 +4476,7 @@ function civDraftVerdict(rec) {
       // Eileen's source CSV is a pure photo log -- no rep-reported stock/promo field of any
       // kind exists to pre-fill from (confirmed by direct inspection), so this always starts
       // fully blank, same honesty convention as every other blank verdict in this app.
-      CIV_VERDICT_DRAFT[k] = { facingsStatus: null, facingsEmptyCount: null, shelfStripPresent: null, shelfStripCorrect: null, notes: '', flag: false };
+      CIV_VERDICT_DRAFT[k] = { facingsStatus: null, facingsEmptyCount: null, shelfStripPresent: null, shelfStripCorrect: null, skuObserved: {}, notes: '', flag: false };
     } else {
       // First time this CI visit has ever been opened for review: pre-fill Strip Present/Needs
       // Product from the rep's own reported data, same convention as Report Review. Strip Added
@@ -5087,6 +5098,71 @@ function eivSetFacingsEmptyCount(id, value) {
   civRerenderActive();
 }
 
+// SKUs Observed (editable): unlike CI/poppromo's civrSkuTableHtml, Eileen's source has no raw
+// per-flavor facings data to read read-only (confirmed -- pure photo log, no compliance fields at
+// all), so this is a reviewer-entered field instead: a fixed current LUCY lineup, each flavor
+// independently marked Present/Not Present plus a free-text count next to it. Compiled from the
+// UPC/description columns seen across this project's chain sales files (Simonson Station,
+// Ridgeway Petro, Sunrise Stores) -- not a source-of-truth master price list, so treat as a
+// starting point to expand/correct if the real catalog has more SKUs.
+const EIV_SKU_LIST = [
+  'Breakers 8mg Mint', 'Breakers 8mg Apple Ice', 'Breakers 8mg Mango', 'Breakers 8mg Apple Cider', 'Breakers 8mg Berry Citrus',
+  'Breakers 4mg Mint', 'Breakers 4mg Berry Citrus',
+  'Pouches 12mg Mint', 'Pouches 12mg Wintergreen', 'Pouches 12mg Apple Ice'
+];
+function eivSetSkuPresent(id, flavor, value) {
+  if (!civCanEdit()) return;
+  const rec = { src: 'eileen', id };
+  const draft = civDraftVerdict(rec);
+  if (!draft.skuObserved) draft.skuObserved = {};
+  const row = draft.skuObserved[flavor] || { present: null, count: null };
+  const prev = row.present;
+  row.present = row.present === value ? null : value;
+  draft.skuObserved[flavor] = row;
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: `skuObserved.${flavor}.present`, previous_value: prev===null?null:String(prev), new_value: row.present===null?null:String(row.present) });
+  civRerenderActive();
+}
+function eivSetSkuCount(id, flavor, value) {
+  if (!civCanEdit()) return;
+  const rec = { src: 'eileen', id };
+  const draft = civDraftVerdict(rec);
+  if (!draft.skuObserved) draft.skuObserved = {};
+  const row = draft.skuObserved[flavor] || { present: null, count: null };
+  const prev = row.count;
+  const trimmed = String(value).trim();
+  row.count = trimmed === '' ? null : trimmed;
+  draft.skuObserved[flavor] = row;
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: `skuObserved.${flavor}.count`, previous_value: prev, new_value: row.count });
+  civRerenderActive();
+}
+function eivrSkuTableHtml(rec, draft) {
+  const canEdit = civCanEdit();
+  const dis = canEdit ? '' : 'disabled';
+  const skuObserved = draft.skuObserved || {};
+  const rows = EIV_SKU_LIST.map(flavor => {
+    const row = skuObserved[flavor] || { present: null, count: null };
+    return `<tr>
+      <td>${escHtml(flavor)}</td>
+      <td>
+        <div class="civr-tri-btn">
+          <button class="civr-tbtn ${row.present===true?'civr-on-yes':''}" ${dis} onclick="eivSetSkuPresent(${rec.id}, '${flavor}', true)">Present</button>
+          <button class="civr-tbtn ${row.present===false?'civr-on-no':''}" ${dis} onclick="eivSetSkuPresent(${rec.id}, '${flavor}', false)">Not Present</button>
+        </div>
+      </td>
+      <td class="civr-sku-num"><input type="text" class="civr-notes-input" style="max-width:70px;" placeholder="count" value="${esc(row.count||'')}" ${dis} onchange="eivSetSkuCount(${rec.id}, '${flavor}', this.value)"></td>
+    </tr>`;
+  }).join('');
+  return `<div class="civr-sku-box">
+    <div class="civr-sku-title">SKUs Observed <span class="civr-sku-sub">(current LUCY lineup — mark present/not present, then enter a count)</span></div>
+    <table class="civr-sku-table">
+      <thead><tr><th>Flavor</th><th>Present?</th><th>Count</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
 let eivrFilters = { chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' };
 let eivrPage = 0;
 const EIVR_PAGE_SIZE = 6;
@@ -5211,6 +5287,8 @@ function eivrCardHtml(rec) {
   </div>
   <div class="civr-card-body">
     ${civrPhotosHtml(rec)}
+    ${civrVelocityHtml(rec)}
+    ${eivrSkuTableHtml(rec, draft)}
   </div>
   ${eivrVerdictBarHtml(rec, draft, status)}
   ${civrSubmittedBannerHtml(rec, draft, status)}`;
@@ -5224,6 +5302,8 @@ function eivrExportCSV() {
       TotalLucyFacings: draft.facingsStatus === 'full' ? 'Full' : draft.facingsStatus === 'empty' ? 'Empty' : '',
       FacingsEmptyCount: draft.facingsEmptyCount||'',
       ShelfStripPresent: rrYNCsv(draft.shelfStripPresent), ShelfStripCorrect: rrYNCsv(draft.shelfStripCorrect),
+      SKUsObserved: Object.keys(draft.skuObserved||{}).filter(k => draft.skuObserved[k] && (draft.skuObserved[k].present===true || draft.skuObserved[k].present===false))
+        .map(k => `${k}: ${draft.skuObserved[k].present?'Present':'Not Present'}${draft.skuObserved[k].count?' ('+draft.skuObserved[k].count+')':''}`).join('; '),
       Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No'
     };
@@ -6591,6 +6671,7 @@ async function loadAllData() {
       REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = {
         facingsStatus: rv.facings_status, facingsEmptyCount: rv.facings_empty_count,
         shelfStripPresent: rv.shelf_strip_present, shelfStripCorrect: shelfStripCorrectIn,
+        skuObserved: rv.sku_observed || {},
         notes: rv.notes || '', flag: !!rv.flag,
         updatedAt: rv.updated_at
       };
