@@ -1280,6 +1280,11 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civr-sku-table th, #view-eileenvisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
 #view-civisitreview .civr-sku-table td, #view-eileenvisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
 #view-civisitreview .civr-sku-num, #view-eileenvisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
+#view-eileenvisitreview .civr-present-count{display:flex;align-items:center;gap:6px;}
+#view-eileenvisitreview .civr-sku-count-input{max-width:70px;}
+#view-eileenvisitreview .civr-sku-others{margin-top:8px;padding-top:8px;border-top:1px dashed #e0ddd6;}
+#view-eileenvisitreview .civr-sku-others-label{color:#666;font-weight:600;margin-bottom:4px;font-size:11px;}
+#view-eileenvisitreview .civr-sku-others-detail{width:100%;max-width:none;margin-top:4px;}
 #view-civisitreview .civr-sku-totals, #view-eileenvisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
 #view-civisitreview .civr-submit-col, #view-eileenvisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
 #view-civisitreview .civr-submit-btn, #view-eileenvisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
@@ -4218,13 +4223,14 @@ const CIV_DIFF_FIELDS = [['productPresent','Product There?'],['stripPresent','St
 function civDiffHtml(current, target) {
   const src = current.src || target.src;
   const fields = src === 'eileen' ? EIV_DIFF_FIELDS : CIV_DIFF_FIELDS;
-  // skuObserved is the one verdict field shaped as an object (per-flavor {present,count}) rather
-  // than a primitive -- summarized to "Flavor: Present (count)" pairs here so Change History
-  // reads like the rest of this diff instead of showing "[object Object]".
+  // skuObserved is the one verdict field shaped as an object (per-flavor {present,count,detail})
+  // rather than a primitive -- summarized to "Flavor: Present (count) [detail]" pairs here so
+  // Change History reads like the rest of this diff instead of showing "[object Object]". There
+  // is no "Not Present" state -- an unmarked flavor is simply omitted from the summary.
   const fmt = (v) => {
     if (v && typeof v === 'object') {
-      const parts = Object.keys(v).filter(k => v[k] && (v[k].present === true || v[k].present === false))
-        .map(k => `${k}: ${v[k].present ? 'Present' : 'Not Present'}${v[k].count ? ' ('+v[k].count+')' : ''}`);
+      const parts = Object.keys(v).filter(k => v[k] && v[k].present === true)
+        .map(k => `${k}: Present${v[k].count ? ' ('+v[k].count+')' : ''}${v[k].detail ? ' ['+v[k].detail+']' : ''}`);
       return parts.length ? parts.join('; ') : '—';
     }
     return typeof v === 'boolean' ? (v ? 'Yes' : 'No') : v === 'na' ? 'N/A' : (v || v === 0 ? v : '—');
@@ -5100,24 +5106,25 @@ function eivSetFacingsEmptyCount(id, value) {
 
 // SKUs Observed (editable): unlike CI/poppromo's civrSkuTableHtml, Eileen's source has no raw
 // per-flavor facings data to read read-only (confirmed -- pure photo log, no compliance fields at
-// all), so this is a reviewer-entered field instead: a fixed current LUCY lineup, each flavor
-// independently marked Present/Not Present plus a free-text count next to it. Compiled from the
-// UPC/description columns seen across this project's chain sales files (Simonson Station,
-// Ridgeway Petro, Sunrise Stores) -- not a source-of-truth master price list, so treat as a
-// starting point to expand/correct if the real catalog has more SKUs.
+// all), so this is a reviewer-entered field instead: restricted to the approved LUCY flavor list
+// below (Breakers 8mg/4mg, Pouches 12mg/4mg), each flavor toggled Present plus a free-text count
+// beside it. An "Others" row (kept visually separate from the approved list) covers any observed
+// flavor that isn't on this list, with its own free-text detail field. There is no "Not Present"
+// state -- an unmarked flavor simply isn't toggled on.
 const EIV_SKU_LIST = [
   'Breakers 8mg Mint', 'Breakers 8mg Apple Ice', 'Breakers 8mg Mango', 'Breakers 8mg Apple Cider', 'Breakers 8mg Berry Citrus',
-  'Breakers 4mg Mint', 'Breakers 4mg Berry Citrus',
-  'Pouches 12mg Mint', 'Pouches 12mg Wintergreen', 'Pouches 12mg Apple Ice'
+  'Breakers 4mg Mint', 'Breakers 4mg Apple Ice', 'Breakers 4mg Mango', 'Breakers 4mg Apple Cider', 'Breakers 4mg Berry Citrus',
+  'Pouches 12mg Wintergreen', 'Pouches 12mg Mint',
+  'Pouches 4mg Wintergreen', 'Pouches 4mg Mint'
 ];
-function eivSetSkuPresent(id, flavor, value) {
+function eivSetSkuPresent(id, flavor) {
   if (!civCanEdit()) return;
   const rec = { src: 'eileen', id };
   const draft = civDraftVerdict(rec);
   if (!draft.skuObserved) draft.skuObserved = {};
   const row = draft.skuObserved[flavor] || { present: null, count: null };
   const prev = row.present;
-  row.present = row.present === value ? null : value;
+  row.present = row.present === true ? null : true;
   draft.skuObserved[flavor] = row;
   civDirtySet.add(reportKey(rec));
   civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: `skuObserved.${flavor}.present`, previous_value: prev===null?null:String(prev), new_value: row.present===null?null:String(row.present) });
@@ -5137,6 +5144,20 @@ function eivSetSkuCount(id, flavor, value) {
   civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: `skuObserved.${flavor}.count`, previous_value: prev, new_value: row.count });
   civRerenderActive();
 }
+function eivSetOtherFlavorText(id, value) {
+  if (!civCanEdit()) return;
+  const rec = { src: 'eileen', id };
+  const draft = civDraftVerdict(rec);
+  if (!draft.skuObserved) draft.skuObserved = {};
+  const row = draft.skuObserved['Others'] || { present: null, count: null, detail: null };
+  const prev = row.detail;
+  const trimmed = String(value).trim();
+  row.detail = trimmed === '' ? null : trimmed;
+  draft.skuObserved['Others'] = row;
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'skuObserved.Others.detail', previous_value: prev, new_value: row.detail });
+  civRerenderActive();
+}
 function eivrSkuTableHtml(rec, draft) {
   const canEdit = civCanEdit();
   const dis = canEdit ? '' : 'disabled';
@@ -5146,20 +5167,29 @@ function eivrSkuTableHtml(rec, draft) {
     return `<tr>
       <td>${escHtml(flavor)}</td>
       <td>
-        <div class="civr-tri-btn">
-          <button class="civr-tbtn ${row.present===true?'civr-on-yes':''}" ${dis} onclick="eivSetSkuPresent(${rec.id}, '${flavor}', true)">Present</button>
-          <button class="civr-tbtn ${row.present===false?'civr-on-no':''}" ${dis} onclick="eivSetSkuPresent(${rec.id}, '${flavor}', false)">Not Present</button>
+        <div class="civr-present-count">
+          <button class="civr-tbtn ${row.present===true?'civr-on-yes':''}" ${dis} onclick="eivSetSkuPresent(${rec.id}, '${flavor}')">Present</button>
+          <input type="text" class="civr-notes-input civr-sku-count-input" placeholder="count" value="${esc(row.count||'')}" ${dis} onchange="eivSetSkuCount(${rec.id}, '${flavor}', this.value)">
         </div>
       </td>
-      <td class="civr-sku-num"><input type="text" class="civr-notes-input" style="max-width:70px;" placeholder="count" value="${esc(row.count||'')}" ${dis} onchange="eivSetSkuCount(${rec.id}, '${flavor}', this.value)"></td>
     </tr>`;
   }).join('');
+  const othersRow = skuObserved['Others'] || { present: null, count: null, detail: null };
+  const othersHtml = `<div class="civr-sku-others">
+    <div class="civr-sku-others-label">Others <span class="civr-sku-sub">(flavor not on the approved list above)</span></div>
+    <div class="civr-present-count">
+      <button class="civr-tbtn ${othersRow.present===true?'civr-on-yes':''}" ${dis} onclick="eivSetSkuPresent(${rec.id}, 'Others')">Present</button>
+      <input type="text" class="civr-notes-input civr-sku-count-input" placeholder="count" value="${esc(othersRow.count||'')}" ${dis} onchange="eivSetSkuCount(${rec.id}, 'Others', this.value)">
+    </div>
+    <input type="text" class="civr-notes-input civr-sku-others-detail" placeholder="Flavor / details" value="${esc(othersRow.detail||'')}" ${dis} onchange="eivSetOtherFlavorText(${rec.id}, this.value)">
+  </div>`;
   return `<div class="civr-sku-box">
-    <div class="civr-sku-title">SKUs Observed <span class="civr-sku-sub">(current LUCY lineup — mark present/not present, then enter a count)</span></div>
+    <div class="civr-sku-title">SKUs Observed <span class="civr-sku-sub">(approved LUCY flavors only — mark Present, then enter a count)</span></div>
     <table class="civr-sku-table">
-      <thead><tr><th>Flavor</th><th>Present?</th><th>Count</th></tr></thead>
+      <thead><tr><th>Flavor</th><th>Present</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
+    ${othersHtml}
   </div>`;
 }
 
@@ -5302,8 +5332,8 @@ function eivrExportCSV() {
       TotalLucyFacings: draft.facingsStatus === 'full' ? 'Full' : draft.facingsStatus === 'empty' ? 'Empty' : '',
       FacingsEmptyCount: draft.facingsEmptyCount||'',
       ShelfStripPresent: rrYNCsv(draft.shelfStripPresent), ShelfStripCorrect: rrYNCsv(draft.shelfStripCorrect),
-      SKUsObserved: Object.keys(draft.skuObserved||{}).filter(k => draft.skuObserved[k] && (draft.skuObserved[k].present===true || draft.skuObserved[k].present===false))
-        .map(k => `${k}: ${draft.skuObserved[k].present?'Present':'Not Present'}${draft.skuObserved[k].count?' ('+draft.skuObserved[k].count+')':''}`).join('; '),
+      SKUsObserved: Object.keys(draft.skuObserved||{}).filter(k => draft.skuObserved[k] && draft.skuObserved[k].present===true)
+        .map(k => `${k}${k==='Others'&&draft.skuObserved[k].detail?' ('+draft.skuObserved[k].detail+')':''}: Present${draft.skuObserved[k].count?' ('+draft.skuObserved[k].count+')':''}`).join('; '),
       Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No'
     };
