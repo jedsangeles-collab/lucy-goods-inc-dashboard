@@ -5206,9 +5206,30 @@ function eivrResetFilters() {
 }
 function eivrChangePage(dir) { eivrPage += dir; renderEileenVisitReview(); civrScrollToTop(); }
 
+// Chain dropdown consolidation, matching CI Visit Review's own concept of "chain": a chain is
+// only a real dropdown entry if it appears in CHAINS, the same master roster every other tab
+// (Chains, Stores, CI Visit Review's own dropdown) already treats as authoritative for "what is
+// a chain." Eileen's raw `ch` field is the source CSV's own banner_name -- for ~60% of records
+// that's really just one independent store's own business name (confirmed: 116 of 187 distinct
+// values occur exactly once), not a real multi-location chain -- those all collapse into a single
+// "Others" bucket instead of cluttering the dropdown with one-off store names. Matched via the
+// same normChain() case/punctuation-insensitive key used everywhere else in this app (build_*.ps1
+// scripts, civReportChain, etc.), so "SunStop" and "Sunstop" resolve to one canonical entry too.
+const EIVR_OTHERS = 'Others';
+function eivrChainCanonicalMap() {
+  const map = {};
+  CHAINS.forEach(c => { if (c.chain) map[normChain(c.chain)] = c.chain; });
+  return map;
+}
+function eivrEffectiveChain(rec, canonMap) {
+  const map = canonMap || eivrChainCanonicalMap();
+  const key = normChain(rec.ch);
+  return (key && map[key]) ? map[key] : EIVR_OTHERS;
+}
 function eivrFilteredReports() {
+  const eivrChainMap = eivrChainCanonicalMap();
   return EIV_ALL_REPORTS.filter(r => {
-    if (eivrFilters.chain && r.ch !== eivrFilters.chain) return false;
+    if (eivrFilters.chain && eivrEffectiveChain(r, eivrChainMap) !== eivrFilters.chain) return false;
     const status = getReportStatus(r);
     if (eivrFilters.status === 'pending' && status === 'Reviewed') return false;
     if (eivrFilters.status === 'done' && status !== 'Reviewed') return false;
@@ -5351,7 +5372,10 @@ function renderEileenVisitReview() {
 
   const filtered = eivrFilteredReports();
   const stats = eivrStats();
-  const chains = [...new Set(EIV_ALL_REPORTS.map(r=>r.ch).filter(Boolean))].sort();
+  const eivrChainMap = eivrChainCanonicalMap();
+  const eivrEffectiveChains = EIV_ALL_REPORTS.map(r => eivrEffectiveChain(r, eivrChainMap));
+  const chains = [...new Set(eivrEffectiveChains.filter(c => c !== EIVR_OTHERS))].sort();
+  if (eivrEffectiveChains.includes(EIVR_OTHERS)) chains.push(EIVR_OTHERS);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / EIVR_PAGE_SIZE));
   if (eivrPage >= totalPages) eivrPage = totalPages - 1;
