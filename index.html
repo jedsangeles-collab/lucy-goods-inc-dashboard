@@ -1344,27 +1344,6 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .civauth-modal-body{padding:16px 20px;}
 .civauth-modal-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
 .civauth-modal-filters select,.civauth-modal-filters input{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-family:inherit;}
-.civauth-modal-eivd{max-width:600px;}
-.eivd-box{font-size:13px;color:#333;}
-.eivd-header{display:flex;gap:24px;margin-bottom:14px;flex-wrap:wrap;}
-.eivd-label{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;}
-.eivd-value{font-size:15px;font-weight:700;color:#1a1a18;}
-.eivd-section{margin-bottom:14px;}
-.eivd-section-title{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;}
-.eivd-metric{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ece9e0;font-size:12px;}
-.eivd-metric:last-child{border-bottom:none;}
-.eivd-period{color:#999;font-weight:400;}
-.eivd-list{margin:0;padding-left:18px;}
-.eivd-list li{margin-bottom:4px;}
-.eivd-empty{color:#999;font-style:italic;font-size:12px;}
-.eivd-decision{border-radius:8px;padding:12px 14px;margin-bottom:14px;}
-.eivd-decision-label{font-size:16px;font-weight:700;}
-.eivd-ok{background:#eaf7ee;color:#1a7a3c;}
-.eivd-warn{background:#fff3e0;color:#8a5000;}
-.eivd-bad{background:#fbe9e7;color:#a3271f;}
-.eivd-unknown{background:#f0f0ee;color:#666;}
-.eivd-footer{font-size:11px;color:#999;margin-bottom:14px;}
-.eivd-btns{display:flex;gap:8px;flex-wrap:wrap;}
 .civr-scroll-fab{position:fixed;right:24px;bottom:24px;z-index:250;pointer-events:none;}
 .civr-fab-group{display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:auto;}
 .civr-fab{font-size:12px;font-weight:600;padding:9px 16px;border-radius:20px;border:none;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.25);white-space:nowrap;}
@@ -4400,17 +4379,15 @@ function renderCivModal() {
   const el = document.getElementById('civauth-modal-root');
   if (!el) return;
   if (!civModalOpen) { el.innerHTML = ''; civrUpdateScrollFab(); return; }
-  const titles = { history: 'Change History', activity: 'Activity Log', revert: 'Revert Change', restore: 'Restore Version', 'leave-warning': 'Unsaved Changes', 'eiv-decision': 'Decision Summary' };
+  const titles = { history: 'Change History', activity: 'Activity Log', revert: 'Revert Change', restore: 'Restore Version', 'leave-warning': 'Unsaved Changes' };
   let body = '';
   if (civModalOpen === 'history') body = civHistoryTableHtml();
   else if (civModalOpen === 'activity') body = civActivityTableHtml();
   else if (civModalOpen === 'revert') body = civRevertPanelHtml();
   else if (civModalOpen === 'restore') body = civRestorePanelHtml();
   else if (civModalOpen === 'leave-warning') body = civLeaveWarningHtml();
-  else if (civModalOpen === 'eiv-decision') body = eivDecisionModalBodyHtml(EIV_DECISION_MODAL_DATA);
-  const modalCls = civModalOpen === 'eiv-decision' ? ' civauth-modal-eivd' : '';
   el.innerHTML = `<div class="civauth-modal-backdrop civauth-open" onclick="if(event.target===this) civCloseModal()">
-    <div class="civauth-modal${modalCls}">
+    <div class="civauth-modal">
       <div class="civauth-modal-head"><span class="civauth-modal-title">${titles[civModalOpen]}</span><button class="civauth-modal-close" onclick="civCloseModal()">✕</button></div>
       <div class="civauth-modal-body">${body}</div>
     </div>
@@ -4582,13 +4559,6 @@ function civSubmitVerdict(src, id) {
   civSaveVersion(id, versionSnapshot).then(version => {
     civLogAudit('save', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, version_id: version ? version.id : null });
   });
-  // Automated Decision, Eileen-only (see EIV_VELOCITY_THRESHOLD/eivComputeDecision above) --
-  // deliberately gated on src so CI Visit Review's own submit flow is completely untouched.
-  if (src === 'eileen') {
-    const decisionResult = eivComputeDecision(draft, reportDoor(rec));
-    eivSaveDecision(rec, decisionResult);
-    civOpenEivDecisionModal(rec, decisionResult);
-  }
   civRerenderActive();
 }
 function civUndoVerdict(src, id) {
@@ -5223,184 +5193,6 @@ function eivrSkuTableHtml(rec, draft) {
   </div>`;
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// Eileen Visit Review -- automated decision on Submit. Self-contained to this tab (deliberately
-// NOT wired into the pre-existing "Customer impact visit" ACTION_TYPES/CRG concept, which is
-// CI-only and driven by CI's own `revisit` field -- confirmed with the user before building this).
-// ══════════════════════════════════════════════════════════════════════════
-const EIV_VELOCITY_THRESHOLD = 60;
-
-// Distinct from door.realVelocity (units/WEEK, shown in civrVelocityHtml) -- this decision needs
-// a units/MONTH figure, computed straight from door.salesByMonth. Real data check before building
-// this: of 611 doors ever visited via Eileen, only 7 have any velocity data at all and the best-
-// covered door has just 5 months of history -- so `monthsUsed` is surfaced explicitly rather than
-// silently presented as if it were always a true 6-month average.
-function eivDoorMonthlyVelocity(door) {
-  if (!door || !door.salesByMonth || !door.salesByMonth.length) return { avgUnits: null, monthsUsed: 0, periodStart: null, periodEnd: null };
-  const recent = [...door.salesByMonth].filter(m => m.month && m.units != null)
-    .sort((a, b) => b.month.localeCompare(a.month)).slice(0, 6);
-  if (!recent.length) return { avgUnits: null, monthsUsed: 0, periodStart: null, periodEnd: null };
-  const avg = recent.reduce((s, m) => s + Number(m.units || 0), 0) / recent.length;
-  return { avgUnits: avg, monthsUsed: recent.length, periodStart: recent[recent.length - 1].month, periodEnd: recent[0].month };
-}
-
-// Findings are derived entirely from what the reviewer already captured in this same verdict --
-// no new data collection. "Shelf Strip/POP issue" (the Decision 2 trigger) covers a missing strip,
-// a present-but-wrong strip, or empty facings (a POP/display issue, not just the strip itself).
-function eivDecisionFindings(draft) {
-  const findings = [];
-  if (draft.facingsStatus === 'empty') findings.push('Facings reported Empty');
-  if (draft.shelfStripPresent === false) findings.push('Shelf strip not present');
-  if (draft.shelfStripPresent === true && draft.shelfStripCorrect === false) findings.push('Shelf strip present but does not match current promo');
-  if (draft.flag) findings.push('Flagged by reviewer' + (draft.notes ? ': ' + draft.notes : ''));
-  else if (draft.notes) findings.push('Reviewer note: ' + draft.notes);
-  const othersRow = draft.skuObserved && draft.skuObserved['Others'];
-  if (othersRow && othersRow.present === true && othersRow.detail) findings.push('Off-catalog flavor observed: ' + othersRow.detail);
-  return findings;
-}
-function eivHasPopIssue(draft) {
-  return draft.facingsStatus === 'empty' || draft.shelfStripPresent === false || (draft.shelfStripPresent === true && draft.shelfStripCorrect === false);
-}
-
-function eivActionItemsFor(decision, findings, vel) {
-  if (decision === 'no_civ') {
-    return ['No action required — door is performing within the expected threshold.', 'Continue standard visit cadence.'];
-  }
-  if (decision === 'shelf_strip_refill') {
-    const items = ['Replace/refill the shelf strip at the next visit.'];
-    if (findings.some(f => f.includes('does not match'))) items.push('Confirm the new strip matches the current promo.');
-    return items;
-  }
-  if (decision === 'civ_recommended') {
-    const items = ['Schedule a Customer Impact Visit.'];
-    if (vel.avgUnits !== null) items.push(`Investigate low sell-through — averaging ${vel.avgUnits.toFixed(1)} units/month vs. the ${EIV_VELOCITY_THRESHOLD}-unit threshold.`);
-    if (findings.length) items.push('Review and address the findings above.');
-    return items;
-  }
-  // insufficient_data
-  return ['Insufficient sales history for an automated recommendation.', 'Reviewer discretion: use the findings above to decide whether a Shelf Strip Refill or Customer Impact Visit is warranted.'];
-}
-
-function eivComputeDecision(draft, door) {
-  const vel = eivDoorMonthlyVelocity(door);
-  const findings = eivDecisionFindings(draft);
-  const popIssue = eivHasPopIssue(draft);
-  let decision, meetsThreshold = null;
-  if (vel.avgUnits === null) {
-    decision = 'insufficient_data';
-  } else {
-    meetsThreshold = vel.avgUnits >= EIV_VELOCITY_THRESHOLD;
-    decision = meetsThreshold ? (popIssue ? 'shelf_strip_refill' : 'no_civ') : 'civ_recommended';
-  }
-  return {
-    decision, findings, meetsThreshold,
-    velocityAvg: vel.avgUnits, monthsUsed: vel.monthsUsed, periodStart: vel.periodStart, periodEnd: vel.periodEnd,
-    threshold: EIV_VELOCITY_THRESHOLD,
-    actionItems: eivActionItemsFor(decision, findings, vel)
-  };
-}
-
-const EIV_DECISION_LABELS = {
-  no_civ: 'No Customer Impact Visit Required',
-  shelf_strip_refill: 'Shelf Strip Refill Recommended',
-  civ_recommended: 'Customer Impact Visit Recommended',
-  insufficient_data: 'Insufficient Data'
-};
-
-let EIV_DECISIONS_CACHE = {}; // reportKey(rec) -> saved decision row (camelCase), hydrated in loadAllData()
-
-async function eivSaveDecision(rec, result) {
-  const decidedAt = new Date().toISOString();
-  const door = reportDoor(rec);
-  // rec is often just a bare {src,id} (e.g. from civSubmitVerdict) -- resolve the full record for
-  // the chain/address/visit-date fields being persisted, same as eivDecisionModalBodyHtml.
-  const fullRec = EILEEN.find(x => x.id === rec.id) || {};
-  const row = {
-    src: rec.src, report_id: rec.id,
-    chain: fullRec.ch || null, store_address: fullRec.a || null, door_key: door ? door.key : null, visit_date: fullRec.vd || fullRec.month || null,
-    velocity_avg: result.velocityAvg, velocity_months_used: result.monthsUsed,
-    velocity_period_start: result.periodStart, velocity_period_end: result.periodEnd,
-    threshold: result.threshold, meets_threshold: result.meetsThreshold, decision: result.decision,
-    findings: result.findings, action_items: result.actionItems,
-    decided_at: decidedAt, decided_by: (civCurrentUser() || {}).fullName || null
-  };
-  const cacheEntry = eivDecisionRowToCache(row);
-  EIV_DECISIONS_CACHE[reportKey(rec)] = cacheEntry;
-  if (usingEmbeddedSnapshot) {
-    localStorage.setItem('lucyEileenDecisions_v1', JSON.stringify(EIV_DECISIONS_CACHE));
-    return cacheEntry;
-  }
-  const { error } = await sb.from('eileen_decisions').upsert(row, { onConflict: 'src,report_id' });
-  if (error) console.error('eileen_decisions upsert failed', error);
-  return cacheEntry;
-}
-
-function civOpenEivDecisionModal(rec, result) {
-  EIV_DECISION_MODAL_DATA = { rec, result };
-  civModalOpen = 'eiv-decision';
-  renderCivModal();
-}
-function eivOpenSavedDecision(id) {
-  const rec = { src: 'eileen', id };
-  const cached = EIV_DECISIONS_CACHE[reportKey(rec)];
-  if (!cached) return;
-  civOpenEivDecisionModal(rec, {
-    decision: cached.decision, findings: cached.findings || [], meetsThreshold: cached.meetsThreshold,
-    velocityAvg: cached.velocityAvg, monthsUsed: cached.monthsUsed, periodStart: cached.periodStart, periodEnd: cached.periodEnd,
-    threshold: cached.threshold, actionItems: cached.actionItems || [], decidedAt: cached.decidedAt, decidedBy: cached.decidedBy
-  });
-}
-
-function eivDecisionModalBodyHtml(data) {
-  if (!data || !data.rec) return '';
-  const { rec, result } = data;
-  // civSubmitVerdict only carries a bare {src,id} through -- resolve the full Eileen record here
-  // for display, same lookup-by-id convention civReportChain() already uses.
-  const fullRec = EILEEN.find(x => x.id === rec.id) || {};
-  const chain = fullRec.ch || '—', store = fullRec.a || '—';
-  const decisionCls = { no_civ: 'eivd-ok', shelf_strip_refill: 'eivd-warn', civ_recommended: 'eivd-bad', insufficient_data: 'eivd-unknown' }[result.decision] || '';
-  const velLabel = result.velocityAvg !== null && result.velocityAvg !== undefined
-    ? `${result.velocityAvg.toFixed(1)} units/month <span class="eivd-period">(${result.monthsUsed}-month avg${result.monthsUsed < 6 ? ', only ' + result.monthsUsed + ' month' + (result.monthsUsed===1?'':'s') + ' on file' : ''})</span>`
-    : 'Not enough sales history';
-  const statusLabel = result.meetsThreshold === true ? 'Meets Threshold' : result.meetsThreshold === false ? 'Fails Threshold' : 'Insufficient Data';
-  const findingsHtml = result.findings && result.findings.length
-    ? `<ul class="eivd-list">${result.findings.map(f => `<li>${escHtml(f)}</li>`).join('')}</ul>`
-    : `<div class="eivd-empty">No issues found during this review.</div>`;
-  const actionsHtml = `<ul class="eivd-list">${(result.actionItems || []).map(a => `<li>${escHtml(a)}</li>`).join('')}</ul>`;
-  const decidedAt = result.decidedAt ? new Date(result.decidedAt).toLocaleString() : new Date().toLocaleString();
-  return `<div class="eivd-box">
-    <div class="eivd-header">
-      <div><span class="eivd-label">Store/Door</span><div class="eivd-value">${escHtml(store)}</div></div>
-      <div><span class="eivd-label">Chain</span><div class="eivd-value">${escHtml(chain)}</div></div>
-    </div>
-    <div class="eivd-section">
-      <div class="eivd-section-title">Performance Summary</div>
-      <div class="eivd-metric"><span>6-Month Moving Average Velocity</span><strong>${velLabel}</strong></div>
-      <div class="eivd-metric"><span>Required Threshold</span><strong>${result.threshold} units/month</strong></div>
-      <div class="eivd-metric"><span>Threshold Status</span><strong class="${decisionCls}">${statusLabel}</strong></div>
-    </div>
-    <div class="eivd-section">
-      <div class="eivd-section-title">Findings</div>
-      ${findingsHtml}
-    </div>
-    <div class="eivd-decision ${decisionCls}">
-      <div class="eivd-section-title">Automated Decision</div>
-      <div class="eivd-decision-label">${EIV_DECISION_LABELS[result.decision]}</div>
-    </div>
-    <div class="eivd-section">
-      <div class="eivd-section-title">Action Items</div>
-      ${actionsHtml}
-    </div>
-    <div class="eivd-footer">Decided ${escHtml(decidedAt)}${result.decidedBy ? ' by ' + escHtml(result.decidedBy) : ''}</div>
-    <div class="eivd-btns">
-      <button class="civauth-dash-btn" onclick="eivSaveDecision(EIV_DECISION_MODAL_DATA.rec, EIV_DECISION_MODAL_DATA.result)">Save</button>
-      <button class="civauth-dash-btn" onclick="window.print()">🖨 Print</button>
-      <button class="civauth-dash-btn" onclick="window.print()">⬇ Export as PDF</button>
-    </div>
-  </div>`;
-}
-let EIV_DECISION_MODAL_DATA = null;
-
 let eivrFilters = { chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' };
 let eivrPage = 0;
 const EIVR_PAGE_SIZE = 6;
@@ -5478,10 +5270,6 @@ function eivrBulkSubmit() {
     civSaveVersion(r.id, versionSnapshot).then(version => {
       civLogAudit('save', { chain: r.ch, door_key: civReportDoorKey(r.src, r.id), report_id: r.id, version_id: version ? version.id : null });
     });
-    // Compute + save a decision for each bulk-submitted record same as the single-record path,
-    // but deliberately no modal popup here -- N popups at once would be unusable. Each card gets
-    // a "View Decision" button afterward instead (eivrCardHtml), same as any prior submission.
-    eivSaveDecision(r, eivComputeDecision(draft, reportDoor(r)));
   });
   eivrBulkMsg = unsubmitted.length ? `✓ ${unsubmitted.length} report${unsubmitted.length===1?'':'s'} submitted` : 'All filtered reports are already submitted.';
   renderEileenVisitReview();
@@ -5541,14 +5329,12 @@ function eivrCardHtml(rec) {
   const status = getReportStatus(rec);
   const draft = civDraftVerdict(rec);
   const isDirty = civDirtySet.has(reportKey(rec));
-  const hasDecision = !!EIV_DECISIONS_CACHE[reportKey(rec)];
   return `<div class="civr-card-head">
     <div>
       <div class="civr-card-title">${escHtml(rec.ch||'—')} — ${escHtml(rec.a||'—')}${isDirty ? '<span class="civauth-dirty">● Unsaved Changes</span>' : ''}</div>
       <div class="civr-card-sub">${escHtml(rec.ci||'')}${rec.ci&&rec.st?', ':''}${escHtml(rec.st||'')} • ${escHtml(rec.vd||rec.month||'—')}</div>
       <div class="civr-badges">${eivrBadgesHtml(rec, status)}</div>
     </div>
-    ${hasDecision ? `<button class="civr-flag-btn" onclick="eivOpenSavedDecision(${rec.id})">View Decision →</button>` : ''}
   </div>
   <div class="civr-card-body">
     ${civrPhotosHtml(rec)}
@@ -6146,17 +5932,6 @@ function printCurrentView() { window.print(); }
     .detail-panel.open {
       display:block !important; position:static !important; width:100% !important;
       height:auto !important; transform:none !important; border:none !important; z-index:auto !important;
-    }
-    /* Same pattern for the Eileen Decision popup (Print/Export as PDF, requirement 6): print only
-       the decision content, no dashboard chrome, no modal close/action buttons. */
-    body:has(.civauth-modal-backdrop.civauth-open) .content { display:none !important; }
-    .civauth-modal-close, .eivd-btns { display:none !important; }
-    .civauth-modal-backdrop.civauth-open {
-      position:static !important; display:block !important; background:none !important;
-    }
-    .civauth-modal {
-      position:static !important; width:100% !important; max-width:100% !important; max-height:none !important;
-      box-shadow:none !important; border-radius:0 !important;
     }
   `;
   document.head.appendChild(style);
@@ -6914,10 +6689,6 @@ async function loadAllData() {
     try { ACTIONS_CACHE = JSON.parse(localStorage.getItem('lucyActions_v1') || '[]'); } catch(e) { ACTIONS_CACHE = []; }
     try { REPORT_STATUS_CACHE = JSON.parse(localStorage.getItem('lucyReportStatus_v1') || '{}'); } catch(e) { REPORT_STATUS_CACHE = {}; }
     try { REPORT_VERDICT_CACHE = JSON.parse(localStorage.getItem('lucyReportVerdicts_v1') || '{}'); } catch(e) { REPORT_VERDICT_CACHE = {}; }
-    try { EIV_DECISIONS_CACHE = JSON.parse(localStorage.getItem('lucyEileenDecisions_v1') || '{}'); } catch(e) { EIV_DECISIONS_CACHE = {}; }
-    // Snapshot builds may predate this table -- fall back gracefully rather than erroring.
-    EIV_DECISIONS_CACHE = EIV_DECISIONS_CACHE || {};
-    (snap.EILEEN_DECISIONS || []).forEach(d => { EIV_DECISIONS_CACHE[d.src + '|' + d.report_id] = eivDecisionRowToCache(d); });
     return;
   }
   const [chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows,
@@ -6935,15 +6706,6 @@ async function loadAllData() {
     sbFetchAll('chain_programs', 'chain')
   ]);
   applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows, chainProgramsRows);
-  // Fetched separately, outside the main Promise.all: eileen_decisions is a brand-new table and
-  // this dashboard.html ships live the moment it's pushed, ahead of whenever the migration
-  // actually gets run in Supabase -- if that single fetch threw inside the shared Promise.all it
-  // would break EVERY tab's data load, not just Eileen's. Same graceful-degrade precedent already
-  // established for CHAIN_PROGRAMS ("absent from older snapshots... degrades to Not Tracked,
-  // never an error") -- View Decision buttons just won't appear until the table exists.
-  let eileenDecisionsRows = [];
-  try { eileenDecisionsRows = await sbFetchAll('eileen_decisions', 'decided_at'); }
-  catch (e) { console.warn('eileen_decisions not available yet (migration pending?)', e); }
 
   ACTIONS_CACHE = actionsRows.map(a => ({
     id: a.id, doorKey: a.door_key, chain: a.chain, type: a.type, priority: a.priority,
@@ -6976,16 +6738,6 @@ async function loadAllData() {
       updatedAt: rv.updated_at
     };
   });
-  EIV_DECISIONS_CACHE = {};
-  eileenDecisionsRows.forEach(d => { EIV_DECISIONS_CACHE[d.src + '|' + d.report_id] = eivDecisionRowToCache(d); });
-}
-function eivDecisionRowToCache(d) {
-  return {
-    chain: d.chain, storeAddress: d.store_address, doorKey: d.door_key, visitDate: d.visit_date,
-    velocityAvg: d.velocity_avg, monthsUsed: d.velocity_months_used, periodStart: d.velocity_period_start, periodEnd: d.velocity_period_end,
-    threshold: d.threshold, meetsThreshold: d.meets_threshold, decision: d.decision,
-    findings: d.findings || [], actionItems: d.action_items || [], decidedAt: d.decided_at, decidedBy: d.decided_by
-  };
 }
 
 function showLoadOverlay(mode, detail) {
