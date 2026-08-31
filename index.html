@@ -3946,7 +3946,7 @@ function getReportVerdict(rec) {
   // hint from either (see eivRepHint), so the blank shape starts fully null, same honesty
   // convention as every other blank verdict.
   return rec.src === 'eileen'
-    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, notes:'', flag:false }
+    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, decisionOverride:null, notes:'', flag:false }
     : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 function setReportVerdict(rec, verdict) {
@@ -3960,11 +3960,21 @@ function setReportVerdict(rec, verdict) {
     // shelf_strip_correct is a `text` column (not boolean) for the same reason CI's
     // strip_accurate is -- it also allows a literal "N/A" answer.
     const shelfStripCorrectOut = verdict.shelfStripCorrect === true ? 'true' : verdict.shelfStripCorrect === false ? 'false' : verdict.shelfStripCorrect === 'na' ? 'na' : null;
+    // Decision fields are recomputed fresh here (not just copied off the draft) so a save always
+    // reflects the CURRENT door velocity + CURRENT Shelf Strip Correct? answer, even if something
+    // upstream changed between when the card last rendered and when Submit was actually clicked.
+    const dec = eivComputeSystemRecommendation(rec, verdict);
+    const finalDecision = verdict.decisionOverride || dec.recommendation;
+    const decisionStatus = (verdict.decisionOverride && verdict.decisionOverride !== dec.recommendation) ? 'manual_override' : 'automatic';
     sb.from('report_verdicts').upsert({
       src: rec.src, report_id: rec.id,
       facings_status: verdict.facingsStatus, facings_empty_count: verdict.facingsEmptyCount,
       shelf_strip_present: verdict.shelfStripPresent, shelf_strip_correct: shelfStripCorrectOut,
       sku_observed: verdict.skuObserved || {},
+      decision: finalDecision, decision_system_recommendation: dec.recommendation, decision_status: decisionStatus,
+      decision_velocity_avg: dec.vel.avg, decision_velocity_months_used: dec.vel.monthsUsed,
+      decision_threshold: EIV_DECISION_THRESHOLD, decision_threshold_status: dec.meetsThreshold ? 'meets' : 'below',
+      decision_decided_by: civCurrentUser() ? civCurrentUser().fullName : null,
       notes: verdict.notes, flag: verdict.flag,
       updated_at: updatedAt
     }).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
@@ -4214,11 +4224,11 @@ function civPrevVersionFor(reportId, beforeVersionId) {
 }
 function civBlankVerdictSnapshot(src) {
   return src === 'eileen'
-    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, notes:'', flag:false }
+    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, decisionOverride:null, notes:'', flag:false }
     : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 
-const EIV_DIFF_FIELDS = [['facingsStatus','Total Lucy Facings'],['facingsEmptyCount','# of Facings Empty'],['shelfStripPresent','Shelf Strip Present?'],['shelfStripCorrect','Shelf Strip Correct?'],['skuObserved','SKUs Observed'],['notes','Notes'],['flag','Flagged']];
+const EIV_DIFF_FIELDS = [['facingsStatus','Total Lucy Facings'],['facingsEmptyCount','# of Facings Empty'],['shelfStripPresent','Shelf Strip Present?'],['shelfStripCorrect','Shelf Strip Correct?'],['skuObserved','SKUs Observed'],['decisionOverride','Decision Override'],['notes','Notes'],['flag','Flagged']];
 const CIV_DIFF_FIELDS = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAccurate','Strip Accurate?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
 function civDiffHtml(current, target) {
   const src = current.src || target.src;
@@ -4482,7 +4492,7 @@ function civDraftVerdict(rec) {
       // Eileen's source CSV is a pure photo log -- no rep-reported stock/promo field of any
       // kind exists to pre-fill from (confirmed by direct inspection), so this always starts
       // fully blank, same honesty convention as every other blank verdict in this app.
-      CIV_VERDICT_DRAFT[k] = { facingsStatus: null, facingsEmptyCount: null, shelfStripPresent: null, shelfStripCorrect: null, skuObserved: {}, notes: '', flag: false };
+      CIV_VERDICT_DRAFT[k] = { facingsStatus: null, facingsEmptyCount: null, shelfStripPresent: null, shelfStripCorrect: null, skuObserved: {}, decisionOverride: null, notes: '', flag: false };
     } else {
       // First time this CI visit has ever been opened for review: pre-fill Strip Present/Needs
       // Product from the rep's own reported data, same convention as Report Review. Strip Added
@@ -5115,6 +5125,47 @@ function eivSetFacingsEmptyCount(id, value) {
   civRerenderActive();
 }
 
+// Decision dropdown: system recommendation is always derived live from the door's real sales
+// history (salesByMonth) + the current Shelf Strip Correct? answer, never from door.realVelocity
+// (a single latest-month scalar) -- the user explicitly wants a genuine multi-month average,
+// each month converted to a weekly rate first via the same /4.33 convention build_sales.ps1 uses.
+const EIV_DECISION_THRESHOLD = 60; // units/week, averaged over the last up to 6 real months on file
+function eivDoorVelocity6moAvg(door) {
+  if (!door || !Array.isArray(door.salesByMonth) || door.salesByMonth.length === 0) {
+    return { avg: null, monthsUsed: 0, periodStart: null, periodEnd: null };
+  }
+  const sorted = door.salesByMonth
+    .filter(sm => sm.month && typeof sm.units === 'number')
+    .sort((a, b) => a.month.localeCompare(b.month));
+  const last6 = sorted.slice(-6);
+  if (last6.length === 0) return { avg: null, monthsUsed: 0, periodStart: null, periodEnd: null };
+  const weeklyRates = last6.map(sm => sm.units / 4.33);
+  const avg = weeklyRates.reduce((s, v) => s + v, 0) / weeklyRates.length;
+  return { avg: Math.round(avg * 10) / 10, monthsUsed: last6.length, periodStart: last6[0].month, periodEnd: last6[last6.length - 1].month };
+}
+function eivComputeSystemRecommendation(rec, draft) {
+  const door = reportDoor(rec);
+  const vel = eivDoorVelocity6moAvg(door);
+  // No sales history on file at all -> treated as meeting the threshold (skip the velocity gate,
+  // decide from Shelf Strip Correct? alone), per the user's explicit resolution of this case.
+  const meetsThreshold = vel.avg === null ? true : vel.avg >= EIV_DECISION_THRESHOLD;
+  let recommendation;
+  if (!meetsThreshold) recommendation = 'customer_impact_visit';
+  else if (draft.shelfStripCorrect === true) recommendation = 'no_action_needed';
+  else recommendation = 'send_shelf_strip'; // covers false, 'na', and unanswered (null) alike
+  return { recommendation, vel, meetsThreshold };
+}
+function eivSetDecisionOverride(id, value) {
+  if (!civCanEdit()) return;
+  const rec = { src: 'eileen', id };
+  const draft = civDraftVerdict(rec);
+  const prev = draft.decisionOverride;
+  draft.decisionOverride = value;
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'decisionOverride', previous_value: prev, new_value: draft.decisionOverride });
+  civRerenderActive();
+}
+
 // SKUs Observed (editable): unlike CI/poppromo's civrSkuTableHtml, Eileen's source has no raw
 // per-flavor facings data to read read-only (confirmed -- pure photo log, no compliance fields at
 // all), so this is a reviewer-entered field instead: restricted to the approved LUCY flavor list
@@ -5298,11 +5349,19 @@ function eivrBadgesHtml(rec, status) {
   return badges;
 }
 
+const EIV_DECISION_LABELS = { no_action_needed: 'No Action Needed', send_shelf_strip: 'Send Shelf Strip', customer_impact_visit: 'Customer Impact Visit' };
 function eivrVerdictBarHtml(rec, draft, status) {
   const locked = status === 'Reviewed';
   const canEdit = civCanEdit();
   const dis = canEdit ? '' : 'disabled';
   const isDirty = civDirtySet.has(reportKey(rec));
+  const dec = eivComputeSystemRecommendation(rec, draft);
+  const finalDecision = draft.decisionOverride || dec.recommendation;
+  const decisionStatus = (draft.decisionOverride && draft.decisionOverride !== dec.recommendation) ? 'manual_override' : 'automatic';
+  const velLine = dec.vel.avg !== null
+    ? `${dec.vel.monthsUsed}-Month Avg Velocity: ${dec.vel.avg.toFixed(1)} units/wk (${civFmtMonthLabel(dec.vel.periodStart)} – ${civFmtMonthLabel(dec.vel.periodEnd)})`
+    : 'No sales history on file';
+  const thresholdStatusLabel = dec.vel.avg === null ? 'N/A (no data)' : (dec.meetsThreshold ? 'Meets Threshold' : 'Below Threshold');
   return `<div class="civr-verdict-bar">
     <div class="civr-vq">
       <div class="civr-vq-label">Total Lucy Facings</div>
@@ -5329,6 +5388,18 @@ function eivrVerdictBarHtml(rec, draft, status) {
         <button class="civr-tbtn ${draft.shelfStripCorrect===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripCorrect', false)">No</button>
         <button class="civr-tbtn ${draft.shelfStripCorrect==='na'?'civr-on-na':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripCorrect', 'na')">N/A</button>
       </div>
+    </div>
+    <div class="civr-vq">
+      <div class="civr-vq-label">Decision</div>
+      <select class="civr-select" ${dis} onchange="eivSetDecisionOverride(${rec.id}, this.value)">
+        <option value="no_action_needed" ${finalDecision==='no_action_needed'?'selected':''}>No Action Needed</option>
+        <option value="send_shelf_strip" ${finalDecision==='send_shelf_strip'?'selected':''}>Send Shelf Strip</option>
+        <option value="customer_impact_visit" ${finalDecision==='customer_impact_visit'?'selected':''}>Customer Impact Visit</option>
+      </select>
+      <div class="civr-vq-pre">${esc(velLine)}</div>
+      <div class="civr-vq-pre">Threshold: 60 units/wk &middot; ${thresholdStatusLabel}</div>
+      <div class="civr-vq-pre" style="font-style:italic;">System Rec: ${EIV_DECISION_LABELS[dec.recommendation]}</div>
+      <span class="civr-tbtn ${decisionStatus==='manual_override'?'civr-on-na':'civr-on-yes'}" style="pointer-events:none; display:inline-block; margin-top:2px;">${decisionStatus==='manual_override'?'Manually Overridden':'Automatic'}</span>
     </div>
     <div class="civr-submit-col">
       <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict('eileen', ${rec.id})">${locked?'Submitted ✓':'Submit ✓'}</button>
@@ -5365,6 +5436,9 @@ function eivrCardHtml(rec) {
 function eivrExportCSV() {
   const rows = EIV_ALL_REPORTS.map(rec => {
     const draft = civDraftVerdict(rec);
+    const dec = eivComputeSystemRecommendation(rec, draft);
+    const finalDecision = draft.decisionOverride || dec.recommendation;
+    const decisionStatus = (draft.decisionOverride && draft.decisionOverride !== dec.recommendation) ? 'Manually Overridden' : 'Automatic';
     return {
       Store: rec.a||'', City: rec.ci||'', State: rec.st||'', Chain: rec.ch||'', VisitDate: rec.vd||rec.month||'',
       TotalLucyFacings: draft.facingsStatus === 'full' ? 'Full' : draft.facingsStatus === 'empty' ? 'Empty' : '',
@@ -5372,6 +5446,7 @@ function eivrExportCSV() {
       ShelfStripPresent: rrYNCsv(draft.shelfStripPresent), ShelfStripCorrect: rrYNCsv(draft.shelfStripCorrect),
       SKUsObserved: Object.keys(draft.skuObserved||{}).filter(k => draft.skuObserved[k] && draft.skuObserved[k].present===true)
         .map(k => `${k}${k==='Others'&&draft.skuObserved[k].detail?' ('+draft.skuObserved[k].detail+')':''}: Present${draft.skuObserved[k].count?' ('+draft.skuObserved[k].count+')':''}`).join('; '),
+      Decision: EIV_DECISION_LABELS[finalDecision]||'', SystemRecommendation: EIV_DECISION_LABELS[dec.recommendation]||'', DecisionStatus: decisionStatus,
       Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No'
     };
@@ -6745,6 +6820,10 @@ async function loadAllData() {
         facingsStatus: rv.facings_status, facingsEmptyCount: rv.facings_empty_count,
         shelfStripPresent: rv.shelf_strip_present, shelfStripCorrect: shelfStripCorrectIn,
         skuObserved: rv.sku_observed || {},
+        // Only restore the override when the last save was actually a manual override -- an
+        // 'automatic' save must keep decisionOverride null so it keeps live-following whatever
+        // the system recommendation computes to on future loads, not a frozen past value.
+        decisionOverride: rv.decision_status === 'manual_override' ? rv.decision : null,
         notes: rv.notes || '', flag: !!rv.flag,
         updatedAt: rv.updated_at
       };
