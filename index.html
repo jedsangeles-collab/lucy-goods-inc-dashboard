@@ -4591,6 +4591,10 @@ function civSaveAllDirty() {
 let civrFilters = { chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
 let civrPage = 0;
 const CIVR_PAGE_SIZE = 6; // matches the reference prototype's own PER_PAGE exactly
+// "Next/Prev 50" jump by roughly 50 records at a time -- expressed as a page delta since
+// pagination here is page-indexed, not record-offset-indexed (Math.round(50/6)=8 pages, 48
+// records; close enough to "50" that re-deriving a record-offset pager wasn't worth it).
+const CIVR_JUMP_PAGES = Math.round(50 / CIVR_PAGE_SIZE);
 let civrBulkMsg = '';
 
 function civrSetFilter(key, val) { civrFilters[key] = val; civrPage = 0; civrBulkMsg = ''; renderCiVisitReview(); }
@@ -4626,7 +4630,10 @@ function civrFilteredReports() {
     if (civrFilters.revisit === 'blank' && draft.revisit !== null) return false;
     if (civrFilters.flagged === 'yes' && !draft.flag) return false;
     return true;
-  });
+  // Stores with a real Weekly Velocity figure sort first; "Not Tracked" ones go to the back --
+  // stable sort (native since ES2019) preserves each group's existing relative order otherwise,
+  // so this only reorders across the tracked/untracked boundary, nothing within either group.
+  }).sort((a, b) => (civrVelocitySnapshot(a) ? 0 : 1) - (civrVelocitySnapshot(b) ? 0 : 1));
 }
 
 // Stats bar totals are always computed over the FULL scope (not the current filter), matching
@@ -5043,9 +5050,11 @@ function renderCiVisitReview() {
   <div class="civr-main">
     ${cardsHtml}
     <div class="civr-pager">
+      <button class="civr-page-btn" onclick="civrChangePage(-${CIVR_JUMP_PAGES})" ${civrPage<=0?'disabled':''}>← Prev 50</button>
       <button class="civr-page-btn" onclick="civrChangePage(-1)" ${civrPage<=0?'disabled':''}>← Prev</button>
       <span class="civr-page-info">${filtered.length===0?'':`${start+1}–${Math.min(start+CIVR_PAGE_SIZE, filtered.length)} of ${filtered.length}`}</span>
       <button class="civr-page-btn" onclick="civrChangePage(1)" ${civrPage>=totalPages-1?'disabled':''}>Next →</button>
+      <button class="civr-page-btn" onclick="civrChangePage(${CIVR_JUMP_PAGES})" ${civrPage>=totalPages-1?'disabled':''}>Next 50 →</button>
     </div>
   </div>
   `;
@@ -5198,6 +5207,8 @@ function eivrSkuTableHtml(rec, draft) {
 let eivrFilters = { chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' };
 let eivrPage = 0;
 const EIVR_PAGE_SIZE = 6;
+// See CIVR_JUMP_PAGES's comment -- same "Next/Prev 50" approximation, page-indexed pagination.
+const EIVR_JUMP_PAGES = Math.round(50 / EIVR_PAGE_SIZE);
 let eivrBulkMsg = '';
 
 function eivrSetFilter(key, val) { eivrFilters[key] = val; eivrPage = 0; eivrBulkMsg = ''; renderEileenVisitReview(); }
@@ -5242,7 +5253,11 @@ function eivrFilteredReports() {
     if (eivrFilters.shelfStripCorrect && String(draft.shelfStripCorrect) !== eivrFilters.shelfStripCorrect) return false;
     if (eivrFilters.flagged === 'yes' && !draft.flag) return false;
     return true;
-  });
+  })
+  // Stores with a real Weekly Velocity figure sort first; "Not Tracked" ones go to the back --
+  // same convention as civrFilteredReports(), stable sort so it only reorders across the
+  // tracked/untracked boundary, nothing within either group.
+  .sort((a, b) => (civrVelocitySnapshot(a) ? 0 : 1) - (civrVelocitySnapshot(b) ? 0 : 1));
 }
 
 function eivrStats() {
@@ -5483,9 +5498,11 @@ function renderEileenVisitReview() {
   <div class="civr-main">
     ${cardsHtml}
     <div class="civr-pager">
+      <button class="civr-page-btn" onclick="eivrChangePage(-${EIVR_JUMP_PAGES})" ${eivrPage<=0?'disabled':''}>← Prev 50</button>
       <button class="civr-page-btn" onclick="eivrChangePage(-1)" ${eivrPage<=0?'disabled':''}>← Prev</button>
       <span class="civr-page-info">${filtered.length===0?'':`${start+1}–${Math.min(start+EIVR_PAGE_SIZE, filtered.length)} of ${filtered.length}`}</span>
       <button class="civr-page-btn" onclick="eivrChangePage(1)" ${eivrPage>=totalPages-1?'disabled':''}>Next →</button>
+      <button class="civr-page-btn" onclick="eivrChangePage(${EIVR_JUMP_PAGES})" ${eivrPage>=totalPages-1?'disabled':''}>Next 50 →</button>
     </div>
   </div>
   `;
