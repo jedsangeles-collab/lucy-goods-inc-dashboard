@@ -4548,7 +4548,7 @@ function civSubmitVerdict(src, id) {
   const draft = civDraftVerdict(rec);
   setReportVerdict(rec, draft);
   setReportStatus(rec, 'Reviewed');
-  // Recent Door Velocity is captured into the saved version as a reference snapshot only --
+  // Weekly Velocity is captured into the saved version as a reference snapshot only --
   // it's never a report_verdicts column (setReportVerdict above ignores unknown properties),
   // just a contextual data point recorded alongside whatever the reviewer answered this time.
   // `src` rides along too -- civ_report_versions has no src column of its own, so this is the
@@ -4799,10 +4799,12 @@ function civrCardWrapperClass(rec) {
   return 'civr-store-card ' + (civDraftVerdict(rec).flag ? 'civr-submitted-flag' : 'civr-submitted');
 }
 
-// Recent Door Velocity: real per-store units/week from the door's most recent month with sales
-// data (door.realVelocity, the same figure shown elsewhere in the app as "real velocity") --
-// paired with which month it actually reflects, read straight off door.salesByMonth, since the
-// ETL doesn't separately expose that month. Read-only, purely contextual for the reviewer.
+// Weekly Velocity (renamed from "Recent Door Velocity" to match the "Store Weekly Velocity by
+// Chain.xlsx" report's own column header -- same underlying figure, door.realVelocity, confirmed
+// identical to that report since both are generated from the exact same live Supabase data):
+// real per-store units/week from the door's most recent month with sales data, paired with which
+// month it actually reflects, read straight off door.salesByMonth since the ETL doesn't
+// separately expose that month. Read-only, purely contextual for the reviewer.
 function civFmtMonthLabel(monthKey) {
   if (!monthKey || !/^\d{4}-\d{2}$/.test(monthKey)) return monthKey || null;
   const [y,m] = monthKey.split('-').map(Number);
@@ -4819,7 +4821,7 @@ function civrVelocityHtml(rec) {
   const snap = civrVelocitySnapshot(rec);
   const periodLabel = snap && snap.period ? civFmtMonthLabel(snap.period) : 'most recent available month';
   return `<div class="civr-velocity-box">
-    <span class="civr-velocity-label">Recent Door Velocity <span class="civr-velocity-period">(${escHtml(periodLabel)}, real, read-only)</span></span>
+    <span class="civr-velocity-label">Weekly Velocity <span class="civr-velocity-period">(${escHtml(periodLabel)}, real, read-only)</span></span>
     <span class="civr-velocity-val">${snap ? snap.value.toFixed(1) + ' units/wk' : 'Not Tracked'}</span>
   </div>`;
 }
@@ -4827,7 +4829,7 @@ function civrVelocityHtml(rec) {
 // SKUs Observed: per-store breakdown of the raw "Breakers - Xmg - Flavor" / "Pouches - Xmg - Flavor"
 // facings columns (poppromo/GoSpotCheck source only -- CI never captured per-flavor facings, only
 // the aggregate sc/si/sp/ss scores) into a clean Category/Strength/Flavor/Facings table. Real data,
-// read-only, same "contextual for the reviewer" treatment as Recent Door Velocity above it.
+// read-only, same "contextual for the reviewer" treatment as Weekly Velocity above it.
 function civrSkuFacingsRows(rec) {
   const facings = rec.skuFacings;
   if (!facings || typeof facings !== 'object') return [];
@@ -4899,7 +4901,7 @@ function civrExportCSV() {
       YourStripAdded: rrYNCsv(draft.stripAdded), YourNeedsProduct: rrYNCsv(draft.needsProduct),
       Revisit: rrYNCsv(draft.revisit), Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No',
-      RecentDoorVelocity: (() => { const s = civrVelocitySnapshot(rec); return s ? s.value.toFixed(1)+' u/wk ('+(civFmtMonthLabel(s.period)||'unknown month')+')' : ''; })()
+      WeeklyVelocity: (() => { const s = civrVelocitySnapshot(rec); return s ? s.value.toFixed(1)+' u/wk ('+(civFmtMonthLabel(s.period)||'unknown month')+')' : ''; })()
     };
   });
   downloadCSV('ci_visit_review.csv', rows);
