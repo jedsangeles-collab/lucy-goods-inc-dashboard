@@ -4056,14 +4056,14 @@ async function civAuthInit() {
   civSession = data.session || null;
   if (civSession) { civUserProfile = await civLoadProfile(civSession.user.id); civSessionLoginAt = new Date().toISOString(); }
   civAuthReady = true;
-  if (civSession) { civLogAudit('login', {}); civRefreshDashboardStats(); }
+  if (civSession) { civLogAudit('login', {}); civRecordLogin(false); civRefreshDashboardStats(); }
   civRerenderActive();
   sb.auth.onAuthStateChange(async (event, session) => {
     const hadSession = !!civSession;
     civSession = session;
     if (session && (!civUserProfile || civUserProfile.id !== session.user.id)) civUserProfile = await civLoadProfile(session.user.id);
     if (!session) civUserProfile = null;
-    if (session && !hadSession) { civSessionLoginAt = new Date().toISOString(); civLogAudit('login', {}); civRefreshDashboardStats(); }
+    if (session && !hadSession) { civSessionLoginAt = new Date().toISOString(); civLogAudit('login', {}); civRecordLogin(false); civRefreshDashboardStats(); }
     civRerenderActive();
   });
 }
@@ -4081,9 +4081,31 @@ async function civRefreshDashboardStats() {
   civRerenderActive();
 }
 
-async function civSendMagicLink(email) {
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin + window.location.pathname } });
-  return error ? error.message : null;
+// Username -> email resolution happens server-side via a security-definer RPC (civ_email_for_username)
+// rather than a client-side convention, because the account set is deliberately heterogeneous: some
+// users carry their real work email in auth.users (from before this project moved off Magic Link),
+// others carry a synthetic internal address that was never a real inbox. The RPC returns null for an
+// unknown/disabled username, and a wrong password fails signInWithPassword -- both cases collapse to
+// the same generic message below so a login attempt never reveals which part was wrong.
+async function civSignInWithPassword(username, password) {
+  const GENERIC_ERR = 'Invalid username or password.';
+  const { data: email, error: lookupErr } = await sb.rpc('civ_email_for_username', { p_username: username });
+  if (lookupErr) { console.error('civ_email_for_username failed', lookupErr); return GENERIC_ERR; }
+  if (!email) return GENERIC_ERR;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  return error ? GENERIC_ERR : null;
+}
+
+function civRecordLogin(passwordChanged) {
+  sb.rpc('civ_record_login', { p_password_changed: !!passwordChanged }).then(({ error }) => { if (error) console.error('civ_record_login failed', error); });
+}
+
+async function civCompletePasswordChange(newPassword) {
+  const { error } = await sb.auth.updateUser({ password: newPassword });
+  if (error) return error.message;
+  civRecordLogin(true);
+  if (civUserProfile) civUserProfile.must_change_password = false; // reflect immediately, don't wait on a re-fetch
+  return null;
 }
 
 async function civSignOut() {
@@ -4131,27 +4153,79 @@ async function civSaveVersion(reportId, snapshot, opts) {
 function civFmtVersion(id) { return 'v' + String(id).padStart(3, '0'); }
 function civFmtWhen(iso) { return iso ? new Date(iso).toLocaleString() : '—'; }
 
-function civSubmitMagicLink() {
-  const input = document.getElementById('civauth-email');
-  const msgEl = document.getElementById('civauth-gate-msg');
-  const email = (input && input.value || '').trim();
-  if (!email) { msgEl.textContent = 'Enter an email address.'; return; }
-  msgEl.textContent = 'Sending…';
-  civSendMagicLink(email).then(err => {
-    msgEl.textContent = err ? ('Error: ' + err) : `Check ${email} for a sign-in link, then return to this tab.`;
+// Shared login/password-change gate for both CI Visit Review and Eileen Visit Review -- idPrefix
+// ('civauth'/'eivauth') keeps each tab's form field ids distinct in the DOM. Both tabs previously
+// carried their own near-identical copy of this gate (only the title text and id prefix differed);
+// centralizing it here means the forced-password-change step only had to be added in one place.
+function civSubmitLogin(idPrefix) {
+  const userInput = document.getElementById(idPrefix + '-username');
+  const passInput = document.getElementById(idPrefix + '-password');
+  const msgEl = document.getElementById(idPrefix + '-gate-msg');
+  const username = (userInput && userInput.value || '').trim().toLowerCase();
+  const password = (passInput && passInput.value || '');
+  if (!username || !password) { msgEl.textContent = 'Enter a username and password.'; return; }
+  msgEl.textContent = 'Signing in…';
+  civSignInWithPassword(username, password).then(err => { if (err) msgEl.textContent = err; });
+}
+
+function civSubmitPasswordChange(idPrefix) {
+  const p1 = document.getElementById(idPrefix + '-newpass');
+  const p2 = document.getElementById(idPrefix + '-newpass2');
+  const msgEl = document.getElementById(idPrefix + '-gate-msg');
+  const newPass = p1 && p1.value || '';
+  const confirmPass = p2 && p2.value || '';
+  if (newPass.length < 8) { msgEl.textContent = 'Password must be at least 8 characters.'; return; }
+  if (newPass !== confirmPass) { msgEl.textContent = 'Passwords do not match.'; return; }
+  msgEl.textContent = 'Saving…';
+  civCompletePasswordChange(newPass).then(err => {
+    if (err) { msgEl.textContent = 'Error: ' + err; return; }
+    civRerenderActive();
   });
 }
 
-function renderCivLoginGate() {
+function renderCivLoginForm(tabLabel, idPrefix) {
   return `<div class="civauth-gate">
     <div class="civauth-gate-box">
-      <div class="civauth-gate-title">CI Visit Review — sign in required</div>
-      <div class="civauth-gate-sub">Enter your work email to get a one-time sign-in link. No password needed.</div>
-      <input type="email" class="civauth-gate-input" id="civauth-email" placeholder="you@lucy.co">
-      <button class="civauth-gate-btn" onclick="civSubmitMagicLink()">Send magic link</button>
-      <div class="civauth-gate-msg" id="civauth-gate-msg"></div>
+      <div class="civauth-gate-title">${escHtml(tabLabel)} — sign in required</div>
+      <div class="civauth-gate-sub">Enter your username and password.</div>
+      <input type="text" class="civauth-gate-input" id="${idPrefix}-username" placeholder="Username" autocomplete="username">
+      <input type="password" class="civauth-gate-input" id="${idPrefix}-password" placeholder="Password" autocomplete="current-password">
+      <button class="civauth-gate-btn" onclick="civSubmitLogin('${idPrefix}')">Log in</button>
+      <div class="civauth-gate-msg" id="${idPrefix}-gate-msg"></div>
     </div>
   </div>`;
+}
+
+function renderCivPasswordChangeGate(idPrefix) {
+  return `<div class="civauth-gate">
+    <div class="civauth-gate-box">
+      <div class="civauth-gate-title">Set a new password</div>
+      <div class="civauth-gate-sub">Your account has a temporary password. Choose a new one to continue.</div>
+      <input type="password" class="civauth-gate-input" id="${idPrefix}-newpass" placeholder="New password" autocomplete="new-password">
+      <input type="password" class="civauth-gate-input" id="${idPrefix}-newpass2" placeholder="Confirm new password" autocomplete="new-password">
+      <button class="civauth-gate-btn" onclick="civSubmitPasswordChange('${idPrefix}')">Set password</button>
+      <div class="civauth-gate-msg" id="${idPrefix}-gate-msg"></div>
+      <div class="civauth-identity" style="justify-content:center;margin-top:10px;"><span class="civauth-signout" onclick="civSignOut()">Log out</span></div>
+    </div>
+  </div>`;
+}
+
+function renderCivDisabledGate() {
+  return `<div class="civauth-gate"><div class="civauth-gate-box">
+    <div class="civauth-gate-title">Account disabled</div>
+    <div class="civauth-gate-sub">Your dashboard access has been disabled. Contact an administrator.</div>
+    <div class="civauth-identity" style="justify-content:center;margin-top:10px;"><span class="civauth-signout" onclick="civSignOut()">Log out</span></div>
+  </div></div>`;
+}
+
+// Returns the HTML to render in place of a tab's real content, or null when the tab should render
+// normally (a real, active session with no forced password change pending).
+function civAuthGateHtml(tabLabel, idPrefix) {
+  if (!civAuthReady) return `<div class="civauth-gate"><div class="civauth-gate-box"><div class="civauth-gate-title">Checking session…</div></div></div>`;
+  if (!civCurrentUser()) return renderCivLoginForm(tabLabel, idPrefix);
+  if (civUserProfile && civUserProfile.status === 'disabled') return renderCivDisabledGate();
+  if (civUserProfile && civUserProfile.must_change_password) return renderCivPasswordChangeGate(idPrefix);
+  return null;
 }
 
 function renderCivReadOnlyBanner() {
@@ -4931,8 +5005,8 @@ function renderCiVisitReview() {
   // The Artifact host has no live Supabase connection to authenticate against, so it renders
   // read-only instead (confirmed with the user -- magic-link redirects can't target that sandbox).
   if (!usingEmbeddedSnapshot) {
-    if (!civAuthReady) { el.innerHTML = `<div class="civauth-gate"><div class="civauth-gate-box"><div class="civauth-gate-title">Checking session…</div></div></div>`; return; }
-    if (!civCurrentUser()) { el.innerHTML = renderCivLoginGate(); return; }
+    const gate = civAuthGateHtml('CI Visit Review', 'civauth');
+    if (gate) { el.innerHTML = gate; return; }
   }
 
   const filtered = civrFilteredReports();
@@ -5081,31 +5155,10 @@ function renderCiVisitReview() {
 // inspection -- so there is no rep-notes grid here and every verdict starts fully blank, same
 // honesty convention as everywhere else in this app.
 // ══════════════════════════════════════════════════════════════════════════
-// Separate id space from civauth-email/civauth-gate-msg (CI Visit Review's own login gate) --
-// both tabs' rendered HTML can coexist in the DOM at once (switching tabs only toggles
-// display:none, it doesn't clear the previous tab's #civ-main/#eiv-main content), so reusing
-// the same element ids across both gates would make document.getElementById() ambiguous.
-function eivSubmitMagicLink() {
-  const input = document.getElementById('eivauth-email');
-  const msgEl = document.getElementById('eivauth-gate-msg');
-  const email = (input && input.value || '').trim();
-  if (!email) { msgEl.textContent = 'Enter an email address.'; return; }
-  msgEl.textContent = 'Sending…';
-  civSendMagicLink(email).then(err => {
-    msgEl.textContent = err ? ('Error: ' + err) : `Check ${email} for a sign-in link, then return to this tab.`;
-  });
-}
-function renderEivLoginGate() {
-  return `<div class="civauth-gate">
-    <div class="civauth-gate-box">
-      <div class="civauth-gate-title">Eileen Visit Review — sign in required</div>
-      <div class="civauth-gate-sub">Enter your work email to get a one-time sign-in link. No password needed.</div>
-      <input type="email" class="civauth-gate-input" id="eivauth-email" placeholder="you@lucy.co">
-      <button class="civauth-gate-btn" onclick="eivSubmitMagicLink()">Send magic link</button>
-      <div class="civauth-gate-msg" id="eivauth-gate-msg"></div>
-    </div>
-  </div>`;
-}
+// Eileen's login/password-change gate now shares CI Visit Review's civAuthGateHtml('...', 'eivauth')
+// helper -- the 'eivauth' id prefix is what keeps this tab's form fields distinct from CI Visit
+// Review's own 'civauth'-prefixed ones, since both tabs' rendered HTML can coexist in the DOM at
+// once (switching tabs only toggles display:none, it doesn't clear the previous tab's content).
 
 // The 6 shared interaction handlers (civSetVerdictAnswer/civSetNote/civToggleFlag/
 // civSubmitVerdict/civUndoVerdict/civDiscardChanges) are already generic over (src,id) and cover
@@ -5458,8 +5511,8 @@ function renderEileenVisitReview() {
   const el = document.getElementById('eiv-main');
 
   if (!usingEmbeddedSnapshot) {
-    if (!civAuthReady) { el.innerHTML = `<div class="civauth-gate"><div class="civauth-gate-box"><div class="civauth-gate-title">Checking session…</div></div></div>`; return; }
-    if (!civCurrentUser()) { el.innerHTML = renderEivLoginGate(); return; }
+    const gate = civAuthGateHtml('Eileen Visit Review', 'eivauth');
+    if (gate) { el.innerHTML = gate; return; }
   }
 
   const filtered = eivrFilteredReports();
