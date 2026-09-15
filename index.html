@@ -3864,7 +3864,7 @@ function reportDoor(rec) { return REPORT_TO_DOOR[rec.src+'|'+rec.id] || null; }
 // A "report" is one CI/EILEEN/poppromo visit record (this dataset has no separate report entity)
 // -- rebuilt by buildDerivedIndexes() once CI/EILEEN/DOORS have loaded (see loadAllData()).
 // CI Visit Review is scoped down further to just this real "site review" window.
-const SITE_REVIEW_MONTHS = ['2026-06', '2026-07', '2026-08'];
+const SITE_REVIEW_MONTHS = ['2026-06', '2026-07', '2026-08', '2026-09'];
 // CI Visit Review's own scoped report list -- CI visits are already flat/visit-centric (unlike
 // poppromo), so this is just a straight month-filter of the existing CI array, no door-walk
 // reconstruction needed.
