@@ -3946,7 +3946,7 @@ function getReportVerdict(rec) {
   // hint from either (see eivRepHint), so the blank shape starts fully null, same honesty
   // convention as every other blank verdict.
   return rec.src === 'eileen'
-    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, decisionOverride:null, notes:'', flag:false }
+    ? { facingsStatus:null, facingsEmptyCount:null, unitsMissingOver25:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, decisionOverride:null, notes:'', flag:false }
     : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 function setReportVerdict(rec, verdict) {
@@ -3969,6 +3969,7 @@ function setReportVerdict(rec, verdict) {
     sb.from('report_verdicts').upsert({
       src: rec.src, report_id: rec.id,
       facings_status: verdict.facingsStatus, facings_empty_count: verdict.facingsEmptyCount,
+      units_missing_over_25: verdict.unitsMissingOver25,
       shelf_strip_present: verdict.shelfStripPresent, shelf_strip_correct: shelfStripCorrectOut,
       sku_observed: verdict.skuObserved || {},
       decision: finalDecision, decision_system_recommendation: dec.recommendation, decision_status: decisionStatus,
@@ -4298,11 +4299,11 @@ function civPrevVersionFor(reportId, beforeVersionId) {
 }
 function civBlankVerdictSnapshot(src) {
   return src === 'eileen'
-    ? { facingsStatus:null, facingsEmptyCount:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, decisionOverride:null, notes:'', flag:false }
+    ? { facingsStatus:null, facingsEmptyCount:null, unitsMissingOver25:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, decisionOverride:null, notes:'', flag:false }
     : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
 }
 
-const EIV_DIFF_FIELDS = [['facingsStatus','Total Lucy Facings'],['facingsEmptyCount','# of Facings Empty'],['shelfStripPresent','Shelf Strip Present?'],['shelfStripCorrect','Shelf Strip Correct?'],['skuObserved','SKUs Observed'],['decisionOverride','Decision Override'],['notes','Notes'],['flag','Flagged']];
+const EIV_DIFF_FIELDS = [['facingsStatus','Total Lucy Facings'],['facingsEmptyCount','# of Facings Empty'],['unitsMissingOver25','Units Missing > 25%?'],['shelfStripPresent','Shelf Strip Present?'],['shelfStripCorrect','Shelf Strip Correct?'],['skuObserved','SKUs Observed'],['decisionOverride','Decision Override'],['notes','Notes'],['flag','Flagged']];
 const CIV_DIFF_FIELDS = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAccurate','Strip Accurate?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
 function civDiffHtml(current, target) {
   const src = current.src || target.src;
@@ -5428,6 +5429,13 @@ function eivrVerdictBarHtml(rec, draft, status) {
       <input type="text" class="civr-notes-input" style="max-width:100px;" placeholder="e.g. 3" value="${esc(draft.facingsEmptyCount||'')}" ${dis} onchange="eivSetFacingsEmptyCount(${rec.id}, this.value)">
     </div>
     <div class="civr-vq">
+      <div class="civr-vq-label">Units Missing &gt; 25%?</div>
+      <div class="civr-tri-btn">
+        <button class="civr-tbtn ${draft.unitsMissingOver25===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'unitsMissingOver25', true)">Yes</button>
+        <button class="civr-tbtn ${draft.unitsMissingOver25===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'unitsMissingOver25', false)">No</button>
+      </div>
+    </div>
+    <div class="civr-vq">
       <div class="civr-vq-label">Shelf Strip Present?</div>
       <div class="civr-tri-btn">
         <button class="civr-tbtn ${draft.shelfStripPresent===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripPresent', true)">Yes</button>
@@ -5496,6 +5504,7 @@ function eivrExportCSV() {
       Store: rec.a||'', City: rec.ci||'', State: rec.st||'', Chain: rec.ch||'', VisitDate: rec.vd||rec.month||'',
       TotalLucyFacings: draft.facingsStatus === 'full' ? 'Full' : draft.facingsStatus === 'empty' ? 'Empty' : '',
       FacingsEmptyCount: draft.facingsEmptyCount||'',
+      UnitsMissingOver25: rrYNCsv(draft.unitsMissingOver25),
       ShelfStripPresent: rrYNCsv(draft.shelfStripPresent), ShelfStripCorrect: rrYNCsv(draft.shelfStripCorrect),
       SKUsObserved: Object.keys(draft.skuObserved||{}).filter(k => draft.skuObserved[k] && draft.skuObserved[k].present===true)
         .map(k => `${k}${k==='Others'&&draft.skuObserved[k].detail?' ('+draft.skuObserved[k].detail+')':''}: Present${draft.skuObserved[k].count?' ('+draft.skuObserved[k].count+')':''}`).join('; '),
@@ -6871,6 +6880,7 @@ async function loadAllData() {
       const shelfStripCorrectIn = rv.shelf_strip_correct === 'true' ? true : rv.shelf_strip_correct === 'false' ? false : rv.shelf_strip_correct === 'na' ? 'na' : null;
       REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = {
         facingsStatus: rv.facings_status, facingsEmptyCount: rv.facings_empty_count,
+        unitsMissingOver25: rv.units_missing_over_25,
         shelfStripPresent: rv.shelf_strip_present, shelfStripCorrect: shelfStripCorrectIn,
         skuObserved: rv.sku_observed || {},
         // Only restore the override when the last save was actually a manual override -- an
