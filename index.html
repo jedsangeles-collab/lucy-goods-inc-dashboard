@@ -1205,6 +1205,24 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civr-select, #view-eileenvisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
 #view-civisitreview .civr-reset, #view-eileenvisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
 #view-civisitreview .civr-reset:hover, #view-eileenvisitreview .civr-reset:hover{text-decoration:underline;}
+#view-civisitreview .civdate-filter-wrap, #view-eileenvisitreview .civdate-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;}
+#view-civisitreview .civdate-display, #view-eileenvisitreview .civdate-display{font-size:12px;color:#1a5fa0;font-weight:600;background:#e3f0ff;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+#view-civisitreview .civdate-picker, #view-eileenvisitreview .civdate-picker{position:absolute;top:calc(100% + 6px);left:0;z-index:50;background:#fff;border:1px solid #e0ddd6;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:12px;width:230px;}
+#view-civisitreview .civdate-picker-header, #view-eileenvisitreview .civdate-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+#view-civisitreview .civdate-month-label, #view-eileenvisitreview .civdate-month-label{font-size:13px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civdate-nav, #view-eileenvisitreview .civdate-nav{cursor:pointer;font-size:15px;color:#1a5fa0;padding:2px 8px;border-radius:4px;user-select:none;}
+#view-civisitreview .civdate-nav:hover, #view-eileenvisitreview .civdate-nav:hover{background:#f0f0ee;}
+#view-civisitreview .civdate-grid, #view-eileenvisitreview .civdate-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;}
+#view-civisitreview .civdate-dow, #view-eileenvisitreview .civdate-dow{font-size:10px;color:#999;text-transform:uppercase;font-weight:600;text-align:center;}
+#view-civisitreview .civdate-cell, #view-eileenvisitreview .civdate-cell{font-size:12px;text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;color:#1a1a18;}
+#view-civisitreview .civdate-cell:hover, #view-eileenvisitreview .civdate-cell:hover{background:#f0f0ee;}
+#view-civisitreview .civdate-cell.civdate-blank, #view-eileenvisitreview .civdate-cell.civdate-blank{cursor:default;}
+#view-civisitreview .civdate-cell.civdate-blank:hover, #view-eileenvisitreview .civdate-cell.civdate-blank:hover{background:none;}
+#view-civisitreview .civdate-cell.civdate-in-range, #view-eileenvisitreview .civdate-cell.civdate-in-range{background:#e3f0ff;border-radius:0;}
+#view-civisitreview .civdate-cell.civdate-range-start, #view-eileenvisitreview .civdate-cell.civdate-range-start,
+#view-civisitreview .civdate-cell.civdate-range-end, #view-eileenvisitreview .civdate-cell.civdate-range-end{background:#1a5fa0;color:#fff;font-weight:600;}
+#view-civisitreview .civdate-picker-footer, #view-eileenvisitreview .civdate-picker-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+#view-civisitreview .civdate-range-label, #view-eileenvisitreview .civdate-range-label{font-size:11px;color:#666;}
 #view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 #view-civisitreview .civr-bulk-count, #view-eileenvisitreview .civr-bulk-count{font-size:13px;color:#666;}
 #view-civisitreview .civr-bulk-btn, #view-eileenvisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
@@ -4673,7 +4691,177 @@ function civSaveAllDirty() {
   });
 }
 
-let civrFilters = { chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
+// Shared Date Filter + calendar, reused identically by both CI Visit Review and Eileen Visit
+// Review (see civDateFilterControlHtml/civDatePickerCalendarHtml below, and each tab's own thin
+// civr*/eivr* wrapper functions). CI/poppromo `vd` strings are "DD Mon YYYY - HH:MMam/pm TZ";
+// Eileen's are ISO "YYYY-MM-DD HH:MM:SS" -- civVisitDateOnly() normalizes both to a plain
+// 'YYYY-MM-DD' string so date-only comparisons work regardless of source.
+const CIV_MONTH_ABBR = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+function civVisitDateOnly(vd) {
+  if (!vd) return null;
+  const iso = vd.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const civFmt = vd.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
+  if (civFmt) {
+    const mon = CIV_MONTH_ABBR[civFmt[2]];
+    if (mon === undefined) return null;
+    return `${civFmt[3]}-${String(mon+1).padStart(2,'0')}-${civFmt[1].padStart(2,'0')}`;
+  }
+  return null;
+}
+// Always computed live from the real system clock (never a stored/hardcoded date) so Today/Last
+// 7/Last 30 stay correct across day boundaries with no extra bookkeeping.
+function civTodayDateOnly() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function civDateNDaysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function civDateFilterBlank() { return { dateFilter:'all', dateFrom:null, dateTo:null }; }
+function civMatchesDateFilter(vd, filters) {
+  if (!filters.dateFilter || filters.dateFilter === 'all') return true;
+  const dOnly = civVisitDateOnly(vd);
+  if (!dOnly) return false;
+  if (filters.dateFilter === 'today') return dOnly === civTodayDateOnly();
+  if (filters.dateFilter === 'last7') return dOnly >= civDateNDaysAgo(6) && dOnly <= civTodayDateOnly();
+  if (filters.dateFilter === 'last30') return dOnly >= civDateNDaysAgo(29) && dOnly <= civTodayDateOnly();
+  if (filters.dateFilter === 'custom') {
+    if (!filters.dateFrom) return true; // picker opened but nothing confirmed yet -- don't filter
+    return dOnly >= filters.dateFrom && dOnly <= (filters.dateTo || filters.dateFrom);
+  }
+  return true;
+}
+
+// Calendar picker state -- open/pending-selection UI state, deliberately separate from `filters`
+// (which only holds the last CONFIRMED date filter) so opening the picker or clicking around
+// inside it never changes what's actually being filtered until Apply is clicked.
+function civDatePickerBlank() { return { open:false, month:null, pendingFrom:null, pendingTo:null }; }
+
+function civSetDateFilterShared(filters, picker, val, rerender) {
+  filters.dateFilter = val;
+  if (val === 'custom') {
+    picker.open = true;
+    if (!picker.month) picker.month = civTodayDateOnly().slice(0,7);
+    picker.pendingFrom = filters.dateFrom; picker.pendingTo = filters.dateTo;
+  } else {
+    picker.open = false; picker.pendingFrom = null; picker.pendingTo = null;
+    filters.dateFrom = null; filters.dateTo = null;
+  }
+  rerender();
+}
+function civDatePickerOpenShared(filters, picker, rerender) {
+  picker.open = true;
+  if (!picker.month) picker.month = (filters.dateFrom || civTodayDateOnly()).slice(0,7);
+  picker.pendingFrom = filters.dateFrom; picker.pendingTo = filters.dateTo;
+  rerender();
+}
+function civDatePickerClickDayShared(picker, dStr, rerender) {
+  if (!picker.pendingFrom || picker.pendingTo) {
+    picker.pendingFrom = dStr; picker.pendingTo = null;
+  } else if (dStr === picker.pendingFrom) {
+    // clicking the same day again keeps it a single-day selection
+  } else if (dStr < picker.pendingFrom) {
+    picker.pendingTo = picker.pendingFrom; picker.pendingFrom = dStr;
+  } else {
+    picker.pendingTo = dStr;
+  }
+  rerender();
+}
+function civDatePickerNavShared(picker, dir, rerender) {
+  const [y, m] = picker.month.split('-').map(Number);
+  const d = new Date(y, m - 1 + dir, 1);
+  picker.month = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  rerender();
+}
+function civDatePickerApplyShared(filters, picker, rerender) {
+  if (!picker.pendingFrom) return;
+  filters.dateFrom = picker.pendingFrom;
+  filters.dateTo = picker.pendingTo || picker.pendingFrom;
+  filters.dateFilter = 'custom';
+  picker.open = false;
+  rerender();
+}
+function civDatePickerCancelShared(filters, picker, rerender) {
+  picker.open = false;
+  if (filters.dateFilter === 'custom' && !filters.dateFrom) filters.dateFilter = 'all';
+  rerender();
+}
+
+function civDatePickerCalendarHtml(prefix, picker) {
+  const [y, m] = picker.month.split('-').map(Number);
+  const first = new Date(y, m - 1, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const monthLabel = first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  let cells = '';
+  for (let i = 0; i < startDow; i++) cells += `<div class="civdate-cell civdate-blank"></div>`;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dStr = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    let cls = 'civdate-cell civdate-day';
+    if (picker.pendingFrom && picker.pendingTo && dStr > picker.pendingFrom && dStr < picker.pendingTo) cls += ' civdate-in-range';
+    if (picker.pendingFrom === dStr) cls += ' civdate-range-start';
+    if (picker.pendingTo === dStr) cls += ' civdate-range-end';
+    cells += `<div class="${cls}" onclick="${prefix}DatePickerClickDay('${dStr}')">${day}</div>`;
+  }
+  const rangeLabel = picker.pendingFrom
+    ? (picker.pendingTo ? `${picker.pendingFrom} to ${picker.pendingTo}` : `${picker.pendingFrom} (click an end date, or Apply for a single day)`)
+    : 'Select a date';
+  return `<div class="civdate-picker">
+    <div class="civdate-picker-header">
+      <span class="civdate-nav" onclick="${prefix}DatePickerNav(-1)">‹</span>
+      <span class="civdate-month-label">${escHtml(monthLabel)}</span>
+      <span class="civdate-nav" onclick="${prefix}DatePickerNav(1)">›</span>
+    </div>
+    <div class="civdate-grid civdate-dow-row">
+      <div class="civdate-dow">Su</div><div class="civdate-dow">Mo</div><div class="civdate-dow">Tu</div><div class="civdate-dow">We</div><div class="civdate-dow">Th</div><div class="civdate-dow">Fr</div><div class="civdate-dow">Sa</div>
+    </div>
+    <div class="civdate-grid">${cells}</div>
+    <div class="civdate-picker-footer">
+      <span class="civdate-range-label">${escHtml(rangeLabel)}</span>
+      <div>
+        <button class="civr-flag-btn" onclick="${prefix}DatePickerCancel()">Cancel</button>
+        <button class="civr-submit-btn" style="padding:5px 14px;font-size:11px;" ${picker.pendingFrom?'':'disabled'} onclick="${prefix}DatePickerApply()">Apply</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function civDateFilterControlHtml(prefix, filters, picker) {
+  let displayText = '';
+  if (filters.dateFilter === 'custom' && filters.dateFrom) {
+    displayText = (filters.dateTo && filters.dateTo !== filters.dateFrom) ? `${filters.dateFrom} – ${filters.dateTo}` : filters.dateFrom;
+  } else if (filters.dateFilter === 'today') {
+    displayText = civTodayDateOnly();
+  } else if (filters.dateFilter === 'last7') {
+    displayText = `${civDateNDaysAgo(6)} – ${civTodayDateOnly()}`;
+  } else if (filters.dateFilter === 'last30') {
+    displayText = `${civDateNDaysAgo(29)} – ${civTodayDateOnly()}`;
+  }
+  return `<span class="civdate-filter-wrap">
+    <label>Date:</label>
+    <select class="civr-select" onchange="${prefix}SetDateFilter(this.value)">
+      <option value="all" ${filters.dateFilter==='all'?'selected':''}>All Dates</option>
+      <option value="today" ${filters.dateFilter==='today'?'selected':''}>Today</option>
+      <option value="last7" ${filters.dateFilter==='last7'?'selected':''}>Last 7 Days</option>
+      <option value="last30" ${filters.dateFilter==='last30'?'selected':''}>Last 30 Days</option>
+      <option value="custom" ${filters.dateFilter==='custom'?'selected':''}>Custom Date</option>
+    </select>
+    ${displayText ? `<span class="civdate-display" ${filters.dateFilter==='custom'?`onclick="${prefix}DatePickerOpen()" style="cursor:pointer;"`:''}>${escHtml(displayText)}</span>` : ''}
+    ${picker.open ? civDatePickerCalendarHtml(prefix, picker) : ''}
+  </span>`;
+}
+
+let civrFilters = Object.assign({ chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' }, civDateFilterBlank());
+let civrDatePicker = civDatePickerBlank();
+function civrSetDateFilter(val) { civSetDateFilterShared(civrFilters, civrDatePicker, val, renderCiVisitReview); civrPage = 0; }
+function civrDatePickerOpen() { civDatePickerOpenShared(civrFilters, civrDatePicker, renderCiVisitReview); }
+function civrDatePickerClickDay(d) { civDatePickerClickDayShared(civrDatePicker, d, renderCiVisitReview); }
+function civrDatePickerNav(dir) { civDatePickerNavShared(civrDatePicker, dir, renderCiVisitReview); }
+function civrDatePickerApply() { civDatePickerApplyShared(civrFilters, civrDatePicker, renderCiVisitReview); civrPage = 0; }
+function civrDatePickerCancel() { civDatePickerCancelShared(civrFilters, civrDatePicker, renderCiVisitReview); }
 let civrPage = 0;
 const CIVR_PAGE_SIZE = 6; // matches the reference prototype's own PER_PAGE exactly
 // "Next/Prev 50" jump by roughly 50 records at a time -- expressed as a page delta since
@@ -4684,7 +4872,8 @@ let civrBulkMsg = '';
 
 function civrSetFilter(key, val) { civrFilters[key] = val; civrPage = 0; civrBulkMsg = ''; renderCiVisitReview(); }
 function civrResetFilters() {
-  civrFilters = { chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' };
+  civrFilters = Object.assign({ chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' }, civDateFilterBlank());
+  civrDatePicker = civDatePickerBlank();
   civrPage = 0; civrBulkMsg = '';
   renderCiVisitReview();
 }
@@ -4692,6 +4881,7 @@ function civrChangePage(dir) { civrPage += dir; renderCiVisitReview(); civrScrol
 
 function civrFilteredReports() {
   return CIV_ALL_REPORTS.filter(r => {
+    if (!civMatchesDateFilter(r.vd, civrFilters)) return false;
     if (civrFilters.chain && r.ch !== civrFilters.chain) return false;
     if (civrFilters.source && r.src !== civrFilters.source) return false;
     const status = getReportStatus(r);
@@ -5121,6 +5311,7 @@ function renderCiVisitReview() {
       <option value="">All</option>
       <option value="yes" ${civrFilters.flagged==='yes'?'selected':''}>Flagged only</option>
     </select>
+    ${civDateFilterControlHtml('civr', civrFilters, civrDatePicker)}
     <span class="civr-reset" onclick="civrResetFilters()">Reset filters</span>
   </div>
 
@@ -5309,7 +5500,14 @@ function eivrSkuTableHtml(rec, draft) {
   </div>`;
 }
 
-let eivrFilters = { chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' };
+let eivrFilters = Object.assign({ chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
+let eivrDatePicker = civDatePickerBlank();
+function eivrSetDateFilter(val) { civSetDateFilterShared(eivrFilters, eivrDatePicker, val, renderEileenVisitReview); eivrPage = 0; }
+function eivrDatePickerOpen() { civDatePickerOpenShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); }
+function eivrDatePickerClickDay(d) { civDatePickerClickDayShared(eivrDatePicker, d, renderEileenVisitReview); }
+function eivrDatePickerNav(dir) { civDatePickerNavShared(eivrDatePicker, dir, renderEileenVisitReview); }
+function eivrDatePickerApply() { civDatePickerApplyShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); eivrPage = 0; }
+function eivrDatePickerCancel() { civDatePickerCancelShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); }
 let eivrPage = 0;
 const EIVR_PAGE_SIZE = 6;
 // See CIVR_JUMP_PAGES's comment -- same "Next/Prev 50" approximation, page-indexed pagination.
@@ -5318,7 +5516,8 @@ let eivrBulkMsg = '';
 
 function eivrSetFilter(key, val) { eivrFilters[key] = val; eivrPage = 0; eivrBulkMsg = ''; renderEileenVisitReview(); }
 function eivrResetFilters() {
-  eivrFilters = { chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' };
+  eivrFilters = Object.assign({ chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
+  eivrDatePicker = civDatePickerBlank();
   eivrPage = 0; eivrBulkMsg = '';
   renderEileenVisitReview();
 }
@@ -5347,6 +5546,7 @@ function eivrEffectiveChain(rec, canonMap) {
 function eivrFilteredReports() {
   const eivrChainMap = eivrChainCanonicalMap();
   return EIV_ALL_REPORTS.filter(r => {
+    if (!civMatchesDateFilter(r.vd, eivrFilters)) return false;
     if (eivrFilters.chain && eivrEffectiveChain(r, eivrChainMap) !== eivrFilters.chain) return false;
     const status = getReportStatus(r);
     if (eivrFilters.status === 'pending' && status === 'Reviewed') return false;
@@ -5623,6 +5823,7 @@ function renderEileenVisitReview() {
       <option value="">All</option>
       <option value="yes" ${eivrFilters.flagged==='yes'?'selected':''}>Flagged only</option>
     </select>
+    ${civDateFilterControlHtml('eivr', eivrFilters, eivrDatePicker)}
     <span class="civr-reset" onclick="eivrResetFilters()">Reset filters</span>
   </div>
 
