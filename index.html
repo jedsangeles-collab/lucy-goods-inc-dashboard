@@ -6409,6 +6409,22 @@ function cvaMonthlySeriesFromDoors(doors, monthsBack) {
   return series.slice(-monthsBack);
 }
 
+// Core "matched doors, statistical-outliers excluded" average velocity -- the one methodology
+// Chain Velocity Analytics/Chain Workspace/the Chains tab's Min Velocity filter all now share.
+// Deliberately takes a plain door array rather than a chain name so callers control their own
+// scoping: cvaAnalytics() below applies the Stores tab's own state/city/door filters (cvaFilters)
+// before calling this, while the Chains tab has no such per-chain filter concept and must NOT be
+// affected by whatever cvaFilters happen to be left over from a chain last viewed in Chain
+// Workspace -- it passes every one of a chain's doors, unconditionally, instead.
+function chainMatchedVelocityStats(doors) {
+  const realVelDoors = doors.filter(d => d.realVelocity !== null && d.realVelocity !== undefined);
+  if (realVelDoors.length < 3) return { stats: null, realVelDoors, outlier: null, nonOutlier: [] };
+  const outlier = vdOutlierBounds(realVelDoors);
+  const nonOutlier = realVelDoors.filter(d => d.realVelocity >= outlier.min && d.realVelocity <= outlier.max);
+  const stats = computeStats(nonOutlier.map(d=>d.realVelocity));
+  return { stats, realVelDoors, outlier, nonOutlier };
+}
+
 // Memoized per chain/range/filter combo -- avoids recomputing stats/bins when flipping
 // back to a chain already viewed this session.
 function cvaAnalytics(chainName) {
@@ -6416,16 +6432,9 @@ function cvaAnalytics(chainName) {
   if (cvaCache[cacheKey]) return cvaCache[cacheKey];
 
   const chainDoors = cvaComputeChainDoors(chainName);
-  const realVelDoors = chainDoors.filter(d => d.realVelocity !== null && d.realVelocity !== undefined);
   const trendSeries = cvaMonthlySeriesFromDoors(chainDoors, cvaMonthRange);
-
-  let stats = null, binData = null, outlier = null;
-  if (realVelDoors.length >= 3) {
-    outlier = vdOutlierBounds(realVelDoors);
-    const nonOutlier = realVelDoors.filter(d => d.realVelocity >= outlier.min && d.realVelocity <= outlier.max);
-    stats = computeStats(nonOutlier.map(d=>d.realVelocity));
-    binData = vdComputeBins(nonOutlier);
-  }
+  const { stats, realVelDoors, outlier, nonOutlier } = chainMatchedVelocityStats(chainDoors);
+  const binData = nonOutlier.length ? vdComputeBins(nonOutlier) : null;
 
   const result = { chainDoors, realVelDoors, trendSeries, stats, binData, outlier };
   cvaCache[cacheKey] = result;
@@ -6839,14 +6848,17 @@ function renderChains() {
   if (chainsSearchTerm) list = list.filter(x => x.c.chain.toLowerCase().includes(chainsSearchTerm));
   if (chainsFilterState.health) list = list.filter(x => x.status.label === chainsFilterState.health);
   if (chainsFilterState.minVelocity) {
-    // Same total-door-count denominator convention as cpKpiGrid() -- a chain's average velocity
-    // is measured against its whole footprint, not just the doors with a real match.
+    // Unified 2026-09-23 with Chain Workspace/Chain Velocity Analytics' own definition
+    // (chainMatchedVelocityStats -- matched doors only, statistical outliers excluded) so a
+    // chain's Average Velocity means the same thing everywhere in this dashboard, not just on
+    // the Stores tab. Uses the chain's FULL door set, not scoped by cvaFilters (the Stores tab's
+    // own state/city/door filters) -- this tab has no equivalent per-chain filter concept and
+    // must not be affected by whatever cvaFilters a different chain's Workspace view left behind.
     const minV = parseFloat(chainsFilterState.minVelocity) || 0;
     list = list.filter(x => {
       const chainDoors = DOORS.filter(d => d.chain === x.c.chain);
-      const realDoors = chainDoors.filter(d => d.realVelocity !== null && d.realVelocity !== undefined);
-      const avgReal = chainDoors.length ? realDoors.reduce((s,d)=>s+d.realVelocity,0)/chainDoors.length : null;
-      return avgReal !== null && avgReal >= minV;
+      const { stats } = chainMatchedVelocityStats(chainDoors);
+      return stats !== null && stats.mean !== null && stats.mean >= minV;
     });
   }
   if (chainsFilterState.minDoors) {
