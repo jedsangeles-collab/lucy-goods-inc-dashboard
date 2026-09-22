@@ -6328,14 +6328,17 @@ function chainRecentVisits(chainName, days) {
 
 function cpKpiGrid(chainName, doors) {
   const vel = chainVelocityStats(chainName);
-  // Velocity Score denominator is the chain's TOTAL door count (doors.length), not just the
-  // subset with a real velocity match -- dividing by only the matched doors overstates a
-  // chain's overall performance when most of its footprint has no data (e.g. a chain with
-  // 675 doors but only 31 matched previously showed that 31-door average as "the chain's"
-  // velocity). Doors without a match still count in the denominator; they just don't add to
-  // the numerator, since a missing value can't be summed as if it were a real one.
-  const realVelDoors = doors.filter(d => d.realVelocity !== null && d.realVelocity !== undefined);
-  const avgRealVel = doors.length ? realVelDoors.reduce((s,d)=>s+d.realVelocity,0)/doors.length : null;
+  // Changed 2026-09-23 (was: sum(realVelocity)/doors.length, i.e. every unmatched door counted
+  // in the denominator as a 0 -- deliberately understating the average toward a chain's whole
+  // footprint). User asked for this KPI to follow Chain Velocity Analytics' own definition
+  // instead, so both "Average Velocity" figures on the Stores tab now agree: matched doors only,
+  // with the same statistical-outlier exclusion analytics uses for its histogram/z-score bucketing
+  // (`cvaAnalytics` is already memoized per chain+filter combo, so this adds no extra computation
+  // when Chain Velocity Analytics renders right below and reads the same cached result).
+  const a = cvaAnalytics(chainName);
+  const avgRealVel = a.stats && a.stats.mean !== null ? a.stats.mean : null;
+  const realVelDoors = a.realVelDoors;
+  const matchedLabelCount = a.stats ? a.stats.n : realVelDoors.length;
   const v30 = chainRecentVisits(chainName, 30), v60 = chainRecentVisits(chainName, 60), v90 = chainRecentVisits(chainName, 90);
   const kpis = [
     ['Door Count', fmtNum(doors.length), null],
@@ -6345,7 +6348,7 @@ function cpKpiGrid(chainName, doors) {
   ];
   return `<div class="cp-kpi-grid">${kpis.map(([label,val,chg]) => `
     <div class="cp-kpi" onclick="cpToggleSection('map')">
-      <div class="cp-kpi-label">${label}${realVelDoors.length && label==='Average Velocity' ? ` (${realVelDoors.length} of ${doors.length} doors matched)` : ''}</div>
+      <div class="cp-kpi-label">${label}${realVelDoors.length && label==='Average Velocity' ? ` (${matchedLabelCount} of ${doors.length} doors matched)` : ''}</div>
       <div class="cp-kpi-value">${val} ${chg!==null&&chg!==undefined?(chg>=0?`<span style="color:var(--green);font-size:11px;">▲${chg.toFixed(0)}%</span>`:`<span style="color:var(--red);font-size:11px;">▼${Math.abs(chg).toFixed(0)}%</span>`):''}</div>
     </div>`).join('')}</div>`;
 }
