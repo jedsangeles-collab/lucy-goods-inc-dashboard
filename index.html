@@ -3383,9 +3383,24 @@ let doorsTablePage = {};
 const DOORS_TABLE_PAGE_SIZE = 100;
 const DOORS_TABLE_COLS = [
   ['address', 'Address'], ['city', 'City'], ['state', 'State'],
-  ['visited', 'Visited'], ['score', 'Score'], ['lastVisit', 'Last Visit'],
+  ['visited', 'Visited'], ['score', 'Score'], ['lastVisit', 'Most Recent Visit (CI/Eileen)'],
   ['velocity', 'Most Recent Velocity'],
 ];
+
+// Most recent CI or Eileen visit date for a door -- deliberately excludes poppromo/clarks visits
+// (per user request on the Store Map/List table specifically), unlike d.lastVisitMonth which rolls
+// up every visit source. Returns a plain 'YYYY-MM-DD' string (civVisitDateOnly's own format) or
+// null when the door has no CI/Eileen visit on file, rather than falling back to lastVisitMonth and
+// silently mixing sources back in.
+function doorMostRecentCiEileenVisitDate(door) {
+  let latest = null;
+  (door.visits || []).forEach(v => {
+    if (v.src !== 'ci' && v.src !== 'eileen') return;
+    const d = civVisitDateOnly(v.vd);
+    if (d && (!latest || d > latest)) latest = d;
+  });
+  return latest;
+}
 
 function doorsTableSortValue(d, col) {
   switch (col) {
@@ -3394,7 +3409,7 @@ function doorsTableSortValue(d, col) {
     case 'state': return (d.state || '').toLowerCase();
     case 'visited': return d.visited ? 1 : 0;
     case 'score': return d.latestScore;
-    case 'lastVisit': return d.lastVisitMonth || null;
+    case 'lastVisit': return doorMostRecentCiEileenVisitDate(d);
     case 'velocity': return d.realVelocity;
     default: return null;
   }
@@ -3461,7 +3476,7 @@ function renderDoorsTable(doors, mapContainerId, tableId) {
       <td>${escHtml(d.address)}</td><td>${escHtml(d.city)}</td><td>${escHtml(d.state)}</td>
       <td>${d.visited ? '<span class="badge badge-good">Visited</span>' : '<span class="badge badge-muted">Not visited</span>'}</td>
       <td>${d.latestScore!==null&&d.latestScore!==undefined ? d.latestScore+'/4' : '—'}</td>
-      <td>${escHtml(d.lastVisitMonth||'—')}</td>
+      <td>${escHtml(doorMostRecentCiEileenVisitDate(d)||'—')}</td>
       <td>${d.realVelocity!==null&&d.realVelocity!==undefined ? d.realVelocity.toFixed(1)+' u/wk' : 'N/A'}</td>
     </tr>`).join('')}</tbody></table>
     <div class="pg-row">
