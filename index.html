@@ -7024,7 +7024,21 @@ function xlsxVisitSummary(door, v) {
     reviewed = true; // Clarks has no separate review workflow -- the note itself IS the record
   }
 
-  return { dateOnly, dateLabel, sourceLabel, reviewed, shelfStrip, pop, recommendation, photos: v.photos || [] };
+  // door_visits.photos (v.photos) is only ever populated by the poppromo ETL pipeline -- confirmed
+  // empty for 100% of real ci/eileen visits dataset-wide (2,891/2,891 ci, 4,474/4,474 eileen), even
+  // though the SAME visit's real photos already exist in the separate top-level CI/EILEEN "master"
+  // ph list (2,891/2,891 ci, 4,455/4,474 eileen have them there). Fall back to that master list by
+  // ciId rather than showing an empty Photo column for the vast majority of real visits.
+  let photos = v.photos || [];
+  if (!photos.length) {
+    let masterRec = null;
+    if (v.src === 'ci') masterRec = CI.find(r => r.id === v.ciId);
+    else if (v.src === 'eileen') masterRec = EILEEN.find(r => r.id === v.ciId);
+    else if (v.src === 'clarks') masterRec = CLARKS.find(r => r.id === v.ciId);
+    if (masterRec && masterRec.ph && masterRec.ph.length) photos = masterRec.ph;
+  }
+
+  return { dateOnly, dateLabel, sourceLabel, reviewed, shelfStrip, pop, recommendation, photos };
 }
 
 // Most recently COMPLETED/reviewed visit's summary, per the export spec -- not just the most
