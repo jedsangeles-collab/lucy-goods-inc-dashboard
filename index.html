@@ -7062,6 +7062,9 @@ function cpSelectChain(chainName) {
   function cellRef(row, col) { return colLetter(col) + row; }
 
   // Style indices (fixed palette, see buildStylesXml): 0=default 1=header 2=wrap-body 3=normal-body
+  // 4=units-number(#,##0) 5=date(MM/DD/YYYY) 6=recommendation-red 7=recommendation-amber
+  // 8=recommendation-green. A cell spec's explicit `style` (0-8) always wins; otherwise header row
+  // -> 1, else wrap ? 2 : 3, same fallback as before this palette grew.
   function buildSheetXml(sheet) {
     const rows = sheet.rows;
     let maxCol = 0;
@@ -7088,7 +7091,7 @@ function cpSelectChain(chainName) {
           value = spec.v;
           hyperlink = spec.hyperlink || null;
           isNumber = typeof value === 'number';
-          styleIdx = ri === 0 ? 1 : (spec.wrap ? 2 : 3);
+          styleIdx = ri === 0 ? 1 : (spec.style !== undefined ? spec.style : (spec.wrap ? 2 : 3));
         } else {
           value = spec;
           isNumber = typeof value === 'number';
@@ -7106,10 +7109,25 @@ function cpSelectChain(chainName) {
     });
     sheetDataXml += '</sheetData>';
 
+    // sheet.freeze = { rows: N, cols: M } -- supports a combined row+column freeze (the standard
+    // 4-pane OOXML shape Excel itself writes for "Freeze Panes" with both a header row and leading
+    // columns locked), row-only, or column-only, matching whichever of rows/cols is actually set.
     let freezeXml = '';
-    if (sheet.freezeHeaderRows) {
-      const n = sheet.freezeHeaderRows;
+    const fz = sheet.freeze || (sheet.freezeHeaderRows ? { rows: sheet.freezeHeaderRows } : null);
+    if (fz && fz.rows && fz.cols) {
+      const topLeft = cellRef(fz.rows + 1, fz.cols + 1);
+      const topRightCell = cellRef(1, fz.cols + 1);
+      const bottomLeftCell = cellRef(fz.rows + 1, 1);
+      freezeXml = `<pane xSplit="${fz.cols}" ySplit="${fz.rows}" topLeftCell="${topLeft}" activePane="bottomRight" state="frozen"/>` +
+        `<selection pane="topRight" activeCell="${topRightCell}" sqref="${topRightCell}"/>` +
+        `<selection pane="bottomLeft" activeCell="${bottomLeftCell}" sqref="${bottomLeftCell}"/>` +
+        `<selection pane="bottomRight" activeCell="${topLeft}" sqref="${topLeft}"/>`;
+    } else if (fz && fz.rows) {
+      const n = fz.rows;
       freezeXml = `<pane ySplit="${n}" topLeftCell="A${n + 1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A${n + 1}" sqref="A${n + 1}"/>`;
+    } else if (fz && fz.cols) {
+      const topLeft = cellRef(1, fz.cols + 1);
+      freezeXml = `<pane xSplit="${fz.cols}" topLeftCell="${topLeft}" activePane="topRight" state="frozen"/><selection pane="topRight" activeCell="${topLeft}" sqref="${topLeft}"/>`;
     }
     const sheetViewXml = `<sheetViews><sheetView workbookViewId="0">${freezeXml}</sheetView></sheetViews>`;
     const autofilterXml = sheet.autofilter !== false ? `<autoFilter ref="${dimRef}"/>` : '';
@@ -7130,25 +7148,36 @@ function cpSelectChain(chainName) {
   function buildStylesXml() {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1">
+<numFmt numFmtId="164" formatCode="MM/DD/YYYY"/>
+</numFmts>
 <fonts count="2">
 <font><sz val="11"/><color rgb="FF1A1A1A"/><name val="Calibri"/><family val="2"/></font>
 <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font>
 </fonts>
-<fills count="3">
+<fills count="6">
 <fill><patternFill patternType="none"/></fill>
 <fill><patternFill patternType="gray125"/></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FF2F5496"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFFC7CE"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFFEB9C"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFC6EFCE"/><bgColor indexed="64"/></patternFill></fill>
 </fills>
 <borders count="2">
 <border><left/><right/><top/><bottom/><diagonal/></border>
 <border><left/><right/><top/><bottom style="thin"><color rgb="FFB0B0B0"/></bottom><diagonal/></border>
 </borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="4">
+<cellXfs count="9">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="0"/></xf>
+<xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment vertical="top" wrapText="0"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment vertical="top" wrapText="0"/></xf>
+<xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="4" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="5" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
@@ -7227,81 +7256,86 @@ ${overrides}
 })();
 
 const XLSX_MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function xlsxFormatDate(isoDateOnly) {
-  if (!isoDateOnly) return '';
-  const m = isoDateOnly.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return isoDateOnly;
-  const mon = XLSX_MONTH_NAMES[parseInt(m[2], 10) - 1] || m[2];
-  return `${mon} ${parseInt(m[3], 10)}, ${m[1]}`;
-}
 function xlsxFormatMonthCol(yyyymm) {
   const m = yyyymm.match(/^(\d{4})-(\d{2})/);
   if (!m) return yyyymm;
   const mon = XLSX_MONTH_NAMES[parseInt(m[2], 10) - 1] || m[2];
   return `${mon} ${m[1]}`;
 }
+// OLE Automation date serial (Excel's own date epoch, 1899-12-30 = day 0 -- matches
+// [datetime]::FromOADate() used elsewhere in this project's PS1 scripts) so "Latest Visit Date"
+// can be a REAL numeric Excel date with a real date number format, not a formatted text string.
+function xlsxExcelDateSerial(isoDateOnly) {
+  const m = isoDateOnly && isoDateOnly.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const y = parseInt(m[1], 10), mo = parseInt(m[2], 10), d = parseInt(m[3], 10);
+  return Math.round((Date.UTC(y, mo - 1, d) - Date.UTC(1899, 11, 30)) / 86400000);
+}
+function xlsxDaysBetween(isoA, isoB) {
+  return Math.round((Date.parse(isoB + 'T00:00:00Z') - Date.parse(isoA + 'T00:00:00Z')) / 86400000);
+}
 
-// Per-visit review summary across every visit source this dashboard tracks (ci/poppromo share the
+// How many "Photo N" columns the export generates -- a user-facing setting (number input next to
+// the Export button), not a data-driven max, per the spec's "N = the filter setting".
+let xlsxPhotoCount = 3;
+function xlsxSetPhotoCount(v) {
+  const n = parseInt(v, 10);
+  xlsxPhotoCount = (n >= 1 && n <= 10) ? n : 3;
+}
+
+// The single most recent visit across every source this dashboard tracks (ci/poppromo share the
 // CI-shape reviewer verdict; eileen has its own shape; clarks has no scoring workflow at all --
-// see migrate_civ_auth_schema.sql / REPORT_VERDICT_CACHE comments above for why). Prefers the
-// manager-submitted verdict (REPORT_VERDICT_CACHE) once a visit is Reviewed; falls back to the
-// visit's own raw rep-reported fields (poppromo only -- CI/Eileen have no raw equivalent) when not
-// yet reviewed, and to 'Not Reviewed' rather than fabricating a value when neither exists.
-function xlsxVisitSummary(door, v) {
-  const dateOnly = civVisitDateOnly(v.vd);
-  const dateLabel = xlsxFormatDate(dateOnly);
-  let shelfStrip = 'Not Reviewed', pop = 'Not Reviewed', recommendation = 'Not Reviewed', reviewed = false, sourceLabel = v.src;
+// see migrate_civ_auth_schema.sql / REPORT_VERDICT_CACHE comments elsewhere in this file for why).
+// Prefers the manager-submitted verdict once a visit is Reviewed; falls back to the visit's own
+// raw rep-reported fields (poppromo only -- CI/Eileen have no raw equivalent) when not yet
+// reviewed, and to "Not Recorded" rather than fabricating a value when neither exists. Shelf Strip
+// Condition only ever resolves to Present/Missing/Not Recorded here -- "Damaged" is a real allowed
+// value per the report spec, but no field anywhere in this dataset captures physical damage
+// (every source only ever tracks present-vs-missing), so it can never actually be produced; flagged
+// to the user rather than silently omitted or faked.
+function xlsxLatestVisitInfo(door) {
+  const dated = (door.visits || [])
+    .map(v => ({ v, dateOnly: civVisitDateOnly(v.vd) }))
+    .filter(x => x.dateOnly)
+    .sort((a, b) => b.dateOnly.localeCompare(a.dateOnly));
+  if (!dated.length) return { dateOnly: null, sourceLabel: 'Not Recorded', shelfStrip: 'Not Recorded', pop: 'Not Recorded', photos: [] };
+
+  const { v, dateOnly } = dated[0];
+  let sourceLabel = 'Not Recorded', shelfStrip = 'Not Recorded', pop = 'Not Recorded';
 
   if (v.src === 'ci' || v.src === 'poppromo') {
-    sourceLabel = v.src === 'ci' ? 'CI Visit' : 'POP Marketing Check';
+    // Both are real GoSpotCheck-platform exports (confirmed identical raw column shape earlier
+    // this project) -- 'ci' gets its own distinct label per the spec's 3-value list, 'poppromo'
+    // (the POP Marketing Check cycle) is labeled by its platform name, "GoSpotCheck".
+    sourceLabel = v.src === 'ci' ? 'CI' : 'GoSpotCheck';
     const rec = { src: v.src, id: v.ciId };
-    reviewed = getReportStatus(rec) === 'Reviewed';
-    if (reviewed) {
-      const verdict = REPORT_VERDICT_CACHE[reportKey(rec)];
-      if (verdict) {
-        shelfStrip = verdict.stripPresent === false ? 'Missing'
-          : verdict.stripPresent === true ? (verdict.stripAccurate === true ? 'Present & Correct' : verdict.stripAccurate === false ? 'Present but Incorrect' : 'Present (accuracy not noted)')
-          : 'Not Reviewed';
-        pop = verdict.productPresent === true ? 'Available' : verdict.productPresent === false ? 'Not Available' : 'Not Reviewed';
-        recommendation = verdict.notes ? verdict.notes : (verdict.revisit === true ? 'Revisit Recommended' : verdict.revisit === false ? 'No Action Needed' : 'Not Reviewed');
-      }
+    const verdict = getReportStatus(rec) === 'Reviewed' ? REPORT_VERDICT_CACHE[reportKey(rec)] : null;
+    if (verdict) {
+      shelfStrip = verdict.stripPresent === true ? 'Present' : verdict.stripPresent === false ? 'Missing' : 'Not Recorded';
+      pop = verdict.productPresent === true ? 'Yes' : verdict.productPresent === false ? 'No' : 'Not Recorded';
     } else if (v.src === 'poppromo') {
-      shelfStrip = v.shelfStripPresent === false ? 'Missing (unreviewed)'
-        : v.shelfStripPresent === true ? (v.shelfStripMatchesPromo === true ? 'Present & Correct (unreviewed)' : v.shelfStripMatchesPromo === false ? 'Present but Incorrect (unreviewed)' : 'Present (unreviewed)')
-        : 'Not Reviewed';
-      pop = v.promoRunning === true ? 'Promo Running (unreviewed)' : v.promoRunning === false ? 'Promo Not Running (unreviewed)' : 'Not Reviewed';
-      recommendation = v.outcome ? ('Outcome: ' + v.outcome) : 'Not Reviewed';
+      shelfStrip = v.shelfStripPresent === true ? 'Present' : v.shelfStripPresent === false ? 'Missing' : 'Not Recorded';
+      pop = v.promoRunning === true ? 'Yes' : v.promoRunning === false ? 'No' : 'Not Recorded';
     }
   } else if (v.src === 'eileen') {
-    sourceLabel = 'Eileen Visit';
+    sourceLabel = 'Eileen';
     const rec = { src: 'eileen', id: v.ciId };
-    reviewed = getReportStatus(rec) === 'Reviewed';
-    if (reviewed) {
-      const verdict = REPORT_VERDICT_CACHE[reportKey(rec)];
-      if (verdict) {
-        shelfStrip = verdict.shelfStripPresent === false ? 'Missing'
-          : verdict.shelfStripPresent === true ? (verdict.shelfStripCorrect === true ? 'Present & Correct' : verdict.shelfStripCorrect === false ? 'Present but Incorrect' : verdict.shelfStripCorrect === 'na' ? 'Present (N/A)' : 'Present (accuracy not noted)')
-          : 'Not Reviewed';
-        pop = verdict.facingsStatus === 'full' ? 'Full' : verdict.facingsStatus === 'empty' ? 'Empty' : 'Not Reviewed';
-        const eiRec = EILEEN.find(r => r.id === v.ciId);
-        const decisionCode = verdict.decisionOverride || (eiRec ? (eivComputeSystemRecommendation(eiRec, verdict) || {}).recommendation : null);
-        recommendation = decisionCode ? (EIV_DECISION_LABELS[decisionCode] || decisionCode) : 'Not Reviewed';
-      }
+    const verdict = getReportStatus(rec) === 'Reviewed' ? REPORT_VERDICT_CACHE[reportKey(rec)] : null;
+    if (verdict) {
+      shelfStrip = verdict.shelfStripPresent === true ? 'Present' : verdict.shelfStripPresent === false ? 'Missing' : 'Not Recorded';
+      pop = verdict.facingsStatus === 'full' ? 'Yes' : verdict.facingsStatus === 'empty' ? 'No' : 'Not Recorded';
     }
   } else if (v.src === 'clarks') {
-    sourceLabel = 'Clarks Visit';
-    const rec = CLARKS.find(r => r.id === v.ciId);
-    shelfStrip = 'N/A (Clarks — no scoring)';
-    pop = 'N/A (Clarks — no scoring)';
-    recommendation = (rec && rec.n) ? rec.n : 'No note recorded';
-    reviewed = true; // Clarks has no separate review workflow -- the note itself IS the record
+    // A real 4th source in this dataset, distinct from the spec's listed CI/Eileen/GoSpotCheck --
+    // labeled honestly as "Clarks" rather than force-fit into one of the three, since Clarks has no
+    // scoring workflow at all (confirmed: real address/date/note only, no strip/POP fields exist).
+    sourceLabel = 'Clarks';
   }
 
   // door_visits.photos (v.photos) is only ever populated by the poppromo ETL pipeline -- confirmed
-  // empty for 100% of real ci/eileen visits dataset-wide (2,891/2,891 ci, 4,474/4,474 eileen), even
-  // though the SAME visit's real photos already exist in the separate top-level CI/EILEEN "master"
-  // ph list (2,891/2,891 ci, 4,455/4,474 eileen have them there). Fall back to that master list by
-  // ciId rather than showing an empty Photo column for the vast majority of real visits.
+  // empty for 100% of real ci/eileen visits dataset-wide, even though the SAME visit's real photos
+  // already exist in the separate top-level CI/EILEEN/CLARKS "master" ph list. Fall back to that
+  // master list by ciId rather than showing an empty Photo column for most real visits.
   let photos = v.photos || [];
   if (!photos.length) {
     let masterRec = null;
@@ -7311,112 +7345,135 @@ function xlsxVisitSummary(door, v) {
     if (masterRec && masterRec.ph && masterRec.ph.length) photos = masterRec.ph;
   }
 
-  return { dateOnly, dateLabel, sourceLabel, reviewed, shelfStrip, pop, recommendation, photos };
+  return { dateOnly, sourceLabel, shelfStrip, pop, photos };
 }
 
-// Most recently COMPLETED/reviewed visit's summary, per the export spec -- not just the most
-// recent visit chronologically. Falls back to the latest visit's raw (Not Reviewed) summary when
-// nothing has been reviewed yet, and to an honest "no visits" placeholder when there's no history.
-function xlsxLatestReviewedSummary(door) {
-  const summaries = (door.visits || [])
-    .map(v => xlsxVisitSummary(door, v))
-    .filter(s => s.dateOnly)
-    .sort((a, b) => b.dateOnly.localeCompare(a.dateOnly));
-  if (!summaries.length) return { dateLabel: '', shelfStrip: 'Not Reviewed', pop: 'Not Reviewed', recommendation: 'Not Reviewed' };
-  return summaries.find(s => s.reviewed) || summaries[0];
+// Rule-based Recommendation engine, evaluated in the exact priority order the spec lists; every
+// matching rule's text is joined with "; " rather than stopping at the first match. Color-coding
+// only covers the 3 buckets the spec actually defines (red=overdue/never visited, amber=strip/POP
+// issue, green=no action needed) -- a store that ONLY trips the sales-decline or no-sales-data
+// rules gets no fill color at all rather than an invented 4th bucket.
+function xlsxComputeRecommendation(door, latest) {
+  const reasons = [];
+  const neverVisited = !latest.dateOnly;
+  let overdue = false, stripIssue = false, popIssue = false;
+
+  if (neverVisited) {
+    reasons.push('Schedule first visit');
+  } else if (xlsxDaysBetween(latest.dateOnly, civTodayDateOnly()) > 90) {
+    reasons.push('Revisit – visit overdue');
+    overdue = true;
+  }
+  if (latest.shelfStrip === 'Missing' || latest.shelfStrip === 'Damaged') {
+    reasons.push('Replace shelf strip');
+    stripIssue = true;
+  }
+  if (latest.pop === 'No') {
+    reasons.push('Install POP materials');
+    popIssue = true;
+  }
+  const monthsWithData = (door.salesByMonth || [])
+    .filter(sm => sm && sm.month && sm.units !== null && sm.units !== undefined)
+    .sort((a, b) => a.month.localeCompare(b.month));
+  if (monthsWithData.length >= 3) {
+    const last3 = monthsWithData.slice(-3);
+    if (last3[1].units < last3[0].units && last3[2].units < last3[1].units) reasons.push('Investigate sales decline');
+  }
+  if (!neverVisited && monthsWithData.length === 0) reasons.push('Confirm product is carried');
+  if (reasons.length === 0) reasons.push('No action needed');
+
+  let style = 2; // wrap-body, uncolored (matches Address's own wrap style)
+  if (neverVisited || overdue) style = 6; // red
+  else if (stripIssue || popIssue) style = 7; // amber
+  else if (reasons.length === 1 && reasons[0] === 'No action needed') style = 8; // green
+
+  return { text: reasons.join('; '), style };
 }
 
-function xlsxMonthColumnsForDoors(doors) {
-  const months = new Set();
-  doors.forEach(d => (d.salesByMonth || []).forEach(sm => { if (sm && sm.month) months.add(sm.month); }));
-  return [...months].sort();
+// Contiguous run from January of the current year through the latest month ANY door in scope
+// actually has real salesByMonth data for -- never further than that (no fabricated future
+// months), and never narrower than the current January even if nothing has reported yet this year.
+function xlsxMonthColumnsJanToLatest(doors) {
+  const year = new Date().getFullYear();
+  let latest = `${year}-01`;
+  doors.forEach(d => (d.salesByMonth || []).forEach(sm => { if (sm && sm.month && sm.month > latest) latest = sm.month; }));
+  const [endYear, endMonth] = latest.split('-').map(Number);
+  const cols = [];
+  let y = year, m = 1;
+  while (y < endYear || (y === endYear && m <= endMonth)) {
+    cols.push(`${y}-${String(m).padStart(2, '0')}`);
+    m++; if (m > 12) { m = 1; y++; }
+  }
+  return cols;
 }
 
 // Stores Tab — Export Excel Report button. Scope follows the tab's own Region/Territory/Store
 // filters (cvaFilters) via cvaComputeChainDoors -- the full chain by default, narrower once those
-// are set, matching every other Stores tab output (Store Map/List, Velocity Loss Filter) already
-// scoped the same way. "Store" has no distinct name field in this data model (only address/city/
-// state) -- same address-as-identity convention exportChainReportCSV already uses above.
+// are set, matching every other Stores tab output (Store Map/List, Velocity Loss Filter). Single
+// sheet, exact column order per spec. Two real, disclosed gaps in the current live data model:
+// (1) "Store" has no distinct name field anywhere in this dashboard (only address/city/state) --
+// same address-as-identity convention exportChainReportCSV already uses; (2) "Store ID" (a real
+// per-chain store number) does not exist ANYWHERE in the live doors dataset for any chain -- always
+// "Not Recorded" rather than inventing one, per the spec's own explicit instruction. ZIP is also
+// absent from the live dataset (captured in the original roster but dropped before reaching
+// Supabase in build_doors.ps1) -- Store Address omits it rather than guessing.
 function exportStoresExcelReport() {
   const chainName = chainPanelState.chain;
   if (!chainName) { alert('Select a chain first.'); return; }
   const doors = cvaComputeChainDoors(chainName).slice().sort((a, b) => (a.address || '').localeCompare(b.address || ''));
   if (!doors.length) { alert('No stores match the current filters.'); return; }
 
-  const monthCols = xlsxMonthColumnsForDoors(doors);
+  const monthCols = xlsxMonthColumnsJanToLatest(doors);
+  const photoHeaderCols = Array.from({ length: xlsxPhotoCount }, (_, i) => `Photo ${i + 1}`);
 
-  const detailHeader = ['Store', 'Store Address', ...monthCols.map(xlsxFormatMonthCol),
-    'Latest Visit Date', 'Shelf Strip Condition', 'POP Availability', 'Recommendation', 'Total Visits'];
-  const detailRows = [detailHeader];
+  const header = [
+    'Store', 'Store ID', 'Store Address',
+    ...monthCols.map(m => `Units Sold – ${xlsxFormatMonthCol(m)}`), 'Total Units (YTD)',
+    'Latest Visit Date', ...photoHeaderCols, 'Source',
+    'Shelf Strip Condition', 'POP Availability', 'Recommendation'
+  ];
+  const rows = [header];
+
   doors.forEach(d => {
-    const latest = xlsxLatestReviewedSummary(d);
+    const latest = xlsxLatestVisitInfo(d);
+    const rec = xlsxComputeRecommendation(d, latest);
+
+    let ytd = 0, hasAny = false;
     const monthCells = monthCols.map(m => {
       const sm = (d.salesByMonth || []).find(x => x.month === m);
-      return (sm && sm.units !== null && sm.units !== undefined) ? sm.units : '';
+      if (sm && sm.units !== null && sm.units !== undefined) { ytd += sm.units; hasAny = true; return { v: sm.units, style: 4 }; }
+      return '';
     });
-    detailRows.push([
+
+    const photoCells = photoHeaderCols.map((_, i) => {
+      const url = latest.photos[i];
+      return url ? { v: `View Photo ${i + 1}`, hyperlink: url } : '';
+    });
+
+    rows.push([
       d.address || d.key,
+      'Not Recorded',
       { v: [d.address, d.city, d.state].filter(Boolean).join(', '), wrap: true },
       ...monthCells,
-      latest.dateLabel || 'No visits recorded',
+      { v: hasAny ? ytd : '', style: 4 },
+      latest.dateOnly ? { v: xlsxExcelDateSerial(latest.dateOnly), style: 5 } : 'Not Recorded',
+      ...photoCells,
+      latest.sourceLabel,
       latest.shelfStrip,
       latest.pop,
-      { v: latest.recommendation, wrap: true },
-      (d.visits || []).length
+      { v: rec.text, style: rec.style }
     ]);
   });
-  const detailCols = [
-    { wch: 26 }, { wch: 36 },
-    ...monthCols.map(() => ({ wch: 11 })),
-    { wch: 16 }, { wch: 20 }, { wch: 18 }, { wch: 34 }, { wch: 12 }
+
+  const cols = [
+    { wch: 26 }, { wch: 12 }, { wch: 36 },
+    ...monthCols.map(() => ({ wch: 16 })), { wch: 14 },
+    { wch: 14 }, ...photoHeaderCols.map(() => ({ wch: 12 })), { wch: 12 },
+    { wch: 20 }, { wch: 14 }, { wch: 34 }
   ];
 
-  let maxPhotos = 0;
-  const visitRecords = [];
-  doors.forEach(d => {
-    (d.visits || []).forEach(v => {
-      const s = xlsxVisitSummary(d, v);
-      if (s.photos.length > maxPhotos) maxPhotos = s.photos.length;
-      visitRecords.push({ door: d, summary: s });
-    });
-  });
-  visitRecords.sort((a, b) => {
-    const addrCmp = (a.door.address || '').localeCompare(b.door.address || '');
-    if (addrCmp !== 0) return addrCmp;
-    return (b.summary.dateOnly || '').localeCompare(a.summary.dateOnly || '');
-  });
-  const photoHeaderCols = Array.from({ length: Math.max(maxPhotos, 1) }, (_, i) => `Photo ${i + 1}`);
-  const historyHeader = ['Store', 'Visit Date', 'Source', 'Reviewed?', 'Shelf Strip Condition', 'POP Availability', 'Recommendation', ...photoHeaderCols];
-  const historyRows = [historyHeader];
-  visitRecords.forEach(({ door, summary }) => {
-    const photoCells = [];
-    for (let i = 0; i < photoHeaderCols.length; i++) {
-      const url = summary.photos[i];
-      photoCells.push(url ? { v: 'View Photo', hyperlink: url } : '');
-    }
-    historyRows.push([
-      door.address || door.key,
-      summary.dateLabel || 'Unknown date',
-      summary.sourceLabel,
-      summary.reviewed ? 'Yes' : 'No',
-      summary.shelfStrip,
-      summary.pop,
-      { v: summary.recommendation, wrap: true },
-      ...photoCells
-    ]);
-  });
-  const historyCols = [
-    { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 20 }, { wch: 18 }, { wch: 34 },
-    ...photoHeaderCols.map(() => ({ wch: 14 }))
-  ];
-
-  const sheets = [
-    { name: 'Store Detail', cols: detailCols, freezeHeaderRows: 1, autofilter: true, rows: detailRows },
-    { name: 'Visit History', cols: historyCols, freezeHeaderRows: 1, autofilter: true, rows: historyRows }
-  ];
-
-  const filterSuffix = (cvaFilters.state || cvaFilters.city || cvaFilters.door) ? '_filtered' : '';
-  const filename = `${chainName.replace(/[^A-Za-z0-9]/g, '_')}_Stores_Report${filterSuffix}_${civTodayDateOnly()}.xlsx`;
+  const sheets = [{ name: 'Store Report', cols, freeze: { rows: 1, cols: 3 }, autofilter: true, rows }];
+  const filename = `Lucy_Store_Report_${civTodayDateOnly()}.xlsx`;
   LucyXlsx.downloadXlsx(sheets, filename);
 }
 
@@ -7448,7 +7505,12 @@ function renderStoresTab() {
   panelEl.innerHTML = picker + `
     <div class="cp-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <div class="cp-title">${escHtml(chainName)}</div>
-      <button class="ac-btn" onclick="exportStoresExcelReport()">⬇ Export Excel Report</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">Photos/store
+          <input type="number" min="1" max="10" value="${xlsxPhotoCount}" onchange="xlsxSetPhotoCount(this.value)" style="width:44px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 5px;color:var(--text);font-size:11px;">
+        </label>
+        <button class="ac-btn" onclick="exportStoresExcelReport()">⬇ Export Excel Report</button>
+      </div>
     </div>
 
     ${cpKpiGrid(chainName, doors)}
