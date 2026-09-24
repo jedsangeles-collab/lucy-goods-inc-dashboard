@@ -1184,150 +1184,150 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
    layout), NOT from this dashboard's Report Review tab -- deliberately its own visual language,
    scoped entirely under #view-civisitreview / civr- prefixed classes so it can't leak into or
    collide with the rest of the app. */
-#view-civisitreview .civr-header, #view-eileenvisitreview .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
-#view-civisitreview .civr-header h1, #view-eileenvisitreview .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civr-progress-wrap, #view-eileenvisitreview .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
-#view-civisitreview .civr-progress-bar, #view-eileenvisitreview .civr-progress-bar{width:220px;height:4px;background:#e0ddd6;border-radius:2px;overflow:hidden;}
-#view-civisitreview .civr-progress-fill, #view-eileenvisitreview .civr-progress-fill{height:100%;background:#2a7a2a;border-radius:2px;transition:width 0.3s;}
-#view-civisitreview .civr-progress-text, #view-eileenvisitreview .civr-progress-text{font-size:12px;color:#888;}
-#view-civisitreview .civr-export-btn, #view-eileenvisitreview .civr-export-btn{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid #bbb;background:#fff;color:#1a1a18;cursor:pointer;font-weight:500;}
-#view-civisitreview .civr-export-btn:hover, #view-eileenvisitreview .civr-export-btn:hover{background:#f0efe8;}
-#view-civisitreview .civr-stats-bar, #view-eileenvisitreview .civr-stats-bar{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;}
-#view-civisitreview .civr-stat, #view-eileenvisitreview .civr-stat{display:flex;flex-direction:column;gap:1px;}
-#view-civisitreview .civr-slabel, #view-eileenvisitreview .civr-slabel{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;}
-#view-civisitreview .civr-sval, #view-eileenvisitreview .civr-sval{font-size:22px;font-weight:700;color:#1a1a18;}
-#view-civisitreview .civr-stat.civr-green .civr-sval, #view-eileenvisitreview .civr-stat.civr-green .civr-sval{color:#1a7a1a;}
-#view-civisitreview .civr-stat.civr-red .civr-sval, #view-eileenvisitreview .civr-stat.civr-red .civr-sval{color:#b03020;}
-#view-civisitreview .civr-stat.civr-blue .civr-sval, #view-eileenvisitreview .civr-stat.civr-blue .civr-sval{color:#1a5fa0;}
-#view-civisitreview .civr-stat.civr-amber .civr-sval, #view-eileenvisitreview .civr-stat.civr-amber .civr-sval{color:#8a5000;}
-#view-civisitreview .civr-filters, #view-eileenvisitreview .civr-filters{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-#view-civisitreview .civr-filters label, #view-eileenvisitreview .civr-filters label{font-size:12px;color:#666;font-weight:500;}
-#view-civisitreview .civr-select, #view-eileenvisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
-#view-civisitreview .civr-reset, #view-eileenvisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
-#view-civisitreview .civr-reset:hover, #view-eileenvisitreview .civr-reset:hover{text-decoration:underline;}
-#view-civisitreview .civdate-filter-wrap, #view-eileenvisitreview .civdate-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;}
-#view-civisitreview .civdate-display, #view-eileenvisitreview .civdate-display{font-size:12px;color:#1a5fa0;font-weight:600;background:#e3f0ff;padding:3px 8px;border-radius:6px;white-space:nowrap;}
-#view-civisitreview .civdate-picker, #view-eileenvisitreview .civdate-picker{position:absolute;top:calc(100% + 6px);left:0;z-index:50;background:#fff;border:1px solid #e0ddd6;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:12px;width:230px;}
-#view-civisitreview .civdate-picker-header, #view-eileenvisitreview .civdate-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-#view-civisitreview .civdate-month-label, #view-eileenvisitreview .civdate-month-label{font-size:13px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civdate-nav, #view-eileenvisitreview .civdate-nav{cursor:pointer;font-size:15px;color:#1a5fa0;padding:2px 8px;border-radius:4px;user-select:none;}
-#view-civisitreview .civdate-nav:hover, #view-eileenvisitreview .civdate-nav:hover{background:#f0f0ee;}
-#view-civisitreview .civdate-grid, #view-eileenvisitreview .civdate-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;}
-#view-civisitreview .civdate-dow, #view-eileenvisitreview .civdate-dow{font-size:10px;color:#999;text-transform:uppercase;font-weight:600;text-align:center;}
-#view-civisitreview .civdate-cell, #view-eileenvisitreview .civdate-cell{font-size:12px;text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;color:#1a1a18;}
-#view-civisitreview .civdate-cell:hover, #view-eileenvisitreview .civdate-cell:hover{background:#f0f0ee;}
-#view-civisitreview .civdate-cell.civdate-blank, #view-eileenvisitreview .civdate-cell.civdate-blank{cursor:default;}
-#view-civisitreview .civdate-cell.civdate-blank:hover, #view-eileenvisitreview .civdate-cell.civdate-blank:hover{background:none;}
-#view-civisitreview .civdate-cell.civdate-in-range, #view-eileenvisitreview .civdate-cell.civdate-in-range{background:#e3f0ff;border-radius:0;}
+#view-civisitreview .civr-header, #view-eileenvisitreview .civr-header, #view-extravisitreview .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+#view-civisitreview .civr-header h1, #view-eileenvisitreview .civr-header h1, #view-extravisitreview .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-progress-wrap, #view-eileenvisitreview .civr-progress-wrap, #view-extravisitreview .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
+#view-civisitreview .civr-progress-bar, #view-eileenvisitreview .civr-progress-bar, #view-extravisitreview .civr-progress-bar{width:220px;height:4px;background:#e0ddd6;border-radius:2px;overflow:hidden;}
+#view-civisitreview .civr-progress-fill, #view-eileenvisitreview .civr-progress-fill, #view-extravisitreview .civr-progress-fill{height:100%;background:#2a7a2a;border-radius:2px;transition:width 0.3s;}
+#view-civisitreview .civr-progress-text, #view-eileenvisitreview .civr-progress-text, #view-extravisitreview .civr-progress-text{font-size:12px;color:#888;}
+#view-civisitreview .civr-export-btn, #view-eileenvisitreview .civr-export-btn, #view-extravisitreview .civr-export-btn{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid #bbb;background:#fff;color:#1a1a18;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-export-btn:hover, #view-eileenvisitreview .civr-export-btn:hover, #view-extravisitreview .civr-export-btn:hover{background:#f0efe8;}
+#view-civisitreview .civr-stats-bar, #view-eileenvisitreview .civr-stats-bar, #view-extravisitreview .civr-stats-bar{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;}
+#view-civisitreview .civr-stat, #view-eileenvisitreview .civr-stat, #view-extravisitreview .civr-stat{display:flex;flex-direction:column;gap:1px;}
+#view-civisitreview .civr-slabel, #view-eileenvisitreview .civr-slabel, #view-extravisitreview .civr-slabel{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;}
+#view-civisitreview .civr-sval, #view-eileenvisitreview .civr-sval, #view-extravisitreview .civr-sval{font-size:22px;font-weight:700;color:#1a1a18;}
+#view-civisitreview .civr-stat.civr-green .civr-sval, #view-eileenvisitreview .civr-stat.civr-green .civr-sval, #view-extravisitreview .civr-stat.civr-green .civr-sval{color:#1a7a1a;}
+#view-civisitreview .civr-stat.civr-red .civr-sval, #view-eileenvisitreview .civr-stat.civr-red .civr-sval, #view-extravisitreview .civr-stat.civr-red .civr-sval{color:#b03020;}
+#view-civisitreview .civr-stat.civr-blue .civr-sval, #view-eileenvisitreview .civr-stat.civr-blue .civr-sval, #view-extravisitreview .civr-stat.civr-blue .civr-sval{color:#1a5fa0;}
+#view-civisitreview .civr-stat.civr-amber .civr-sval, #view-eileenvisitreview .civr-stat.civr-amber .civr-sval, #view-extravisitreview .civr-stat.civr-amber .civr-sval{color:#8a5000;}
+#view-civisitreview .civr-filters, #view-eileenvisitreview .civr-filters, #view-extravisitreview .civr-filters{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+#view-civisitreview .civr-filters label, #view-eileenvisitreview .civr-filters label, #view-extravisitreview .civr-filters label{font-size:12px;color:#666;font-weight:500;}
+#view-civisitreview .civr-select, #view-eileenvisitreview .civr-select, #view-extravisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
+#view-civisitreview .civr-reset, #view-eileenvisitreview .civr-reset, #view-extravisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
+#view-civisitreview .civr-reset:hover, #view-eileenvisitreview .civr-reset:hover, #view-extravisitreview .civr-reset:hover{text-decoration:underline;}
+#view-civisitreview .civdate-filter-wrap, #view-eileenvisitreview .civdate-filter-wrap, #view-extravisitreview .civdate-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;}
+#view-civisitreview .civdate-display, #view-eileenvisitreview .civdate-display, #view-extravisitreview .civdate-display{font-size:12px;color:#1a5fa0;font-weight:600;background:#e3f0ff;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+#view-civisitreview .civdate-picker, #view-eileenvisitreview .civdate-picker, #view-extravisitreview .civdate-picker{position:absolute;top:calc(100% + 6px);left:0;z-index:50;background:#fff;border:1px solid #e0ddd6;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:12px;width:230px;}
+#view-civisitreview .civdate-picker-header, #view-eileenvisitreview .civdate-picker-header, #view-extravisitreview .civdate-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+#view-civisitreview .civdate-month-label, #view-eileenvisitreview .civdate-month-label, #view-extravisitreview .civdate-month-label{font-size:13px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civdate-nav, #view-eileenvisitreview .civdate-nav, #view-extravisitreview .civdate-nav{cursor:pointer;font-size:15px;color:#1a5fa0;padding:2px 8px;border-radius:4px;user-select:none;}
+#view-civisitreview .civdate-nav:hover, #view-eileenvisitreview .civdate-nav:hover, #view-extravisitreview .civdate-nav:hover{background:#f0f0ee;}
+#view-civisitreview .civdate-grid, #view-eileenvisitreview .civdate-grid, #view-extravisitreview .civdate-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;}
+#view-civisitreview .civdate-dow, #view-eileenvisitreview .civdate-dow, #view-extravisitreview .civdate-dow{font-size:10px;color:#999;text-transform:uppercase;font-weight:600;text-align:center;}
+#view-civisitreview .civdate-cell, #view-eileenvisitreview .civdate-cell, #view-extravisitreview .civdate-cell{font-size:12px;text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;color:#1a1a18;}
+#view-civisitreview .civdate-cell:hover, #view-eileenvisitreview .civdate-cell:hover, #view-extravisitreview .civdate-cell:hover{background:#f0f0ee;}
+#view-civisitreview .civdate-cell.civdate-blank, #view-eileenvisitreview .civdate-cell.civdate-blank, #view-extravisitreview .civdate-cell.civdate-blank{cursor:default;}
+#view-civisitreview .civdate-cell.civdate-blank:hover, #view-eileenvisitreview .civdate-cell.civdate-blank:hover, #view-extravisitreview .civdate-cell.civdate-blank:hover{background:none;}
+#view-civisitreview .civdate-cell.civdate-in-range, #view-eileenvisitreview .civdate-cell.civdate-in-range, #view-extravisitreview .civdate-cell.civdate-in-range{background:#e3f0ff;border-radius:0;}
 #view-civisitreview .civdate-cell.civdate-range-start, #view-eileenvisitreview .civdate-cell.civdate-range-start,
-#view-civisitreview .civdate-cell.civdate-range-end, #view-eileenvisitreview .civdate-cell.civdate-range-end{background:#1a5fa0;color:#fff;font-weight:600;}
-#view-civisitreview .civdate-picker-footer, #view-eileenvisitreview .civdate-picker-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
-#view-civisitreview .civdate-range-label, #view-eileenvisitreview .civdate-range-label{font-size:11px;color:#666;}
-#view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-#view-civisitreview .civr-bulk-count, #view-eileenvisitreview .civr-bulk-count{font-size:13px;color:#666;}
-#view-civisitreview .civr-bulk-btn, #view-eileenvisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
-#view-civisitreview .civr-bulk-no, #view-eileenvisitreview .civr-bulk-no{border-color:#c03020;background:#fdecea;color:#8a1010;}
-#view-civisitreview .civr-bulk-yes, #view-eileenvisitreview .civr-bulk-yes{border-color:#2a7a2a;background:#e6f5e6;color:#1a5a1a;}
-#view-civisitreview .civr-bulk-submit, #view-eileenvisitreview .civr-bulk-submit{border-color:#1a5fa0;background:#e3f0ff;color:#1a4a80;}
-#view-civisitreview .civr-bulk-msg, #view-eileenvisitreview .civr-bulk-msg{font-size:12px;color:#2a7a2a;font-weight:600;}
-#view-civisitreview .civr-main, #view-eileenvisitreview .civr-main{max-width:1000px;width:100%;margin:0 auto;padding:16px;}
+#view-civisitreview .civdate-cell.civdate-range-end, #view-eileenvisitreview .civdate-cell.civdate-range-end, #view-extravisitreview .civdate-cell.civdate-range-end{background:#1a5fa0;color:#fff;font-weight:600;}
+#view-civisitreview .civdate-picker-footer, #view-eileenvisitreview .civdate-picker-footer, #view-extravisitreview .civdate-picker-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+#view-civisitreview .civdate-range-label, #view-eileenvisitreview .civdate-range-label, #view-extravisitreview .civdate-range-label{font-size:11px;color:#666;}
+#view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar, #view-extravisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+#view-civisitreview .civr-bulk-count, #view-eileenvisitreview .civr-bulk-count, #view-extravisitreview .civr-bulk-count{font-size:13px;color:#666;}
+#view-civisitreview .civr-bulk-btn, #view-eileenvisitreview .civr-bulk-btn, #view-extravisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
+#view-civisitreview .civr-bulk-no, #view-eileenvisitreview .civr-bulk-no, #view-extravisitreview .civr-bulk-no{border-color:#c03020;background:#fdecea;color:#8a1010;}
+#view-civisitreview .civr-bulk-yes, #view-eileenvisitreview .civr-bulk-yes, #view-extravisitreview .civr-bulk-yes{border-color:#2a7a2a;background:#e6f5e6;color:#1a5a1a;}
+#view-civisitreview .civr-bulk-submit, #view-eileenvisitreview .civr-bulk-submit, #view-extravisitreview .civr-bulk-submit{border-color:#1a5fa0;background:#e3f0ff;color:#1a4a80;}
+#view-civisitreview .civr-bulk-msg, #view-eileenvisitreview .civr-bulk-msg, #view-extravisitreview .civr-bulk-msg{font-size:12px;color:#2a7a2a;font-weight:600;}
+#view-civisitreview .civr-main, #view-eileenvisitreview .civr-main, #view-extravisitreview .civr-main{max-width:1000px;width:100%;margin:0 auto;padding:16px;}
 
-#view-civisitreview .civr-store-card, #view-eileenvisitreview .civr-store-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;}
-#view-civisitreview .civr-store-card.civr-submitted, #view-eileenvisitreview .civr-store-card.civr-submitted{border-left:4px solid #1a7a1a;}
-#view-civisitreview .civr-store-card.civr-submitted-flag, #view-eileenvisitreview .civr-store-card.civr-submitted-flag{border-left:4px solid #e08020;}
-#view-civisitreview .civr-card-head, #view-eileenvisitreview .civr-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0;}
-#view-civisitreview .civr-card-title, #view-eileenvisitreview .civr-card-title{font-size:14px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civr-card-sub, #view-eileenvisitreview .civr-card-sub{font-size:12px;color:#777;margin-top:2px;}
-#view-civisitreview .civr-badges, #view-eileenvisitreview .civr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-bottom:10px;}
-#view-civisitreview .civr-badge, #view-eileenvisitreview .civr-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
-#view-civisitreview .civr-b-strip-yes, #view-eileenvisitreview .civr-b-strip-yes{background:#ddeeff;color:#1a5fa0;border:1px solid #aaccee;}
-#view-civisitreview .civr-b-strip-no, #view-eileenvisitreview .civr-b-strip-no{background:#fff3e0;color:#a06010;border:1px solid #e8c060;}
-#view-civisitreview .civr-b-oos, #view-eileenvisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
-#view-civisitreview .civr-b-ok, #view-eileenvisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
-#view-civisitreview .civr-b-lock, #view-eileenvisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
-#view-civisitreview .civr-b-source-ci, #view-eileenvisitreview .civr-b-source-ci{background:#eef0fb;color:#39409a;border:1px solid #c0c6ee;}
-#view-civisitreview .civr-b-source-pop, #view-eileenvisitreview .civr-b-source-pop{background:#f5eefb;color:#7a3aa0;border:1px solid #d8bce8;}
-#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
-#view-civisitreview .civr-card-body, #view-eileenvisitreview .civr-card-body{padding:0 16px 14px;}
+#view-civisitreview .civr-store-card, #view-eileenvisitreview .civr-store-card, #view-extravisitreview .civr-store-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;}
+#view-civisitreview .civr-store-card.civr-submitted, #view-eileenvisitreview .civr-store-card.civr-submitted, #view-extravisitreview .civr-store-card.civr-submitted{border-left:4px solid #1a7a1a;}
+#view-civisitreview .civr-store-card.civr-submitted-flag, #view-eileenvisitreview .civr-store-card.civr-submitted-flag, #view-extravisitreview .civr-store-card.civr-submitted-flag{border-left:4px solid #e08020;}
+#view-civisitreview .civr-card-head, #view-eileenvisitreview .civr-card-head, #view-extravisitreview .civr-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0;}
+#view-civisitreview .civr-card-title, #view-eileenvisitreview .civr-card-title, #view-extravisitreview .civr-card-title{font-size:14px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-card-sub, #view-eileenvisitreview .civr-card-sub, #view-extravisitreview .civr-card-sub{font-size:12px;color:#777;margin-top:2px;}
+#view-civisitreview .civr-badges, #view-eileenvisitreview .civr-badges, #view-extravisitreview .civr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-bottom:10px;}
+#view-civisitreview .civr-badge, #view-eileenvisitreview .civr-badge, #view-extravisitreview .civr-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+#view-civisitreview .civr-b-strip-yes, #view-eileenvisitreview .civr-b-strip-yes, #view-extravisitreview .civr-b-strip-yes{background:#ddeeff;color:#1a5fa0;border:1px solid #aaccee;}
+#view-civisitreview .civr-b-strip-no, #view-eileenvisitreview .civr-b-strip-no, #view-extravisitreview .civr-b-strip-no{background:#fff3e0;color:#a06010;border:1px solid #e8c060;}
+#view-civisitreview .civr-b-oos, #view-eileenvisitreview .civr-b-oos, #view-extravisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
+#view-civisitreview .civr-b-ok, #view-eileenvisitreview .civr-b-ok, #view-extravisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
+#view-civisitreview .civr-b-lock, #view-eileenvisitreview .civr-b-lock, #view-extravisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
+#view-civisitreview .civr-b-source-ci, #view-eileenvisitreview .civr-b-source-ci, #view-extravisitreview .civr-b-source-ci{background:#eef0fb;color:#39409a;border:1px solid #c0c6ee;}
+#view-civisitreview .civr-b-source-pop, #view-eileenvisitreview .civr-b-source-pop, #view-extravisitreview .civr-b-source-pop{background:#f5eefb;color:#7a3aa0;border:1px solid #d8bce8;}
+#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen, #view-extravisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
+#view-civisitreview .civr-card-body, #view-eileenvisitreview .civr-card-body, #view-extravisitreview .civr-card-body{padding:0 16px 14px;}
 
-#view-civisitreview .civr-rep-notes, #view-eileenvisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
-#view-civisitreview .civr-rep-notes-title, #view-eileenvisitreview .civr-rep-notes-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;}
-#view-civisitreview .civr-rep-grid, #view-eileenvisitreview .civr-rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
-#view-civisitreview .civr-rep-row, #view-eileenvisitreview .civr-rep-row{display:flex;gap:6px;padding:2px 0;align-items:baseline;}
-#view-civisitreview .civr-rep-key, #view-eileenvisitreview .civr-rep-key{color:#999;flex-shrink:0;min-width:130px;font-size:11px;}
-#view-civisitreview .civr-rep-val, #view-eileenvisitreview .civr-rep-val{color:#1a1a18;font-weight:500;font-size:12px;}
-#view-civisitreview .civr-rep-val.alert, #view-eileenvisitreview .civr-rep-val.alert{color:#a02020;}
-#view-civisitreview .civr-rep-val.good, #view-eileenvisitreview .civr-rep-val.good{color:#1a7a1a;}
-#view-civisitreview .civr-rep-note-long, #view-eileenvisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
-#view-civisitreview .civr-refusal-banner, #view-eileenvisitreview .civr-refusal-banner{background:#fdecea;border:1px solid #eeb0b0;border-radius:6px;padding:8px 10px;}
-#view-civisitreview .civr-refusal-title, #view-eileenvisitreview .civr-refusal-title{display:block;color:#a02020;font-weight:700;font-size:12px;margin-bottom:5px;}
+#view-civisitreview .civr-rep-notes, #view-eileenvisitreview .civr-rep-notes, #view-extravisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-rep-notes-title, #view-eileenvisitreview .civr-rep-notes-title, #view-extravisitreview .civr-rep-notes-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;}
+#view-civisitreview .civr-rep-grid, #view-eileenvisitreview .civr-rep-grid, #view-extravisitreview .civr-rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
+#view-civisitreview .civr-rep-row, #view-eileenvisitreview .civr-rep-row, #view-extravisitreview .civr-rep-row{display:flex;gap:6px;padding:2px 0;align-items:baseline;}
+#view-civisitreview .civr-rep-key, #view-eileenvisitreview .civr-rep-key, #view-extravisitreview .civr-rep-key{color:#999;flex-shrink:0;min-width:130px;font-size:11px;}
+#view-civisitreview .civr-rep-val, #view-eileenvisitreview .civr-rep-val, #view-extravisitreview .civr-rep-val{color:#1a1a18;font-weight:500;font-size:12px;}
+#view-civisitreview .civr-rep-val.alert, #view-eileenvisitreview .civr-rep-val.alert, #view-extravisitreview .civr-rep-val.alert{color:#a02020;}
+#view-civisitreview .civr-rep-val.good, #view-eileenvisitreview .civr-rep-val.good, #view-extravisitreview .civr-rep-val.good{color:#1a7a1a;}
+#view-civisitreview .civr-rep-note-long, #view-eileenvisitreview .civr-rep-note-long, #view-extravisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
+#view-civisitreview .civr-refusal-banner, #view-eileenvisitreview .civr-refusal-banner, #view-extravisitreview .civr-refusal-banner{background:#fdecea;border:1px solid #eeb0b0;border-radius:6px;padding:8px 10px;}
+#view-civisitreview .civr-refusal-title, #view-eileenvisitreview .civr-refusal-title, #view-extravisitreview .civr-refusal-title{display:block;color:#a02020;font-weight:700;font-size:12px;margin-bottom:5px;}
 
-#view-civisitreview .civr-photos-row, #view-eileenvisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
-#view-civisitreview .civr-plabel, #view-eileenvisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
-#view-civisitreview .civr-photo-wrap, #view-eileenvisitreview .civr-photo-wrap{position:relative;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid #e0ddd6;background:#f5f4f0;cursor:pointer;}
-#view-civisitreview .civr-photo-wrap img, #view-eileenvisitreview .civr-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
-#view-civisitreview .civr-photo-wrap img:hover, #view-eileenvisitreview .civr-photo-wrap img:hover{opacity:0.88;}
-#view-civisitreview .civr-photo-hint, #view-eileenvisitreview .civr-photo-hint{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
-#view-civisitreview .civr-no-photo, #view-eileenvisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
-#view-civisitreview .civr-view-all, #view-eileenvisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
-#view-civisitreview .civr-view-all:hover, #view-eileenvisitreview .civr-view-all:hover{text-decoration:underline;}
+#view-civisitreview .civr-photos-row, #view-eileenvisitreview .civr-photos-row, #view-extravisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
+#view-civisitreview .civr-plabel, #view-eileenvisitreview .civr-plabel, #view-extravisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
+#view-civisitreview .civr-photo-wrap, #view-eileenvisitreview .civr-photo-wrap, #view-extravisitreview .civr-photo-wrap{position:relative;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid #e0ddd6;background:#f5f4f0;cursor:pointer;}
+#view-civisitreview .civr-photo-wrap img, #view-eileenvisitreview .civr-photo-wrap img, #view-extravisitreview .civr-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+#view-civisitreview .civr-photo-wrap img:hover, #view-eileenvisitreview .civr-photo-wrap img:hover, #view-extravisitreview .civr-photo-wrap img:hover{opacity:0.88;}
+#view-civisitreview .civr-photo-hint, #view-eileenvisitreview .civr-photo-hint, #view-extravisitreview .civr-photo-hint{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
+#view-civisitreview .civr-no-photo, #view-eileenvisitreview .civr-no-photo, #view-extravisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
+#view-civisitreview .civr-view-all, #view-eileenvisitreview .civr-view-all, #view-extravisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
+#view-civisitreview .civr-view-all:hover, #view-eileenvisitreview .civr-view-all:hover, #view-extravisitreview .civr-view-all:hover{text-decoration:underline;}
 
-#view-civisitreview .civr-verdict-bar, #view-eileenvisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
-#view-civisitreview .civr-vq, #view-eileenvisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
-#view-civisitreview .civr-vq:last-of-type, #view-eileenvisitreview .civr-vq:last-of-type{border-right:none;padding-right:0;padding-left:12px;}
-#view-civisitreview .civr-vq-label, #view-eileenvisitreview .civr-vq-label{font-size:11px;font-weight:600;color:#666;margin-bottom:4px;}
-#view-civisitreview .civr-vq-pre, #view-eileenvisitreview .civr-vq-pre{font-size:10px;color:#aaa;margin-bottom:2px;}
-#view-civisitreview .civr-tri-btn, #view-eileenvisitreview .civr-tri-btn{display:flex;gap:3px;}
-#view-civisitreview .civr-tbtn, #view-eileenvisitreview .civr-tbtn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;cursor:pointer;font-weight:500;transition:all 0.12s;white-space:nowrap;}
-#view-civisitreview .civr-tbtn:hover, #view-eileenvisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
-#view-civisitreview .civr-tbtn.civr-on-yes, #view-eileenvisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
-#view-civisitreview .civr-tbtn.civr-on-no, #view-eileenvisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
-#view-civisitreview .civr-tbtn.civr-on-na, #view-eileenvisitreview .civr-tbtn.civr-on-na{background:#eee;border-color:#888;color:#555;font-weight:700;}
-#view-civisitreview .civr-velocity-box, #view-eileenvisitreview .civr-velocity-box{
+#view-civisitreview .civr-verdict-bar, #view-eileenvisitreview .civr-verdict-bar, #view-extravisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+#view-civisitreview .civr-vq, #view-eileenvisitreview .civr-vq, #view-extravisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
+#view-civisitreview .civr-vq:last-of-type, #view-eileenvisitreview .civr-vq:last-of-type, #view-extravisitreview .civr-vq:last-of-type{border-right:none;padding-right:0;padding-left:12px;}
+#view-civisitreview .civr-vq-label, #view-eileenvisitreview .civr-vq-label, #view-extravisitreview .civr-vq-label{font-size:11px;font-weight:600;color:#666;margin-bottom:4px;}
+#view-civisitreview .civr-vq-pre, #view-eileenvisitreview .civr-vq-pre, #view-extravisitreview .civr-vq-pre{font-size:10px;color:#aaa;margin-bottom:2px;}
+#view-civisitreview .civr-tri-btn, #view-eileenvisitreview .civr-tri-btn, #view-extravisitreview .civr-tri-btn{display:flex;gap:3px;}
+#view-civisitreview .civr-tbtn, #view-eileenvisitreview .civr-tbtn, #view-extravisitreview .civr-tbtn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;cursor:pointer;font-weight:500;transition:all 0.12s;white-space:nowrap;}
+#view-civisitreview .civr-tbtn:hover, #view-eileenvisitreview .civr-tbtn:hover, #view-extravisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
+#view-civisitreview .civr-tbtn.civr-on-yes, #view-eileenvisitreview .civr-tbtn.civr-on-yes, #view-extravisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-no, #view-eileenvisitreview .civr-tbtn.civr-on-no, #view-extravisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-na, #view-eileenvisitreview .civr-tbtn.civr-on-na, #view-extravisitreview .civr-tbtn.civr-on-na{background:#eee;border-color:#888;color:#555;font-weight:700;}
+#view-civisitreview .civr-velocity-box, #view-eileenvisitreview .civr-velocity-box, #view-extravisitreview .civr-velocity-box{
   display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
   background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;
 }
-#view-civisitreview .civr-velocity-label, #view-eileenvisitreview .civr-velocity-label{color:#666;font-weight:600;}
-#view-civisitreview .civr-velocity-period, #view-eileenvisitreview .civr-velocity-period{font-weight:400;color:#999;}
-#view-civisitreview .civr-velocity-val, #view-eileenvisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
-#view-civisitreview .civr-sku-box, #view-eileenvisitreview .civr-sku-box{background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;}
-#view-civisitreview .civr-sku-title, #view-eileenvisitreview .civr-sku-title{color:#666;font-weight:600;margin-bottom:6px;}
-#view-civisitreview .civr-sku-sub, #view-eileenvisitreview .civr-sku-sub{font-weight:400;color:#999;}
-#view-civisitreview .civr-sku-empty, #view-eileenvisitreview .civr-sku-empty{color:#999;font-style:italic;}
-#view-civisitreview .civr-sku-table, #view-eileenvisitreview .civr-sku-table{width:100%;border-collapse:collapse;}
-#view-civisitreview .civr-sku-table th, #view-eileenvisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
-#view-civisitreview .civr-sku-table td, #view-eileenvisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
-#view-civisitreview .civr-sku-num, #view-eileenvisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
-#view-eileenvisitreview .civr-present-count{display:flex;align-items:center;gap:6px;}
-#view-eileenvisitreview .civr-sku-count-input{max-width:70px;}
-#view-eileenvisitreview .civr-sku-others{margin-top:8px;padding-top:8px;border-top:1px dashed #e0ddd6;}
-#view-eileenvisitreview .civr-sku-others-label{color:#666;font-weight:600;margin-bottom:4px;font-size:11px;}
-#view-eileenvisitreview .civr-sku-others-detail{width:100%;max-width:none;margin-top:4px;}
-#view-civisitreview .civr-sku-totals, #view-eileenvisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
-#view-civisitreview .civr-submit-col, #view-eileenvisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
-#view-civisitreview .civr-submit-btn, #view-eileenvisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
-#view-civisitreview .civr-submit-btn:hover, #view-eileenvisitreview .civr-submit-btn:hover{background:#144d88;}
-#view-civisitreview .civr-submit-btn.civr-submit-done, #view-eileenvisitreview .civr-submit-btn.civr-submit-done{background:#2a7a2a;cursor:default;}
-#view-civisitreview .civr-flag-btn, #view-eileenvisitreview .civr-flag-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;}
-#view-civisitreview .civr-flag-btn:hover, #view-eileenvisitreview .civr-flag-btn:hover{background:#fff8e0;border-color:#e0a020;color:#8a5000;}
-#view-civisitreview .civr-flag-btn.civr-flagged, #view-eileenvisitreview .civr-flag-btn.civr-flagged{background:#fff3e0;border-color:#e0a020;color:#8a5000;font-weight:600;}
+#view-civisitreview .civr-velocity-label, #view-eileenvisitreview .civr-velocity-label, #view-extravisitreview .civr-velocity-label{color:#666;font-weight:600;}
+#view-civisitreview .civr-velocity-period, #view-eileenvisitreview .civr-velocity-period, #view-extravisitreview .civr-velocity-period{font-weight:400;color:#999;}
+#view-civisitreview .civr-velocity-val, #view-eileenvisitreview .civr-velocity-val, #view-extravisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
+#view-civisitreview .civr-sku-box, #view-eileenvisitreview .civr-sku-box, #view-extravisitreview .civr-sku-box{background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-sku-title, #view-eileenvisitreview .civr-sku-title, #view-extravisitreview .civr-sku-title{color:#666;font-weight:600;margin-bottom:6px;}
+#view-civisitreview .civr-sku-sub, #view-eileenvisitreview .civr-sku-sub, #view-extravisitreview .civr-sku-sub{font-weight:400;color:#999;}
+#view-civisitreview .civr-sku-empty, #view-eileenvisitreview .civr-sku-empty, #view-extravisitreview .civr-sku-empty{color:#999;font-style:italic;}
+#view-civisitreview .civr-sku-table, #view-eileenvisitreview .civr-sku-table, #view-extravisitreview .civr-sku-table{width:100%;border-collapse:collapse;}
+#view-civisitreview .civr-sku-table th, #view-eileenvisitreview .civr-sku-table th, #view-extravisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
+#view-civisitreview .civr-sku-table td, #view-eileenvisitreview .civr-sku-table td, #view-extravisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
+#view-civisitreview .civr-sku-num, #view-eileenvisitreview .civr-sku-num, #view-extravisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
+#view-eileenvisitreview .civr-present-count, #view-extravisitreview .civr-present-count{display:flex;align-items:center;gap:6px;}
+#view-eileenvisitreview .civr-sku-count-input, #view-extravisitreview .civr-sku-count-input{max-width:70px;}
+#view-eileenvisitreview .civr-sku-others, #view-extravisitreview .civr-sku-others{margin-top:8px;padding-top:8px;border-top:1px dashed #e0ddd6;}
+#view-eileenvisitreview .civr-sku-others-label, #view-extravisitreview .civr-sku-others-label{color:#666;font-weight:600;margin-bottom:4px;font-size:11px;}
+#view-eileenvisitreview .civr-sku-others-detail, #view-extravisitreview .civr-sku-others-detail{width:100%;max-width:none;margin-top:4px;}
+#view-civisitreview .civr-sku-totals, #view-eileenvisitreview .civr-sku-totals, #view-extravisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+#view-civisitreview .civr-submit-col, #view-eileenvisitreview .civr-submit-col, #view-extravisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
+#view-civisitreview .civr-submit-btn, #view-eileenvisitreview .civr-submit-btn, #view-extravisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
+#view-civisitreview .civr-submit-btn:hover, #view-eileenvisitreview .civr-submit-btn:hover, #view-extravisitreview .civr-submit-btn:hover{background:#144d88;}
+#view-civisitreview .civr-submit-btn.civr-submit-done, #view-eileenvisitreview .civr-submit-btn.civr-submit-done, #view-extravisitreview .civr-submit-btn.civr-submit-done{background:#2a7a2a;cursor:default;}
+#view-civisitreview .civr-flag-btn, #view-eileenvisitreview .civr-flag-btn, #view-extravisitreview .civr-flag-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;}
+#view-civisitreview .civr-flag-btn:hover, #view-eileenvisitreview .civr-flag-btn:hover, #view-extravisitreview .civr-flag-btn:hover{background:#fff8e0;border-color:#e0a020;color:#8a5000;}
+#view-civisitreview .civr-flag-btn.civr-flagged, #view-eileenvisitreview .civr-flag-btn.civr-flagged, #view-extravisitreview .civr-flag-btn.civr-flagged{background:#fff3e0;border-color:#e0a020;color:#8a5000;font-weight:600;}
 
-#view-civisitreview .civr-submitted-banner, #view-eileenvisitreview .civr-submitted-banner{display:none;background:#e8f5e8;border-top:1px solid #b0d8b0;padding:8px 16px;font-size:12px;color:#1a6a1a;font-weight:600;align-items:center;justify-content:space-between;}
-#view-civisitreview .civr-submitted-banner.civr-show, #view-eileenvisitreview .civr-submitted-banner.civr-show{display:flex;}
-#view-civisitreview .civr-undo-btn, #view-eileenvisitreview .civr-undo-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #88bb88;background:#fff;color:#1a6a1a;cursor:pointer;}
-#view-civisitreview .civr-undo-btn:hover, #view-eileenvisitreview .civr-undo-btn:hover{background:#d0ecd0;}
+#view-civisitreview .civr-submitted-banner, #view-eileenvisitreview .civr-submitted-banner, #view-extravisitreview .civr-submitted-banner{display:none;background:#e8f5e8;border-top:1px solid #b0d8b0;padding:8px 16px;font-size:12px;color:#1a6a1a;font-weight:600;align-items:center;justify-content:space-between;}
+#view-civisitreview .civr-submitted-banner.civr-show, #view-eileenvisitreview .civr-submitted-banner.civr-show, #view-extravisitreview .civr-submitted-banner.civr-show{display:flex;}
+#view-civisitreview .civr-undo-btn, #view-eileenvisitreview .civr-undo-btn, #view-extravisitreview .civr-undo-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #88bb88;background:#fff;color:#1a6a1a;cursor:pointer;}
+#view-civisitreview .civr-undo-btn:hover, #view-eileenvisitreview .civr-undo-btn:hover, #view-extravisitreview .civr-undo-btn:hover{background:#d0ecd0;}
 
-#view-civisitreview .civr-notes-bar, #view-eileenvisitreview .civr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:#fafaf8;border-top:1px solid #eae8df;}
-#view-civisitreview .civr-notes-label, #view-eileenvisitreview .civr-notes-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;flex-shrink:0;}
-#view-civisitreview .civr-notes-input, #view-eileenvisitreview .civr-notes-input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;font-family:inherit;}
-#view-civisitreview .civr-notes-input:focus, #view-eileenvisitreview .civr-notes-input:focus{outline:2px solid #4a90d0;border-color:#4a90d0;}
+#view-civisitreview .civr-notes-bar, #view-eileenvisitreview .civr-notes-bar, #view-extravisitreview .civr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:#fafaf8;border-top:1px solid #eae8df;}
+#view-civisitreview .civr-notes-label, #view-eileenvisitreview .civr-notes-label, #view-extravisitreview .civr-notes-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;flex-shrink:0;}
+#view-civisitreview .civr-notes-input, #view-eileenvisitreview .civr-notes-input, #view-extravisitreview .civr-notes-input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;font-family:inherit;}
+#view-civisitreview .civr-notes-input:focus, #view-eileenvisitreview .civr-notes-input:focus, #view-extravisitreview .civr-notes-input:focus{outline:2px solid #4a90d0;border-color:#4a90d0;}
 
-#view-civisitreview .civr-pager, #view-eileenvisitreview .civr-pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 0;}
-#view-civisitreview .civr-page-btn, #view-eileenvisitreview .civr-page-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:500;}
-#view-civisitreview .civr-page-btn:hover:not(:disabled), #view-eileenvisitreview .civr-page-btn:hover:not(:disabled){background:#f0efe8;}
-#view-civisitreview .civr-page-btn:disabled, #view-eileenvisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
-#view-civisitreview .civr-page-info, #view-eileenvisitreview .civr-page-info{font-size:13px;color:#666;}
-#view-civisitreview .civr-empty, #view-eileenvisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
+#view-civisitreview .civr-pager, #view-eileenvisitreview .civr-pager, #view-extravisitreview .civr-pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 0;}
+#view-civisitreview .civr-page-btn, #view-eileenvisitreview .civr-page-btn, #view-extravisitreview .civr-page-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-page-btn:hover:not(:disabled), #view-eileenvisitreview .civr-page-btn:hover:not(:disabled), #view-extravisitreview .civr-page-btn:hover:not(:disabled){background:#f0efe8;}
+#view-civisitreview .civr-page-btn:disabled, #view-eileenvisitreview .civr-page-btn:disabled, #view-extravisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
+#view-civisitreview .civr-page-info, #view-eileenvisitreview .civr-page-info, #view-extravisitreview .civr-page-info{font-size:13px;color:#666;}
+#view-civisitreview .civr-empty, #view-eileenvisitreview .civr-empty, #view-extravisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
 
 /* CI VISIT REVIEW -- AUTH / ACCESS CONTROL / AUDIT / VERSION HISTORY -- scoped entirely under
    #view-civisitreview like the rest of the civr-* rules, so none of this affects any other tab. */
@@ -1613,6 +1613,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div class="tab" onclick="switchTab(&#39;stores&#39;)" id="tab-stores"><span class="tab-icon">⊞</span> Stores</div>
     <div class="tab" onclick="switchTab(&#39;civisitreview&#39;)" id="tab-civisitreview"><span class="tab-icon">📷</span> CI Visit Review</div>
     <div class="tab" onclick="switchTab(&#39;eileenvisitreview&#39;)" id="tab-eileenvisitreview"><span class="tab-icon">🛍</span> Eileen Visit Review</div>
+    <div class="tab" onclick="switchTab(&#39;extravisitreview&#39;)" id="tab-extravisitreview"><span class="tab-icon">📝</span> Extra Visit Reviews</div>
   </div>
   <div class="topbar-right">
     <div class="recency-filter">
@@ -2392,6 +2393,11 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
       <div id="eiv-main"></div>
     </div>
 
+    <!-- EXTRA VISIT REVIEWS VIEW -->
+    <div id="view-extravisitreview" style="display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:0;">
+      <div id="extra-main"></div>
+    </div>
+
 
     <!-- Shared across every tab (not nested inside any single view's display:none toggle) --
          civr-scroll-fab is scoped to CI Visit Review + Eileen Visit Review specifically via
@@ -2488,6 +2494,7 @@ let CHAINS = [];  // populated async by loadAllData() -- see below
 let SALES = {};  // populated async by loadAllData() -- see below
 let DOORS = [];  // populated async by loadAllData() -- see below
 let CHAIN_PROGRAMS = [];  // real chain-level POP target/completed counts; [] until loaded (or on the embedded snapshot until it's rebuilt) -- every consumer treats an empty/missing match as "Not Tracked", never an error.
+let EXTRA_VISITS = [];  // Extra Visit Reviews' own source data (extra_visits table) -- fully isolated from CI/EILEEN/DOORS, see EXTRA_STATUS_CACHE/EXTRA_VERDICT_CACHE below.
 // True on the Claude Artifact build (embedded snapshot, no live Supabase connection available)
 // -- Actions/Report Status/Reviews fall back to localStorage there instead of trying (and
 // failing) to reach Supabase; set inside loadAllData().
@@ -3005,11 +3012,12 @@ function switchTab(tab) {
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  const views = ['overview','map','chains','stores','civisitreview','eileenvisitreview'];
+  const views = ['overview','map','chains','stores','civisitreview','eileenvisitreview','extravisitreview'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
   if (tab === 'civisitreview') renderCiVisitReview();
   if (tab === 'eileenvisitreview') renderEileenVisitReview();
+  if (tab === 'extravisitreview') renderExtraVisitReview();
   if (tab === 'map' && !leafletMap) initMap();
   if (tab === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
   if (tab === 'overview') renderOverview();
@@ -3962,6 +3970,71 @@ function setReportVerdict(rec, verdict) {
   }).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// EXTRA VISIT REVIEWS -- fully isolated status/verdict cache + Supabase read/write. Deliberately
+// NOT sharing REPORT_STATUS_CACHE/REPORT_VERDICT_CACHE/reportKey() with CI/Eileen -- separate
+// tables (extra_report_status/extra_report_verdicts), separate in-memory cache, per explicit user
+// decision to keep this tab's backend fully independent of CI/Eileen's existing schema. Verdict
+// shape is intentionally simpler than CI/Eileen's (free-text recommendation + reviewer notes +
+// flag, not a multi-question compliance form) since the source data (Circle K/Jones field-visit
+// spreadsheets) has no structured compliance fields to review question-by-question -- only a
+// single free-text Notes column per visit.
+// ══════════════════════════════════════════════════════════════════════════
+let EXTRA_STATUS_CACHE = {};
+let EXTRA_VERDICT_CACHE = {};
+let EXTRA_VERDICT_DRAFT = {};
+let extraDirtySet = new Set();
+
+function getExtraStatus(visitId) { const e = EXTRA_STATUS_CACHE[visitId]; return e ? e.status : 'Pending'; }
+function setExtraStatus(visitId, status) {
+  const updatedAt = new Date().toISOString();
+  EXTRA_STATUS_CACHE[visitId] = { status, updatedAt };
+  if (usingEmbeddedSnapshot) { localStorage.setItem('lucyExtraStatus_v1', JSON.stringify(EXTRA_STATUS_CACHE)); return; }
+  sb.from('extra_report_status').upsert({ visit_id: visitId, status, updated_at: updatedAt })
+    .then(({ error }) => { if (error) console.error('extra_report_status upsert failed', error); });
+}
+function getExtraVerdict(visitId) {
+  return EXTRA_VERDICT_CACHE[visitId] || { recommendation: '', reviewerNotes: '', flag: false, reviewedBy: null, reviewedAt: null };
+}
+function setExtraVerdict(visitId, verdict) {
+  const updatedAt = new Date().toISOString();
+  const u = civCurrentUser();
+  const reviewedBy = u ? u.fullName : (verdict.reviewedBy || null);
+  EXTRA_VERDICT_CACHE[visitId] = Object.assign({}, verdict, { reviewedBy, reviewedAt: updatedAt, updatedAt });
+  if (usingEmbeddedSnapshot) { localStorage.setItem('lucyExtraVerdicts_v1', JSON.stringify(EXTRA_VERDICT_CACHE)); return; }
+  sb.from('extra_report_verdicts').upsert({
+    visit_id: visitId, recommendation: verdict.recommendation || null, reviewer_notes: verdict.reviewerNotes || null,
+    flag: !!verdict.flag, reviewed_by: reviewedBy, reviewed_at: updatedAt, updated_at: updatedAt
+  }).then(({ error }) => { if (error) console.error('extra_report_verdicts upsert failed', error); });
+}
+function extraDraftVerdict(visitId) {
+  if (!EXTRA_VERDICT_DRAFT[visitId]) {
+    const saved = EXTRA_VERDICT_CACHE[visitId];
+    EXTRA_VERDICT_DRAFT[visitId] = saved ? Object.assign({}, saved) : { recommendation: '', reviewerNotes: '', flag: false };
+  }
+  return EXTRA_VERDICT_DRAFT[visitId];
+}
+function extraSetRecommendation(id, value) { if (!civCanEdit()) return; extraDraftVerdict(id).recommendation = value; extraDirtySet.add(id); }
+function extraSetReviewerNotes(id, value) { if (!civCanEdit()) return; extraDraftVerdict(id).reviewerNotes = value; extraDirtySet.add(id); }
+function extraToggleFlag(id) {
+  if (!civCanEdit()) return;
+  const draft = extraDraftVerdict(id);
+  draft.flag = !draft.flag;
+  extraDirtySet.add(id);
+  renderExtraVisitReview();
+}
+function extraSubmitVerdict(id) {
+  if (!civCanEdit()) return;
+  const draft = extraDraftVerdict(id);
+  setExtraVerdict(id, draft);
+  setExtraStatus(id, 'Reviewed');
+  delete EXTRA_VERDICT_DRAFT[id];
+  extraDirtySet.delete(id);
+  renderExtraVisitReview();
+}
+function extraUndoVerdict(id) { if (!civCanEdit()) return; setExtraStatus(id, 'Pending'); renderExtraVisitReview(); }
+function extraDiscardChanges(id) { delete EXTRA_VERDICT_DRAFT[id]; extraDirtySet.delete(id); renderExtraVisitReview(); }
+
 // The manager-verdict questions -- shared by CI Visit Review's verdict bar (VERDICT_QS itself
 // and rrHintLabel/rrYNCsv are the only "rr"-named symbols not exclusive to the now-removed Report
 // Review tab; kept here since CI Visit Review still depends on them). Third array element (hasNA)
@@ -4568,6 +4641,7 @@ function civReportDoorKey(src, id) { const d = reportDoor({ src, id }); return d
 function civRerenderActive() {
   if (currentTab === 'civisitreview') renderCiVisitReview();
   else if (currentTab === 'eileenvisitreview') renderEileenVisitReview();
+  else if (currentTab === 'extravisitreview') renderExtraVisitReview();
 }
 
 function civSetVerdictAnswer(src, id, field, value) {
@@ -5797,6 +5871,257 @@ function renderEileenVisitReview() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// EXTRA VISIT REVIEWS -- third Visit Review tab, populated from ad-hoc field-visit spreadsheets
+// (currently: Circle K FL (Tampa) Post.xlsx + Jones Post Report 6_6.xlsx, ingested via
+// etl_extra_visits.ps1 into the extra_visits table). Deliberately self-contained: does NOT merge
+// into DOORS/CHAINS or touch CI/Eileen's tables, per explicit user decision. Reuses the shared
+// civ* auth gate/date-filter infrastructure as-is (that code is generic, not CI/Eileen-specific),
+// but every review/status/verdict path below is its own, isolated implementation.
+// ══════════════════════════════════════════════════════════════════════════
+const EXTRA_OTHERS = 'Others';
+function extraChainCanonicalMap() {
+  const map = {};
+  CHAINS.forEach(c => { if (c.chain) map[normChain(c.chain)] = c.chain; });
+  return map;
+}
+function extraEffectiveChain(v, canonMap) {
+  const map = canonMap || extraChainCanonicalMap();
+  const key = normChain(v.chain);
+  return (key && map[key]) ? map[key] : EXTRA_OTHERS;
+}
+function extraFullAddress(v) {
+  return [v.address, v.city, v.state, v.zip].filter(Boolean).join(', ');
+}
+function extraEvaluatorLabel(v) { return v.evaluator || 'Unknown'; }
+
+let extraFilters = Object.assign({ chain:'', evaluator:'', status:'', flagged:'' }, civDateFilterBlank());
+let extraDatePicker = civDatePickerBlank();
+let extraSearchQuery = '';
+let extraPage = 0;
+const EXTRA_PAGE_SIZE = 8;
+const EXTRA_JUMP_PAGES = Math.round(50 / EXTRA_PAGE_SIZE);
+let extraBulkMsg = '';
+
+function extraSetDateFilter(val) { civSetDateFilterShared(extraFilters, extraDatePicker, val, renderExtraVisitReview); extraPage = 0; }
+function extraDatePickerOpen() { civDatePickerOpenShared(extraFilters, extraDatePicker, renderExtraVisitReview); }
+function extraDatePickerClickDay(d) { civDatePickerClickDayShared(extraDatePicker, d, renderExtraVisitReview); }
+function extraDatePickerNav(dir) { civDatePickerNavShared(extraDatePicker, dir, renderExtraVisitReview); }
+function extraDatePickerApply() { civDatePickerApplyShared(extraFilters, extraDatePicker, renderExtraVisitReview); extraPage = 0; }
+function extraDatePickerCancel() { civDatePickerCancelShared(extraFilters, extraDatePicker, renderExtraVisitReview); }
+
+function extraSetFilter(key, val) { extraFilters[key] = val; extraPage = 0; extraBulkMsg = ''; renderExtraVisitReview(); }
+function extraSetSearch(val) { extraSearchQuery = val; extraPage = 0; renderExtraVisitReview(); }
+function extraResetFilters() {
+  extraFilters = Object.assign({ chain:'', evaluator:'', status:'', flagged:'' }, civDateFilterBlank());
+  extraDatePicker = civDatePickerBlank();
+  extraSearchQuery = ''; extraPage = 0; extraBulkMsg = '';
+  renderExtraVisitReview();
+}
+function extraChangePage(dir) { extraPage += dir; renderExtraVisitReview(); civrScrollToTop(); }
+
+function extraFilteredVisits() {
+  const canonMap = extraChainCanonicalMap();
+  const q = extraSearchQuery.trim().toLowerCase();
+  return EXTRA_VISITS.filter(v => {
+    if (!civMatchesDateFilter(v.visitDate, extraFilters)) return false;
+    if (extraFilters.chain && extraEffectiveChain(v, canonMap) !== extraFilters.chain) return false;
+    if (extraFilters.evaluator && extraEvaluatorLabel(v) !== extraFilters.evaluator) return false;
+    const status = getExtraStatus(v.id);
+    if (extraFilters.status === 'pending' && status === 'Reviewed') return false;
+    if (extraFilters.status === 'done' && status !== 'Reviewed') return false;
+    if (extraFilters.flagged === 'yes' && !getExtraVerdict(v.id).flag) return false;
+    if (q) {
+      const hay = [v.chain, v.storeId, extraFullAddress(v), extraEvaluatorLabel(v), v.notes].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }).sort((a, b) => (b.visitDate || '').localeCompare(a.visitDate || ''));
+}
+
+function extraStats() {
+  let sub = 0, flagC = 0;
+  EXTRA_VISITS.forEach(v => {
+    if (getExtraStatus(v.id) === 'Reviewed') sub++;
+    if (getExtraVerdict(v.id).flag) flagC++;
+  });
+  const total = EXTRA_VISITS.length;
+  return { total, sub, flagC, pend: total - sub };
+}
+
+function extraBulkSubmit() {
+  if (!civCanEdit()) return;
+  const list = extraFilteredVisits();
+  const unsubmitted = list.filter(v => getExtraStatus(v.id) !== 'Reviewed');
+  unsubmitted.forEach(v => extraSubmitVerdict(v.id));
+  extraBulkMsg = unsubmitted.length ? `✓ ${unsubmitted.length} report${unsubmitted.length===1?'':'s'} submitted` : 'All filtered reports are already submitted.';
+  renderExtraVisitReview();
+}
+
+function extraCardWrapperClass(v) {
+  const status = getExtraStatus(v.id);
+  if (status !== 'Reviewed') return 'civr-store-card';
+  return 'civr-store-card ' + (getExtraVerdict(v.id).flag ? 'civr-submitted-flag' : 'civr-submitted');
+}
+
+function extraCardHtml(v) {
+  const status = getExtraStatus(v.id);
+  const locked = status === 'Reviewed';
+  const canEdit = civCanEdit();
+  const dis = canEdit ? '' : 'disabled';
+  const draft = extraDraftVerdict(v.id);
+  const isDirty = extraDirtySet.has(v.id);
+  const fullAddr = extraFullAddress(v);
+  return `<div class="civr-card-head">
+    <div>
+      <div class="civr-card-title">${escHtml(v.chain||'—')} — ${escHtml(v.storeId||'—')}${isDirty ? '<span class="civauth-dirty">● Unsaved Changes</span>' : ''}</div>
+      <div class="civr-card-sub">${escHtml(fullAddr||'—')} • ${escHtml(v.visitDate||'—')} • Evaluator: ${escHtml(extraEvaluatorLabel(v))}</div>
+      <div class="civr-badges">
+        <span class="civr-badge civr-b-source-eileen">Extra Visit</span>
+        ${locked ? `<span class="civr-badge civr-b-lock">✓ Submitted</span>` : ''}
+      </div>
+    </div>
+  </div>
+  <div class="civr-card-body">
+    ${v.facings !== null && v.facings !== undefined ? `<div class="civr-vq" style="margin-bottom:10px;"><div class="civr-vq-label">Facings</div><div style="font-size:14px;font-weight:600;">${escHtml(v.facings)}</div></div>` : ''}
+    <div class="civr-vq-label" style="margin-bottom:4px;">Field Notes (source, verbatim)</div>
+    <div class="civr-vq-pre" style="white-space:pre-wrap;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;">${v.notes ? escHtml(v.notes) : 'N/A'}</div>
+    ${v.photoRef ? `<div class="civr-vq-pre">Photo reference (source file only, not viewable — no image files were provided alongside this data): ${escHtml(v.photoRef)}</div>` : ''}
+  </div>
+  <div class="civr-verdict-bar">
+    <div class="civr-vq" style="flex:2 1 260px;">
+      <div class="civr-vq-label">Recommendation / Action</div>
+      <input type="text" class="civr-notes-input" placeholder="e.g. Follow up on shelf strip, escalate to manager…" value="${esc(draft.recommendation||'')}" ${dis} oninput="extraSetRecommendation(${v.id}, this.value)" onchange="extraSetRecommendation(${v.id}, this.value)">
+    </div>
+    <div class="civr-vq" style="flex:2 1 260px;">
+      <div class="civr-vq-label">Reviewer Notes</div>
+      <input type="text" class="civr-notes-input" placeholder="Add a review note…" value="${esc(draft.reviewerNotes||'')}" ${dis} oninput="extraSetReviewerNotes(${v.id}, this.value)" onchange="extraSetReviewerNotes(${v.id}, this.value)">
+    </div>
+    <div class="civr-submit-col">
+      <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="extraSubmitVerdict(${v.id})">${locked?'Submitted ✓':'Submit ✓'}</button>
+      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="extraToggleFlag(${v.id})">⚑ Flag</button>
+      ${isDirty && canEdit ? `<button class="civr-flag-btn" onclick="extraDiscardChanges(${v.id})">Discard</button>` : ''}
+    </div>
+  </div>
+  <div class="civr-submitted-banner${locked?' civr-show':''}">
+    <span>✓ Submitted${draft.flag?' — flagged for follow-up':''}${draft.reviewedBy?' by '+escHtml(draft.reviewedBy):''}</span>
+    <button class="civr-undo-btn" onclick="extraUndoVerdict(${v.id})">Undo</button>
+  </div>`;
+}
+
+function extraExportCSV() {
+  const rows = extraFilteredVisits().map(v => {
+    const draft = getExtraVerdict(v.id);
+    return {
+      Chain: v.chain||'', Store: v.storeId||'', Address: extraFullAddress(v), VisitDate: v.visitDate||'',
+      Evaluator: extraEvaluatorLabel(v), Facings: v.facings ?? '', FieldNotes: v.notes||'',
+      Recommendation: draft.recommendation||'', ReviewerNotes: draft.reviewerNotes||'',
+      Status: getExtraStatus(v.id), Flagged: draft.flag?'Yes':'No',
+      ReviewedBy: draft.reviewedBy||'', ReviewedAt: draft.reviewedAt||''
+    };
+  });
+  downloadCSV('extra_visit_reviews.csv', rows);
+}
+
+function renderExtraVisitReview() {
+  const el = document.getElementById('extra-main');
+  if (!el) return;
+
+  if (!usingEmbeddedSnapshot) {
+    const gate = civAuthGateHtml('Extra Visit Reviews', 'extraauth');
+    if (gate) { el.innerHTML = gate; return; }
+  }
+
+  const filtered = extraFilteredVisits();
+  const stats = extraStats();
+  const canonMap = extraChainCanonicalMap();
+  const effectiveChains = EXTRA_VISITS.map(v => extraEffectiveChain(v, canonMap));
+  const chains = [...new Set(effectiveChains.filter(c => c !== EXTRA_OTHERS))].sort();
+  if (effectiveChains.includes(EXTRA_OTHERS)) chains.push(EXTRA_OTHERS);
+  const evaluators = [...new Set(EXTRA_VISITS.map(extraEvaluatorLabel))].sort();
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / EXTRA_PAGE_SIZE));
+  if (extraPage >= totalPages) extraPage = totalPages - 1;
+  if (extraPage < 0) extraPage = 0;
+  const start = extraPage * EXTRA_PAGE_SIZE;
+  const pageVisits = filtered.slice(start, start + EXTRA_PAGE_SIZE);
+
+  const cardsHtml = filtered.length === 0
+    ? `<div class="civr-empty">No visits match the current filters.</div>`
+    : pageVisits.map(v => `<div class="${extraCardWrapperClass(v)}" id="extra-card-${v.id}">${extraCardHtml(v)}</div>`).join('');
+
+  const u = civCurrentUser();
+  const topBannerHtml = usingEmbeddedSnapshot ? renderCivReadOnlyBanner() : '';
+  const identityHtml = u ? `<div class="civauth-identity">Logged in as: <strong>${escHtml(u.fullName)}</strong> (${escHtml(u.role)}) <span class="civauth-signout" onclick="civSignOut()">Log out</span></div>` : '';
+
+  el.innerHTML = `
+  ${topBannerHtml}
+  <div class="civr-header">
+    <div>
+      <h1>Extra Visit Reviews</h1>
+      <div class="civr-progress-wrap">
+        <div class="civr-progress-bar"><div class="civr-progress-fill" style="width:${stats.total?Math.round(stats.sub/stats.total*100):0}%"></div></div>
+        <span class="civr-progress-text">${fmtNum(stats.sub)} of ${fmtNum(stats.total)} submitted</span>
+      </div>
+      ${identityHtml}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="civr-export-btn" onclick="extraExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
+    </div>
+  </div>
+
+  <div class="civr-stats-bar">
+    <div class="civr-stat"><span class="civr-slabel">Total</span><span class="civr-sval">${fmtNum(stats.total)}</span></div>
+    <div class="civr-stat civr-blue"><span class="civr-slabel">Submitted</span><span class="civr-sval">${fmtNum(stats.sub)}</span></div>
+    <div class="civr-stat civr-amber"><span class="civr-slabel">Flagged</span><span class="civr-sval">${fmtNum(stats.flagC)}</span></div>
+    <div class="civr-stat"><span class="civr-slabel">Pending</span><span class="civr-sval">${fmtNum(stats.pend)}</span></div>
+  </div>
+
+  <div class="civr-filters">
+    <input type="text" class="search-box" placeholder="🔎 Search chain, store, address, evaluator, notes…" value="${esc(extraSearchQuery)}" oninput="extraSetSearch(this.value)" style="min-width:240px;">
+    <label>Chain:</label>
+    <select class="civr-select" onchange="extraSetFilter('chain', this.value)">
+      <option value="">All chains</option>
+      ${chains.map(c=>`<option value="${esc(c)}" ${extraFilters.chain===c?'selected':''}>${escHtml(c)}</option>`).join('')}
+    </select>
+    <label>Evaluator:</label>
+    <select class="civr-select" onchange="extraSetFilter('evaluator', this.value)">
+      <option value="">All</option>
+      ${evaluators.map(ev=>`<option value="${esc(ev)}" ${extraFilters.evaluator===ev?'selected':''}>${escHtml(ev)}</option>`).join('')}
+    </select>
+    <label>Status:</label>
+    <select class="civr-select" onchange="extraSetFilter('status', this.value)">
+      <option value="">All</option>
+      <option value="pending" ${extraFilters.status==='pending'?'selected':''}>Pending</option>
+      <option value="done" ${extraFilters.status==='done'?'selected':''}>Submitted</option>
+    </select>
+    <label>Flagged:</label>
+    <select class="civr-select" onchange="extraSetFilter('flagged', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${extraFilters.flagged==='yes'?'selected':''}>Flagged only</option>
+    </select>
+    ${civDateFilterControlHtml('extra', extraFilters, extraDatePicker)}
+    <span class="civr-reset" onclick="extraResetFilters()">Reset filters</span>
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+    ${civCanEdit() ? `<button class="ac-btn secondary" onclick="extraBulkSubmit()">Submit All Filtered</button>` : ''}
+    ${extraBulkMsg ? `<span style="font-size:12px;color:var(--muted);">${escHtml(extraBulkMsg)}</span>` : ''}
+  </div>
+
+  <div class="civr-cards">${cardsHtml}</div>
+
+  <div class="civr-pagination">
+    <button class="civr-page-btn" onclick="extraChangePage(-${EXTRA_JUMP_PAGES})" ${extraPage<=0?'disabled':''}>← Prev 50</button>
+    <button class="civr-page-btn" onclick="extraChangePage(-1)" ${extraPage<=0?'disabled':''}>← Prev</button>
+    <span class="civr-page-info">${filtered.length===0?'':`${start+1}–${Math.min(start+EXTRA_PAGE_SIZE, filtered.length)} of ${filtered.length}`}</span>
+    <button class="civr-page-btn" onclick="extraChangePage(1)" ${extraPage>=totalPages-1?'disabled':''}>Next →</button>
+    <button class="civr-page-btn" onclick="extraChangePage(${EXTRA_JUMP_PAGES})" ${extraPage>=totalPages-1?'disabled':''}>Next 50 →</button>
+  </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // ACTION CENTER + REVIEW WORKFLOW (localStorage-backed)
 // ══════════════════════════════════════════════════════════════════════════
 const ACTION_TYPES = ['Ship new shelf strip','Force out product','Schedule merchandising visit','Increase inventory','Replace display','Meet with store manager','Promotional follow-up','Customer impact visit','POP compliance issue','Follow up on missing data','Other'];
@@ -6228,7 +6553,7 @@ function printCurrentView() { window.print(); }
   style.textContent = `
     .topbar, .detail-panel, .ac-toolbar, .breadcrumb .bc-link, select, .ac-btn { display:none !important; }
     .body, .content { display:block !important; overflow:visible !important; height:auto !important; }
-    #view-overview, #view-civisitreview, #view-eileenvisitreview { display:block !important; overflow:visible !important; padding:0 !important; }
+    #view-overview, #view-civisitreview, #view-eileenvisitreview, #view-extravisitreview { display:block !important; overflow:visible !important; padding:0 !important; }
     .chart-card, .kpi-card, .drill-card { break-inside:avoid; }
     body { background:#fff !important; overflow:visible !important; height:auto !important; }
     /* When a report detail is open, print only the report: show .detail-panel in normal flow
@@ -7483,12 +7808,15 @@ async function loadAllData() {
     const snap = window.__EMBEDDED_SNAPSHOT__;
     CI = snap.CI; EILEEN = snap.EILEEN; CLARKS = snap.CLARKS || []; CHAINS = snap.CHAINS; SALES = snap.SALES; DOORS = snap.DOORS;
     CHAIN_PROGRAMS = snap.CHAIN_PROGRAMS || []; // absent from older snapshots until the next artifact rebuild -- degrades to "Not Tracked" everywhere, never an error
+    EXTRA_VISITS = snap.EXTRA_VISITS || []; // same "absent from older snapshots" degradation as CHAIN_PROGRAMS above
     buildDerivedIndexes();
     // No live Supabase connection on this build -- Actions/Report Status fall back to this
     // browser's own localStorage, same as the whole dashboard did before this migration.
     try { ACTIONS_CACHE = JSON.parse(localStorage.getItem('lucyActions_v1') || '[]'); } catch(e) { ACTIONS_CACHE = []; }
     try { REPORT_STATUS_CACHE = JSON.parse(localStorage.getItem('lucyReportStatus_v1') || '{}'); } catch(e) { REPORT_STATUS_CACHE = {}; }
     try { REPORT_VERDICT_CACHE = JSON.parse(localStorage.getItem('lucyReportVerdicts_v1') || '{}'); } catch(e) { REPORT_VERDICT_CACHE = {}; }
+    try { EXTRA_STATUS_CACHE = JSON.parse(localStorage.getItem('lucyExtraStatus_v1') || '{}'); } catch(e) { EXTRA_STATUS_CACHE = {}; }
+    try { EXTRA_VERDICT_CACHE = JSON.parse(localStorage.getItem('lucyExtraVerdicts_v1') || '{}'); } catch(e) { EXTRA_VERDICT_CACHE = {}; }
     return;
   }
   const [chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows,
@@ -7506,6 +7834,37 @@ async function loadAllData() {
     sbFetchAll('chain_programs', 'chain')
   ]);
   applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, doorsRows, doorVisitsRows, doorSalesMonthlyRows, chainProgramsRows);
+
+  // Extra Visit Reviews' 3 tables are fetched OUTSIDE the main Promise.all and independently
+  // try/caught -- deliberately, so that this newer, smaller feature can never take down the whole
+  // dashboard's data load (confirmed this matters: before this fix, a missing/erroring extra_*
+  // table inside the main Promise.all left DOORS/CHAINS/etc. completely empty app-wide). Degrades
+  // to empty arrays on any failure, same "never an error, just Not Tracked" convention as
+  // CHAIN_PROGRAMS above.
+  try {
+    const [extraVisitsRows, extraStatusRows, extraVerdictsRows] = await Promise.all([
+      sbFetchAll('extra_visits', 'id'),
+      sbFetchAll('extra_report_status', 'visit_id'),
+      sbFetchAll('extra_report_verdicts', 'visit_id')
+    ]);
+    EXTRA_VISITS = extraVisitsRows.map(v => ({
+      id: v.id, sourceFile: v.source_file, chain: v.chain, storeId: v.store_id, address: v.address,
+      city: v.city, state: v.state, zip: v.zip, visitDate: v.visit_date, stopNumber: v.stop_number,
+      evaluator: v.evaluator, facings: v.facings, photoRef: v.photo_ref, notes: v.notes
+    }));
+    EXTRA_STATUS_CACHE = {};
+    extraStatusRows.forEach(s => { EXTRA_STATUS_CACHE[s.visit_id] = { status: s.status, updatedAt: s.updated_at }; });
+    EXTRA_VERDICT_CACHE = {};
+    extraVerdictsRows.forEach(v => {
+      EXTRA_VERDICT_CACHE[v.visit_id] = {
+        recommendation: v.recommendation, reviewerNotes: v.reviewer_notes, flag: !!v.flag,
+        reviewedBy: v.reviewed_by, reviewedAt: v.reviewed_at, updatedAt: v.updated_at
+      };
+    });
+  } catch (err) {
+    console.error('Extra Visit Reviews data load failed (tab will show empty until the extra_visits migration is run):', err);
+    EXTRA_VISITS = []; EXTRA_STATUS_CACHE = {}; EXTRA_VERDICT_CACHE = {};
+  }
 
   ACTIONS_CACHE = actionsRows.map(a => ({
     id: a.id, doorKey: a.door_key, chain: a.chain, type: a.type, priority: a.priority,
