@@ -7080,7 +7080,8 @@ function cpSelectChain(chainName) {
     let sheetDataXml = '<sheetData>';
     rows.forEach((row, ri) => {
       const rowNum = ri + 1;
-      sheetDataXml += `<row r="${rowNum}">`;
+      const rowHt = (ri > 0 && sheet.dataRowHeightPt) ? ` ht="${sheet.dataRowHeightPt}" customHeight="1"` : '';
+      sheetDataXml += `<row r="${rowNum}"${rowHt}>`;
       row.forEach((cell, ci) => {
         const colNum = ci + 1;
         const ref = cellRef(rowNum, colNum);
@@ -7132,17 +7133,50 @@ function cpSelectChain(chainName) {
     const sheetViewXml = `<sheetViews><sheetView workbookViewId="0">${freezeXml}</sheetView></sheetViews>`;
     const autofilterXml = sheet.autofilter !== false ? `<autoFilter ref="${dimRef}"/>` : '';
 
-    let hyperlinksXml = '';
+    // sheet.drawingTarget: relative path (e.g. "../drawings/drawing1.xml") to this sheet's own
+    // embedded-image drawing part, if any. Gets its own rId in the SAME sheetN.xml.rels file as any
+    // hyperlinks (a distinct relationship namespace from the drawing's OWN media rels) -- this
+    // report never has both at once (photos are either linked or embedded, never both), but the
+    // writer supports it generally rather than assuming that stays true forever.
+    let drawingXmlEl = '';
+    const relEntries = hyperlinks.map((h, i) => ({ id: `rId${i + 1}`, type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink', target: h.target, external: true }));
+    if (sheet.drawingTarget) {
+      const drawingRid = `rId${relEntries.length + 1}`;
+      relEntries.push({ id: drawingRid, type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing', target: sheet.drawingTarget, external: false });
+      drawingXmlEl = `<drawing r:id="${drawingRid}"/>`;
+    }
+    const hyperlinksXml = hyperlinks.length ? ('<hyperlinks>' + hyperlinks.map((h, i) => `<hyperlink ref="${h.ref}" r:id="rId${i + 1}"/>`).join('') + '</hyperlinks>') : '';
     let relsXml = '';
-    if (hyperlinks.length) {
-      hyperlinksXml = '<hyperlinks>' + hyperlinks.map((h, i) => `<hyperlink ref="${h.ref}" r:id="rId${i + 1}"/>`).join('') + '</hyperlinks>';
+    if (relEntries.length) {
       relsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-        hyperlinks.map((h, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xmlEscape(h.target)}" TargetMode="External"/>`).join('') +
+        relEntries.map(r => `<Relationship Id="${r.id}" Type="${r.type}" Target="${xmlEscape(r.target)}"${r.external ? ' TargetMode="External"' : ''}/>`).join('') +
         '</Relationships>';
     }
 
-    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dimRef}"/>${sheetViewXml}${colsXml}${sheetDataXml}${autofilterXml}${hyperlinksXml}</worksheet>`;
+    const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dimRef}"/>${sheetViewXml}${colsXml}${sheetDataXml}${autofilterXml}${hyperlinksXml}${drawingXmlEl}</worksheet>`;
     return { xml, relsXml };
+  }
+
+  // One <xdr:twoCellAnchor> per image, stretched to exactly fill its anchor cell (Excel computes
+  // the real pixel box from the sheet's own row height/column width at render time, so no
+  // EMU-precise width/height math is needed here). images: [{row, col, rId}], 0-indexed row/col
+  // matching the sheet's own `rows` array indexing (row 0 = header).
+  function buildDrawingXml(images) {
+    const anchors = images.map((img, i) => `<xdr:twoCellAnchor>
+      <xdr:from><xdr:col>${img.col}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${img.row}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
+      <xdr:to><xdr:col>${img.col + 1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${img.row + 1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
+      <xdr:pic>
+        <xdr:nvPicPr><xdr:cNvPr id="${i + 1}" name="Photo${i + 1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
+        <xdr:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${img.rId}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>
+        <xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>
+      </xdr:pic>
+      <xdr:clientData/>
+    </xdr:twoCellAnchor>`).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">${anchors}</xdr:wsDr>`;
+  }
+  function buildDrawingRels(images) {
+    const rels = images.map(img => `<Relationship Id="${img.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${img.mediaFileName}"/>`).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`;
   }
 
   function buildStylesXml() {
@@ -7209,30 +7243,59 @@ function cpSelectChain(chainName) {
 </Relationships>`;
   }
 
-  function buildContentTypes(sheetCount) {
+  function buildContentTypes(sheetCount, hasImages, drawingCount) {
     let overrides = `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>`;
     for (let i = 0; i < sheetCount; i++) {
       overrides += `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`;
     }
     overrides += `<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>`;
+    for (let i = 0; i < (drawingCount || 0); i++) {
+      overrides += `<Override PartName="/xl/drawings/drawing${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`;
+    }
+    const imageDefault = hasImages ? `<Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/>` : '';
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
 <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
 <Default Extension="xml" ContentType="application/xml"/>
+${imageDefault}
 ${overrides}
 </Types>`;
   }
 
+  // Embeds real image bytes (sheet.images: [{row, col, bytes, ext}], 0-indexed row/col matching
+  // the sheet's own `rows` array) as a proper xl/drawings + xl/media part per sheet, instead of a
+  // hyperlink -- see xlsxFetchAndResizeImage's own comment for why a client-side fetch of the real
+  // photo bytes needed a server-side proxy first (confirmed CORS block on both real photo hosts).
   function buildXlsxBytes(sheets) {
     const files = [];
-    const push = (name, xmlStr) => files.push({ name, data: utf8Bytes(xmlStr) });
-    push('[Content_Types].xml', buildContentTypes(sheets.length));
+    const push = (name, data) => files.push({ name, data: (data instanceof Uint8Array) ? data : utf8Bytes(data) });
+    let mediaCounter = 1;
+    let drawingCount = 0;
+    let hasAnyImages = false;
+    const sheetDrawingTargets = sheets.map(() => null);
+
+    sheets.forEach((sheet, i) => {
+      if (sheet.images && sheet.images.length) {
+        hasAnyImages = true;
+        const imgEntries = sheet.images.map((img, idx) => ({
+          ...img, rId: `rId${idx + 1}`, mediaFileName: `image${mediaCounter++}.${img.ext}`
+        }));
+        imgEntries.forEach(img => push(`xl/media/${img.mediaFileName}`, img.bytes));
+        drawingCount++;
+        push(`xl/drawings/drawing${drawingCount}.xml`, buildDrawingXml(imgEntries));
+        push(`xl/drawings/_rels/drawing${drawingCount}.xml.rels`, buildDrawingRels(imgEntries));
+        sheetDrawingTargets[i] = `../drawings/drawing${drawingCount}.xml`;
+      }
+    });
+
+    push('[Content_Types].xml', buildContentTypes(sheets.length, hasAnyImages, drawingCount));
     push('_rels/.rels', buildRootRels());
     push('xl/workbook.xml', buildWorkbookXml(sheets.map(s => s.name)));
     push('xl/_rels/workbook.xml.rels', buildWorkbookRels(sheets.length));
     push('xl/styles.xml', buildStylesXml());
     sheets.forEach((sheet, i) => {
-      const { xml, relsXml } = buildSheetXml(sheet);
+      const sheetWithDrawing = sheetDrawingTargets[i] ? Object.assign({}, sheet, { drawingTarget: sheetDrawingTargets[i] }) : sheet;
+      const { xml, relsXml } = buildSheetXml(sheetWithDrawing);
       push(`xl/worksheets/sheet${i + 1}.xml`, xml);
       if (relsXml) push(`xl/worksheets/_rels/sheet${i + 1}.xml.rels`, relsXml);
     });
@@ -7407,35 +7470,131 @@ function xlsxMonthColumnsJanToLatest(doors) {
   return cols;
 }
 
+// Real embedded photos require reading the actual image bytes, which the browser can't do
+// cross-origin for either real photo host (confirmed via curl -sI: neither
+// shopwitheileen-django-static-assets.s3.us-east-1.amazonaws.com nor images.gospotcheck.com sends
+// an Access-Control-Allow-Origin header). photo-proxy is a small Supabase Edge Function that
+// fetches the image server-side (no CORS restriction there) and returns it with its OWN permissive
+// CORS headers -- see supabase_functions/photo-proxy/index.ts for the full reasoning and the
+// strict host allow-list that keeps this from being an open SSRF-capable relay.
+const XLSX_PHOTO_PROXY_URL = 'https://ruxdxwrsauhszhmdobga.supabase.co/functions/v1/photo-proxy';
+
+// Fetches one real photo through the proxy, then downscales/recompresses it client-side (max 480px
+// on the long edge, JPEG q=0.72) before embedding -- real source photos run ~1MB each (confirmed
+// earlier this project), and this report can easily need hundreds of them; embedding them at full
+// resolution would produce an unusably large, slow-to-open workbook for no visual benefit at
+// thumbnail size. Returns null (never throws) on any failure -- a broken/slow photo degrades to a
+// blank cell, never breaks the whole export.
+async function xlsxFetchAndResizeImage(url) {
+  try {
+    const proxied = `${XLSX_PHOTO_PROXY_URL}?url=${encodeURIComponent(url)}`;
+    const resp = await fetch(proxied, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    const bitmap = await createImageBitmap(blob);
+    const maxDim = 480;
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale)), h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+    const jpegBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.72));
+    if (!jpegBlob) return null;
+    return new Uint8Array(await jpegBlob.arrayBuffer());
+  } catch (e) {
+    console.error('Photo embed failed for', url, e);
+    return null;
+  }
+}
+
+// Simple bounded-concurrency runner -- a chain export can need to fetch hundreds of photos;
+// running them all at once would flood the proxy/browser, running fully sequential would take
+// far too long. `onProgress(done, total)` drives the export's progress overlay.
+async function xlsxRunWithConcurrency(items, limit, worker, onProgress) {
+  const results = new Array(items.length);
+  let idx = 0, done = 0;
+  async function runNext() {
+    while (idx < items.length) {
+      const my = idx++;
+      results[my] = await worker(items[my], my);
+      done++;
+      if (onProgress) onProgress(done, items.length);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runNext));
+  return results;
+}
+
+function xlsxShowExportOverlay(text) {
+  let el = document.getElementById('xlsx-export-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'xlsx-export-overlay';
+    el.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:9999;font-family:\'DM Sans\',sans-serif;font-size:13px;color:var(--text);min-width:220px;';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  return el;
+}
+function xlsxHideExportOverlay() {
+  const el = document.getElementById('xlsx-export-overlay');
+  if (el) el.remove();
+}
+
 // Stores Tab — Export Excel Report button. Scope follows the tab's own Region/Territory/Store
 // filters (cvaFilters) via cvaComputeChainDoors -- the full chain by default, narrower once those
 // are set, matching every other Stores tab output (Store Map/List, Velocity Loss Filter). Single
-// sheet, exact column order per spec. Two real, disclosed gaps in the current live data model:
-// (1) "Store" has no distinct name field anywhere in this dashboard (only address/city/state) --
-// same address-as-identity convention exportChainReportCSV already uses; (2) "Store ID" (a real
-// per-chain store number) does not exist ANYWHERE in the live doors dataset for any chain -- always
-// "Not Recorded" rather than inventing one, per the spec's own explicit instruction. ZIP is also
-// absent from the live dataset (captured in the original roster but dropped before reaching
-// Supabase in build_doors.ps1) -- Store Address omits it rather than guessing.
-function exportStoresExcelReport() {
+// sheet, exact column order per spec. "Store" has no distinct name field anywhere in this
+// dashboard (only address/city/state) -- same address-as-identity convention exportChainReportCSV
+// already uses. ZIP is absent from the live dataset (captured in the original roster but dropped
+// before reaching Supabase in build_doors.ps1) -- Store Address omits it rather than guessing.
+async function exportStoresExcelReport() {
   const chainName = chainPanelState.chain;
   if (!chainName) { alert('Select a chain first.'); return; }
   const doors = cvaComputeChainDoors(chainName).slice().sort((a, b) => (a.address || '').localeCompare(b.address || ''));
   if (!doors.length) { alert('No stores match the current filters.'); return; }
 
+  const btn = document.getElementById('xlsx-export-btn');
+  if (btn) btn.disabled = true;
+  xlsxShowExportOverlay('Generating Excel report…');
+  try {
+
   const monthCols = xlsxMonthColumnsJanToLatest(doors);
   const photoHeaderCols = Array.from({ length: xlsxPhotoCount }, (_, i) => `Photo ${i + 1}`);
+  const photoStartCol = 2 + monthCols.length + 2; // Store, Address, month cols, YTD, Latest Visit Date, then photos
 
   const header = [
-    'Store', 'Store ID', 'Store Address',
+    'Store', 'Store Address',
     ...monthCols.map(m => `Units Sold – ${xlsxFormatMonthCol(m)}`), 'Total Units (YTD)',
     'Latest Visit Date', ...photoHeaderCols, 'Source',
     'Shelf Strip Condition', 'POP Availability', 'Recommendation'
   ];
   const rows = [header];
+  const latestByDoor = doors.map(d => xlsxLatestVisitInfo(d));
 
-  doors.forEach(d => {
-    const latest = xlsxLatestVisitInfo(d);
+  // Gather every (row, col, url) that needs a real embedded photo, fetch+resize them all with
+  // bounded concurrency (with live progress), THEN build the sheet rows/images together -- doing
+  // the network work up front keeps the row-building loop below purely synchronous.
+  const photoJobs = [];
+  doors.forEach((d, di) => {
+    const rowIdx = di + 1; // header is row 0
+    const photos = latestByDoor[di].photos || [];
+    for (let i = 0; i < photoHeaderCols.length; i++) {
+      if (photos[i]) photoJobs.push({ row: rowIdx, col: photoStartCol + i, url: photos[i] });
+    }
+  });
+  let fetchedBytes = [];
+  if (photoJobs.length) {
+    fetchedBytes = await xlsxRunWithConcurrency(photoJobs, 6, (job) => xlsxFetchAndResizeImage(job.url),
+      (done, total) => xlsxShowExportOverlay(`Generating Excel report… embedding photos (${done}/${total})`));
+  }
+  const images = [];
+  photoJobs.forEach((job, i) => {
+    if (fetchedBytes[i]) images.push({ row: job.row, col: job.col, bytes: fetchedBytes[i], ext: 'jpeg' });
+  });
+
+  doors.forEach((d, di) => {
+    const latest = latestByDoor[di];
     const rec = xlsxComputeRecommendation(d, latest);
 
     let ytd = 0, hasAny = false;
@@ -7445,14 +7604,12 @@ function exportStoresExcelReport() {
       return '';
     });
 
-    const photoCells = photoHeaderCols.map((_, i) => {
-      const url = latest.photos[i];
-      return url ? { v: `View Photo ${i + 1}`, hyperlink: url } : '';
-    });
+    // Photo cells are always blank text -- the actual image is a drawing floating anchored to
+    // this cell's position (see `images` above), not cell content.
+    const photoCells = photoHeaderCols.map(() => '');
 
     rows.push([
       d.address || d.key,
-      'Not Recorded',
       { v: [d.address, d.city, d.state].filter(Boolean).join(', '), wrap: true },
       ...monthCells,
       { v: hasAny ? ytd : '', style: 4 },
@@ -7466,15 +7623,23 @@ function exportStoresExcelReport() {
   });
 
   const cols = [
-    { wch: 26 }, { wch: 12 }, { wch: 36 },
+    { wch: 26 }, { wch: 36 },
     ...monthCols.map(() => ({ wch: 16 })), { wch: 14 },
     { wch: 14 }, ...photoHeaderCols.map(() => ({ wch: 12 })), { wch: 12 },
     { wch: 20 }, { wch: 14 }, { wch: 34 }
   ];
 
-  const sheets = [{ name: 'Store Report', cols, freeze: { rows: 1, cols: 3 }, autofilter: true, rows }];
+  const sheets = [{ name: 'Store Report', cols, freeze: { rows: 1, cols: 2 }, autofilter: true, rows, images, dataRowHeightPt: images.length ? 90 : undefined }];
   const filename = `Lucy_Store_Report_${civTodayDateOnly()}.xlsx`;
   LucyXlsx.downloadXlsx(sheets, filename);
+
+  } catch (e) {
+    console.error('Excel export failed', e);
+    alert('Excel export failed: ' + (e && e.message ? e.message : e));
+  } finally {
+    xlsxHideExportOverlay();
+    if (btn) btn.disabled = false;
+  }
 }
 
 function renderStoresTab() {
@@ -7509,7 +7674,7 @@ function renderStoresTab() {
         <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;">Photos/store
           <input type="number" min="1" max="10" value="${xlsxPhotoCount}" onchange="xlsxSetPhotoCount(this.value)" style="width:44px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 5px;color:var(--text);font-size:11px;">
         </label>
-        <button class="ac-btn" onclick="exportStoresExcelReport()">⬇ Export Excel Report</button>
+        <button class="ac-btn" id="xlsx-export-btn" onclick="exportStoresExcelReport()">⬇ Export Excel Report</button>
       </div>
     </div>
 
