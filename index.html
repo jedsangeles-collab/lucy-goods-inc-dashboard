@@ -4903,21 +4903,29 @@ const CIVR_PAGE_SIZE = 6; // matches the reference prototype's own PER_PAGE exac
 // records; close enough to "50" that re-deriving a record-offset pager wasn't worth it).
 const CIVR_JUMP_PAGES = Math.round(50 / CIVR_PAGE_SIZE);
 let civrBulkMsg = '';
+let civrSearchQuery = '';
 
 function civrSetFilter(key, val) { civrFilters[key] = val; civrPage = 0; civrBulkMsg = ''; renderCiVisitReview(); }
+function civrSetSearch(val) { civrSearchQuery = val; civrPage = 0; renderCiVisitReview(); }
 function civrResetFilters() {
   civrFilters = Object.assign({ chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' }, civDateFilterBlank());
   civrDatePicker = civDatePickerBlank();
+  civrSearchQuery = '';
   civrPage = 0; civrBulkMsg = '';
   renderCiVisitReview();
 }
 function civrChangePage(dir) { civrPage += dir; renderCiVisitReview(); civrScrollToTop(); }
 
 function civrFilteredReports() {
+  const q = civrSearchQuery.trim().toLowerCase();
   return CIV_ALL_REPORTS.filter(r => {
     if (!civMatchesDateFilter(r.vd, civrFilters)) return false;
     if (civrFilters.chain && r.ch !== civrFilters.chain) return false;
     if (civrFilters.source && r.src !== civrFilters.source) return false;
+    if (q) {
+      const hay = [r.ch, r.a, r.ci, r.st, civDraftVerdict(r).notes].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     const status = getReportStatus(r);
     if (civrFilters.status === 'pending' && status === 'Reviewed') return false;
     if (civrFilters.status === 'done' && status !== 'Reviewed') return false;
@@ -5346,6 +5354,7 @@ function renderCiVisitReview() {
       <option value="yes" ${civrFilters.flagged==='yes'?'selected':''}>Flagged only</option>
     </select>
     ${civDateFilterControlHtml('civr', civrFilters, civrDatePicker)}
+    <input type="text" class="search-box" placeholder="🔍 Search by address…" value="${esc(civrSearchQuery)}" oninput="civrSetSearch(this.value)" style="min-width:220px;">
     <span class="civr-reset" onclick="civrResetFilters()">Reset filters</span>
   </div>
 
@@ -5547,11 +5556,14 @@ const EIVR_PAGE_SIZE = 6;
 // See CIVR_JUMP_PAGES's comment -- same "Next/Prev 50" approximation, page-indexed pagination.
 const EIVR_JUMP_PAGES = Math.round(50 / EIVR_PAGE_SIZE);
 let eivrBulkMsg = '';
+let eivrSearchQuery = '';
 
 function eivrSetFilter(key, val) { eivrFilters[key] = val; eivrPage = 0; eivrBulkMsg = ''; renderEileenVisitReview(); }
+function eivrSetSearch(val) { eivrSearchQuery = val; eivrPage = 0; renderEileenVisitReview(); }
 function eivrResetFilters() {
   eivrFilters = Object.assign({ chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
   eivrDatePicker = civDatePickerBlank();
+  eivrSearchQuery = '';
   eivrPage = 0; eivrBulkMsg = '';
   renderEileenVisitReview();
 }
@@ -5579,9 +5591,14 @@ function eivrEffectiveChain(rec, canonMap) {
 }
 function eivrFilteredReports() {
   const eivrChainMap = eivrChainCanonicalMap();
+  const q = eivrSearchQuery.trim().toLowerCase();
   return EIV_ALL_REPORTS.filter(r => {
     if (!civMatchesDateFilter(r.vd, eivrFilters)) return false;
     if (eivrFilters.chain && eivrEffectiveChain(r, eivrChainMap) !== eivrFilters.chain) return false;
+    if (q) {
+      const hay = [eivrEffectiveChain(r, eivrChainMap), r.a, r.ci, r.st, civDraftVerdict(r).notes].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     const status = getReportStatus(r);
     if (eivrFilters.status === 'pending' && status === 'Reviewed') return false;
     if (eivrFilters.status === 'done' && status !== 'Reviewed') return false;
@@ -5858,6 +5875,7 @@ function renderEileenVisitReview() {
       <option value="yes" ${eivrFilters.flagged==='yes'?'selected':''}>Flagged only</option>
     </select>
     ${civDateFilterControlHtml('eivr', eivrFilters, eivrDatePicker)}
+    <input type="text" class="search-box" placeholder="🔍 Search by address…" value="${esc(eivrSearchQuery)}" oninput="eivrSetSearch(this.value)" style="min-width:220px;">
     <span class="civr-reset" onclick="eivrResetFilters()">Reset filters</span>
   </div>
 
@@ -6088,7 +6106,6 @@ function renderExtraVisitReview() {
   </div>
 
   <div class="civr-filters">
-    <input type="text" class="search-box" placeholder="🔎 Search chain, store, address, evaluator, notes…" value="${esc(extraSearchQuery)}" oninput="extraSetSearch(this.value)" style="min-width:240px;">
     <label>Chain:</label>
     <select class="civr-select" onchange="extraSetFilter('chain', this.value)">
       <option value="">All chains</option>
@@ -6111,6 +6128,7 @@ function renderExtraVisitReview() {
       <option value="yes" ${extraFilters.flagged==='yes'?'selected':''}>Flagged only</option>
     </select>
     ${civDateFilterControlHtml('extra', extraFilters, extraDatePicker)}
+    <input type="text" class="search-box" placeholder="🔍 Search chain, store, address, evaluator, notes…" value="${esc(extraSearchQuery)}" oninput="extraSetSearch(this.value)" style="min-width:240px;">
     <span class="civr-reset" onclick="extraResetFilters()">Reset filters</span>
   </div>
 
