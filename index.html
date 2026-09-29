@@ -4754,6 +4754,20 @@ function civDateNDaysAgo(n) {
   d.setDate(d.getDate() - n);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+// Debounces a full-tab re-render triggered from a live-typing search box. Every other `oninput`
+// handler in this file either updates state with no re-render at all (civSetNote) or only
+// re-renders on a discrete click (dropdowns, Reset filters) -- a search box is the first case that
+// needs to re-render FROM every keystroke, and this file's whole rendering model is
+// `el.innerHTML = ...` on the tab's container, which destroys and recreates the <input> itself.
+// A freshly-created DOM node never carries over the old one's focus, so re-rendering synchronously
+// on every keystroke made a search box only accept one character before the user had to click back
+// into it. Debouncing the RENDER (not the state update, which stays immediate) means the input
+// keeps native browser text-editing behavior undisturbed while the user is actively typing, and
+// only re-renders once they pause -- by which point losing focus doesn't matter.
+function civDebounce(fn, delay) {
+  let t;
+  return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), delay); };
+}
 function civDateFilterBlank() { return { dateFilter:'all', dateFrom:null, dateTo:null }; }
 function civMatchesDateFilter(vd, filters) {
   if (!filters.dateFilter || filters.dateFilter === 'all') return true;
@@ -4906,7 +4920,8 @@ let civrBulkMsg = '';
 let civrSearchQuery = '';
 
 function civrSetFilter(key, val) { civrFilters[key] = val; civrPage = 0; civrBulkMsg = ''; renderCiVisitReview(); }
-function civrSetSearch(val) { civrSearchQuery = val; civrPage = 0; renderCiVisitReview(); }
+const civrRenderDebounced = civDebounce(renderCiVisitReview, 300);
+function civrSetSearch(val) { civrSearchQuery = val; civrPage = 0; civrRenderDebounced(); }
 function civrResetFilters() {
   civrFilters = Object.assign({ chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' }, civDateFilterBlank());
   civrDatePicker = civDatePickerBlank();
@@ -5559,7 +5574,8 @@ let eivrBulkMsg = '';
 let eivrSearchQuery = '';
 
 function eivrSetFilter(key, val) { eivrFilters[key] = val; eivrPage = 0; eivrBulkMsg = ''; renderEileenVisitReview(); }
-function eivrSetSearch(val) { eivrSearchQuery = val; eivrPage = 0; renderEileenVisitReview(); }
+const eivrRenderDebounced = civDebounce(renderEileenVisitReview, 300);
+function eivrSetSearch(val) { eivrSearchQuery = val; eivrPage = 0; eivrRenderDebounced(); }
 function eivrResetFilters() {
   eivrFilters = Object.assign({ chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
   eivrDatePicker = civDatePickerBlank();
@@ -5938,7 +5954,8 @@ function extraDatePickerApply() { civDatePickerApplyShared(extraFilters, extraDa
 function extraDatePickerCancel() { civDatePickerCancelShared(extraFilters, extraDatePicker, renderExtraVisitReview); }
 
 function extraSetFilter(key, val) { extraFilters[key] = val; extraPage = 0; extraBulkMsg = ''; renderExtraVisitReview(); }
-function extraSetSearch(val) { extraSearchQuery = val; extraPage = 0; renderExtraVisitReview(); }
+const extraRenderDebounced = civDebounce(renderExtraVisitReview, 300);
+function extraSetSearch(val) { extraSearchQuery = val; extraPage = 0; extraRenderDebounced(); }
 function extraResetFilters() {
   extraFilters = Object.assign({ chain:'', evaluator:'', status:'', flagged:'' }, civDateFilterBlank());
   extraDatePicker = civDatePickerBlank();
