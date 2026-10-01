@@ -5228,8 +5228,37 @@ function civrCardHtml(rec) {
   ${civrSubmittedBannerHtml(rec, draft, status)}`;
 }
 
-function civrExportCSV() {
-  const rows = CIV_ALL_REPORTS.map(rec => {
+// "Recent submissions only" export options, shared by CI / Eileen / Extra Visit Review. A record
+// counts as recently submitted when its status is Reviewed and that status was last written
+// (= when Submit was clicked) inside the chosen window. Undo flips the status back to Pending,
+// so an un-submitted record correctly drops out.
+//   '7d'  -- local midnight 7 days ago through now (today + the previous 7 days)
+//   '24h' -- rolling: exactly 24 hours ago through now
+const RECENT_SUBMIT_RANGES = {
+  '7d':  { label: 'last 7 days',  cutoff: () => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - 7); return d; } },
+  '24h': { label: 'last 24 hours', cutoff: () => new Date(Date.now() - 24 * 60 * 60 * 1000) }
+};
+function isRecentSubmission(range, status, updatedAt) {
+  if (status !== 'Reviewed' || !updatedAt) return false;
+  const t = new Date(updatedAt);
+  return !isNaN(t) && t >= RECENT_SUBMIT_RANGES[range].cutoff() && t <= new Date();
+}
+function fmtSubmittedAt(updatedAt) { return updatedAt ? new Date(updatedAt).toLocaleString() : ''; }
+function exportRecentFilename(base, range) {
+  if (!range) return base + '.csv';
+  const pad = n => String(n).padStart(2, '0');
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const stamp = range === '24h' ? d => `${ymd(d)}_${pad(d.getHours())}${pad(d.getMinutes())}` : ymd;
+  return `${base}_submitted_${stamp(RECENT_SUBMIT_RANGES[range].cutoff())}_to_${stamp(new Date())}.csv`;
+}
+function downloadRecentCSV(filename, rows, range) {
+  if (range && !rows.length) { alert(`No evaluations were submitted in the ${RECENT_SUBMIT_RANGES[range].label}.`); return; }
+  downloadCSV(filename, rows);
+}
+
+function civrExportCSV(range) {
+  const src = range ? CIV_ALL_REPORTS.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : CIV_ALL_REPORTS;
+  const rows = src.map(rec => {
     const draft = civDraftVerdict(rec);
     return {
       Store: rec.a||'', City: rec.ci||'', State: rec.st||'', Chain: rec.ch||'', VisitDate: rec.vd||rec.month||'',
@@ -5240,10 +5269,11 @@ function civrExportCSV() {
       YourStripAdded: rrYNCsv(draft.stripAdded), YourNeedsProduct: rrYNCsv(draft.needsProduct),
       Revisit: rrYNCsv(draft.revisit), Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No',
+      SubmittedAt: getReportStatus(rec)==='Reviewed' ? fmtSubmittedAt(getReportStatusUpdatedAt(rec)) : '',
       WeeklyVelocity: (() => { const s = civrVelocitySnapshot(rec); return s ? s.value.toFixed(1)+' u/wk ('+(civFmtMonthLabel(s.period)||'unknown month')+')' : ''; })()
     };
   });
-  downloadCSV('ci_visit_review.csv', rows);
+  downloadRecentCSV(exportRecentFilename('ci_visit_review', range), rows, range);
 }
 
 function renderCiVisitReview() {
@@ -5305,6 +5335,8 @@ function renderCiVisitReview() {
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="civr-export-btn" onclick="civrExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="civrExportCSV('24h')" title="Only evaluations submitted in the past 24 hours">Export Last 24 Hrs</button>
+      <button class="civr-export-btn" onclick="civrExportCSV('7d')" title="Only evaluations submitted today and the previous 7 days">Export Last 7 Days</button>
       <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
     </div>
   </div>
@@ -5761,8 +5793,9 @@ function eivrCardHtml(rec) {
   ${civrSubmittedBannerHtml(rec, draft, status)}`;
 }
 
-function eivrExportCSV() {
-  const rows = EIV_ALL_REPORTS.map(rec => {
+function eivrExportCSV(range) {
+  const src = range ? EIV_ALL_REPORTS.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : EIV_ALL_REPORTS;
+  const rows = src.map(rec => {
     const draft = civDraftVerdict(rec);
     const dec = eivComputeSystemRecommendation(rec, draft);
     const finalDecision = draft.decisionOverride || dec.recommendation;
@@ -5777,10 +5810,11 @@ function eivrExportCSV() {
         .map(k => `${k}${k==='Others'&&draft.skuObserved[k].detail?' ('+draft.skuObserved[k].detail+')':''}: Present${draft.skuObserved[k].count?' ('+draft.skuObserved[k].count+')':''}`).join('; '),
       Decision: EIV_DECISION_LABELS[finalDecision]||'', SystemRecommendation: EIV_DECISION_LABELS[dec.recommendation]||'', DecisionStatus: decisionStatus,
       Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
-      Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No'
+      Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No',
+      SubmittedAt: getReportStatus(rec)==='Reviewed' ? fmtSubmittedAt(getReportStatusUpdatedAt(rec)) : ''
     };
   });
-  downloadCSV('eileen_visit_review.csv', rows);
+  downloadRecentCSV(exportRecentFilename('eileen_visit_review', range), rows, range);
 }
 
 function renderEileenVisitReview() {
@@ -5840,6 +5874,8 @@ function renderEileenVisitReview() {
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="civr-export-btn" onclick="eivrExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="eivrExportCSV('24h')" title="Only evaluations submitted in the past 24 hours">Export Last 24 Hrs</button>
+      <button class="civr-export-btn" onclick="eivrExportCSV('7d')" title="Only evaluations submitted today and the previous 7 days">Export Last 7 Days</button>
       <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
     </div>
   </div>
@@ -6053,8 +6089,11 @@ function extraCardHtml(v) {
   </div>`;
 }
 
-function extraExportCSV() {
-  const rows = extraFilteredVisits().map(v => {
+function extraExportCSV(range) {
+  const extraStatusAt = id => (EXTRA_STATUS_CACHE[id] || {}).updatedAt;
+  const base = extraFilteredVisits();
+  const src = range ? base.filter(v => isRecentSubmission(range, getExtraStatus(v.id), extraStatusAt(v.id))) : base;
+  const rows = src.map(v => {
     const draft = getExtraVerdict(v.id);
     return {
       Chain: v.chain||'', Store: v.storeId||'', Address: extraFullAddress(v), VisitDate: v.visitDate||'',
@@ -6064,7 +6103,7 @@ function extraExportCSV() {
       ReviewedBy: draft.reviewedBy||'', ReviewedAt: draft.reviewedAt||''
     };
   });
-  downloadCSV('extra_visit_reviews.csv', rows);
+  downloadRecentCSV(exportRecentFilename('extra_visit_reviews', range), rows, range);
 }
 
 function renderExtraVisitReview() {
@@ -6111,6 +6150,8 @@ function renderExtraVisitReview() {
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="civr-export-btn" onclick="extraExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="extraExportCSV('24h')" title="Only evaluations submitted in the past 24 hours">Export Last 24 Hrs</button>
+      <button class="civr-export-btn" onclick="extraExportCSV('7d')" title="Only evaluations submitted today and the previous 7 days">Export Last 7 Days</button>
       <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
     </div>
   </div>
