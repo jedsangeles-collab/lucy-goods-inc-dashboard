@@ -4038,15 +4038,12 @@ function extraDiscardChanges(id) { delete EXTRA_VERDICT_DRAFT[id]; extraDirtySet
 
 // Standard Fields for Review -- ONE definition shared by CI, Eileen and Extra Visit Review, so the
 // three tabs can't drift apart (same keys, labels, response types, order). Types:
-//   'select' -- Vertical placement (shelf position dropdown)
 //   'yn'     -- Yes / No tri-button (click the selected one again to clear)
 //   'ynna'   -- Yes / No / N/A (Correct shelf strip? only -- a store may have no strip to judge)
 //   'count'  -- free-text numeric count, stored as an integer (null when blank)
 // Saved per tab to report_verdicts (CI + Eileen) / extra_report_verdicts (Extra), same column
 // names in both tables -- see STD_REVIEW_DB_COLS and migrate_standard_review_fields.sql.
-const VERTICAL_PLACEMENT_OPTIONS = [['top','Top Shelf'],['eye','Eye Level'],['middle','Middle'],['bottom','Bottom Shelf']];
 const STD_REVIEW_FIELDS = [
-  { key:'verticalPlacement',  label:'Vertical placement',        type:'select' },
   { key:'productPresent',     label:'Product there?',            type:'yn' },
   { key:'productVisible',     label:'Product visible?',          type:'yn' },
   { key:'shelfStripPresent',  label:'Shelf strip present?',      type:'yn' },
@@ -4056,7 +4053,7 @@ const STD_REVIEW_FIELDS = [
   { key:'needsProduct',       label:'Needs product?',            type:'yn' },
 ];
 const STD_REVIEW_DB_COLS = {
-  verticalPlacement:'vertical_placement', productPresent:'product_present', productVisible:'product_visible',
+  productPresent:'product_present', productVisible:'product_visible',
   shelfStripPresent:'shelf_strip_present', shelfStripCorrect:'shelf_strip_correct',
   facingsWithProduct:'facings_with_product', facingsEmptyCount:'facings_empty_count', needsProduct:'needs_product'
 };
@@ -4085,20 +4082,19 @@ function stdReviewParseCount(value) {
   return digits === '' ? null : parseInt(digits, 10);
 }
 function stdReviewDisplay(f, v) {
-  if (f.type === 'select') { const o = VERTICAL_PLACEMENT_OPTIONS.find(x => x[0] === v); return o ? o[1] : ''; }
   if (f.type === 'count') return v === null || v === undefined ? '' : String(v);
   return rrYNCsv(v);
 }
-// CSV/report columns for the 8 fields, e.g. { VerticalPlacement: 'Eye Level', ProductThere: 'Yes', ... }
+// CSV/report columns for the standard fields, e.g. { ProductThere: 'Yes', FacingsWithProduct: '4', ... }
 function stdReviewCsvCols(draft) {
-  const names = { verticalPlacement:'VerticalPlacement', productPresent:'ProductThere', productVisible:'ProductVisible',
+  const names = { productPresent:'ProductThere', productVisible:'ProductVisible',
     shelfStripPresent:'ShelfStripPresent', shelfStripCorrect:'CorrectShelfStrip', facingsWithProduct:'FacingsWithProduct',
     facingsEmptyCount:'FacingsEmpty', needsProduct:'NeedsProduct' };
   const out = {};
   STD_REVIEW_FIELDS.forEach(f => { out[names[f.key]] = stdReviewDisplay(f, draft[f.key]); });
   return out;
 }
-// Renders the 8 fields. `call.answer(key, jsLiteral)` / `call.value(key)` return the onclick /
+// Renders the standard fields. `call.answer(key, jsLiteral)` / `call.value(key)` return the onclick /
 // onchange JS for this tab's own setters; `hint` (optional) shows a "Rep said:" line per field.
 function stdReviewFieldsHtml(draft, dis, call, hint) {
   hint = hint || {};
@@ -4107,12 +4103,7 @@ function stdReviewFieldsHtml(draft, dis, call, hint) {
     const h = hint[f.key];
     const hintHtml = h === undefined || h === null ? `<div class="civr-vq-pre">&nbsp;</div>` : `<div class="civr-vq-pre">Rep said: ${rrHintLabel(h)}</div>`;
     let input;
-    if (f.type === 'select') {
-      input = `<select class="civr-select" ${dis} onchange="${call.value(f.key)}">
-        <option value="" ${!val?'selected':''}>—</option>
-        ${VERTICAL_PLACEMENT_OPTIONS.map(([v,l]) => `<option value="${v}" ${val===v?'selected':''}>${l}</option>`).join('')}
-      </select>`;
-    } else if (f.type === 'count') {
+    if (f.type === 'count') {
       input = `<input type="text" inputmode="numeric" class="civr-notes-input" style="max-width:90px;" placeholder="e.g. 3" value="${val===null||val===undefined?'':esc(String(val))}" ${dis} oninput="this.value=this.value.replace(/[^0-9]/g,'')" onchange="${call.value(f.key)}">`;
     } else {
       input = `<div class="civr-tri-btn">
@@ -4726,8 +4717,7 @@ function civSetVerdictAnswer(src, id, field, value) {
   civLogAudit('edit', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, field, previous_value: prev===null?null:String(prev), new_value: draft[field]===null?null:String(draft[field]) });
   civRerenderActive();
 }
-// Non-toggle setter for the Standard Fields' dropdown (Vertical placement) and the two facings
-// counts -- counts are parsed to integers (blank -> null) so they save as real numbers.
+// Non-toggle setter for the Standard Fields' two facings counts -- counts are parsed to integers (blank -> null) so they save as real numbers.
 function civSetVerdictValue(src, id, field, value) {
   if (!civCanEdit()) return;
   const rec = { src, id };
