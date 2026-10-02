@@ -3927,13 +3927,7 @@ let REPORT_VERDICT_CACHE = {};
 function getReportVerdict(rec) {
   const cached = REPORT_VERDICT_CACHE[reportKey(rec)];
   if (cached) return cached;
-  // Eileen Visit Review's verdict shape is genuinely different (facings status + count + shelf
-  // strip present/correct, not CI's 5 yes/no questions) -- there is no rep-reported signal to
-  // hint from either (see eivRepHint), so the blank shape starts fully null, same honesty
-  // convention as every other blank verdict.
-  return rec.src === 'eileen'
-    ? { facingsStatus:null, facingsEmptyCount:null, unitsMissingOver25:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, decisionOverride:null, notes:'', flag:false }
-    : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
+  return civBlankVerdictSnapshot(rec.src);
 }
 function setReportVerdict(rec, verdict) {
   const updatedAt = new Date().toISOString();
@@ -3942,42 +3936,23 @@ function setReportVerdict(rec, verdict) {
     localStorage.setItem('lucyReportVerdicts_v1', JSON.stringify(REPORT_VERDICT_CACHE));
     return;
   }
+  // CI, poppromo and Eileen all write the same 8 Standard Fields for Review columns.
+  const row = Object.assign({ src: rec.src, report_id: rec.id }, stdReviewToDb(verdict), { notes: verdict.notes, flag: verdict.flag, updated_at: updatedAt });
   if (rec.src === 'eileen') {
-    // shelf_strip_correct is a `text` column (not boolean) for the same reason CI's
-    // strip_accurate is -- it also allows a literal "N/A" answer.
-    const shelfStripCorrectOut = verdict.shelfStripCorrect === true ? 'true' : verdict.shelfStripCorrect === false ? 'false' : verdict.shelfStripCorrect === 'na' ? 'na' : null;
     // Decision fields are recomputed fresh here (not just copied off the draft) so a save always
-    // reflects the CURRENT door velocity + CURRENT Shelf Strip Correct? answer, even if something
+    // reflects the CURRENT door velocity + CURRENT Correct shelf strip? answer, even if something
     // upstream changed between when the card last rendered and when Submit was actually clicked.
     const dec = eivComputeSystemRecommendation(rec, verdict);
     const finalDecision = verdict.decisionOverride || dec.recommendation;
-    const decisionStatus = (verdict.decisionOverride && verdict.decisionOverride !== dec.recommendation) ? 'manual_override' : 'automatic';
-    sb.from('report_verdicts').upsert({
-      src: rec.src, report_id: rec.id,
-      facings_status: verdict.facingsStatus, facings_empty_count: verdict.facingsEmptyCount,
-      units_missing_over_25: verdict.unitsMissingOver25,
-      shelf_strip_present: verdict.shelfStripPresent, shelf_strip_correct: shelfStripCorrectOut,
-      sku_observed: verdict.skuObserved || {},
-      decision: finalDecision, decision_system_recommendation: dec.recommendation, decision_status: decisionStatus,
+    Object.assign(row, {
+      decision: finalDecision, decision_system_recommendation: dec.recommendation,
+      decision_status: (verdict.decisionOverride && verdict.decisionOverride !== dec.recommendation) ? 'manual_override' : 'automatic',
       decision_velocity_avg: dec.vel.avg, decision_velocity_months_used: dec.vel.monthsUsed,
       decision_threshold: EIV_DECISION_THRESHOLD, decision_threshold_status: dec.meetsThreshold ? 'meets' : 'below',
-      decision_decided_by: civCurrentUser() ? civCurrentUser().fullName : null,
-      notes: verdict.notes, flag: verdict.flag,
-      updated_at: updatedAt
-    }).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
-    return;
+      decision_decided_by: civCurrentUser() ? civCurrentUser().fullName : null
+    });
   }
-  // strip_accurate is a `text` column (not boolean) since it also allows a literal "N/A" answer
-  // (represented client-side as the string 'na') -- always sent as an explicit 'true'/'false'/'na'
-  // string, never a raw JS boolean, to avoid depending on Postgres/PostgREST's implicit
-  // boolean->text cast behavior for values arriving through the JS client.
-  const stripAccurateOut = verdict.stripAccurate === true ? 'true' : verdict.stripAccurate === false ? 'false' : verdict.stripAccurate === 'na' ? 'na' : null;
-  sb.from('report_verdicts').upsert({
-    src: rec.src, report_id: rec.id,
-    product_present: verdict.productPresent, strip_present: verdict.stripPresent, strip_accurate: stripAccurateOut, strip_added: verdict.stripAdded,
-    needs_product: verdict.needsProduct, revisit: verdict.revisit, notes: verdict.notes, flag: verdict.flag,
-    updated_at: updatedAt
-  }).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
+  sb.from('report_verdicts').upsert(row).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -4004,7 +3979,7 @@ function setExtraStatus(visitId, status) {
     .then(({ error }) => { if (error) console.error('extra_report_status upsert failed', error); });
 }
 function getExtraVerdict(visitId) {
-  return EXTRA_VERDICT_CACHE[visitId] || { recommendation: '', reviewerNotes: '', flag: false, reviewedBy: null, reviewedAt: null };
+  return EXTRA_VERDICT_CACHE[visitId] || Object.assign(stdReviewBlank(), { recommendation: '', reviewerNotes: '', flag: false, reviewedBy: null, reviewedAt: null });
 }
 function setExtraVerdict(visitId, verdict) {
   const updatedAt = new Date().toISOString();
@@ -4012,20 +3987,36 @@ function setExtraVerdict(visitId, verdict) {
   const reviewedBy = u ? u.fullName : (verdict.reviewedBy || null);
   EXTRA_VERDICT_CACHE[visitId] = Object.assign({}, verdict, { reviewedBy, reviewedAt: updatedAt, updatedAt });
   if (usingEmbeddedSnapshot) { localStorage.setItem('lucyExtraVerdicts_v1', JSON.stringify(EXTRA_VERDICT_CACHE)); return; }
-  sb.from('extra_report_verdicts').upsert({
+  sb.from('extra_report_verdicts').upsert(Object.assign({
     visit_id: visitId, recommendation: verdict.recommendation || null, reviewer_notes: verdict.reviewerNotes || null,
     flag: !!verdict.flag, reviewed_by: reviewedBy, reviewed_at: updatedAt, updated_at: updatedAt
-  }).then(({ error }) => { if (error) console.error('extra_report_verdicts upsert failed', error); });
+  }, stdReviewToDb(verdict))).then(({ error }) => { if (error) console.error('extra_report_verdicts upsert failed', error); });
 }
 function extraDraftVerdict(visitId) {
   if (!EXTRA_VERDICT_DRAFT[visitId]) {
     const saved = EXTRA_VERDICT_CACHE[visitId];
-    EXTRA_VERDICT_DRAFT[visitId] = saved ? Object.assign({}, saved) : { recommendation: '', reviewerNotes: '', flag: false };
+    EXTRA_VERDICT_DRAFT[visitId] = saved ? Object.assign({}, saved) : Object.assign(stdReviewBlank(), { recommendation: '', reviewerNotes: '', flag: false });
   }
   return EXTRA_VERDICT_DRAFT[visitId];
 }
 function extraSetRecommendation(id, value) { if (!civCanEdit()) return; extraDraftVerdict(id).recommendation = value; extraDirtySet.add(id); }
 function extraSetReviewerNotes(id, value) { if (!civCanEdit()) return; extraDraftVerdict(id).reviewerNotes = value; extraDirtySet.add(id); }
+// Standard Fields for Review setters -- same semantics as CI/Eileen's civSetVerdictAnswer /
+// civSetVerdictValue (clicking the selected Yes/No again clears it; counts parse to integers).
+function extraSetAnswer(id, field, value) {
+  if (!civCanEdit()) return;
+  const draft = extraDraftVerdict(id);
+  draft[field] = draft[field] === value ? null : value;
+  extraDirtySet.add(id);
+  renderExtraVisitReview();
+}
+function extraSetValue(id, field, value) {
+  if (!civCanEdit()) return;
+  const f = STD_REVIEW_FIELDS.find(x => x.key === field);
+  extraDraftVerdict(id)[field] = f && f.type === 'count' ? stdReviewParseCount(value) : (value === '' ? null : value);
+  extraDirtySet.add(id);
+  renderExtraVisitReview();
+}
 function extraToggleFlag(id) {
   if (!civCanEdit()) return;
   const draft = extraDraftVerdict(id);
@@ -4045,19 +4036,102 @@ function extraSubmitVerdict(id) {
 function extraUndoVerdict(id) { if (!civCanEdit()) return; setExtraStatus(id, 'Pending'); renderExtraVisitReview(); }
 function extraDiscardChanges(id) { delete EXTRA_VERDICT_DRAFT[id]; extraDirtySet.delete(id); renderExtraVisitReview(); }
 
-// The manager-verdict questions -- shared by CI Visit Review's verdict bar (VERDICT_QS itself
-// and rrHintLabel/rrYNCsv are the only "rr"-named symbols not exclusive to the now-removed Report
-// Review tab; kept here since CI Visit Review still depends on them). Third array element (hasNA)
-// marks fields that offer a Yes/No/N/A tri-state instead of the plain Yes/No used everywhere else
-// -- currently only Strip Accurate?, since a store may have no strip at all to judge the accuracy of.
-const VERDICT_QS = [
-  ['productPresent', 'Product There?'],
-  ['stripPresent', 'Strip There?'],
-  ['stripAccurate', 'Strip Accurate?', true],
-  ['stripAdded', 'Strip Added?'],
-  ['needsProduct', 'Needs Product?'],
-  ['revisit', 'Revisit?'],
+// Standard Fields for Review -- ONE definition shared by CI, Eileen and Extra Visit Review, so the
+// three tabs can't drift apart (same keys, labels, response types, order). Types:
+//   'select' -- Vertical placement (shelf position dropdown)
+//   'yn'     -- Yes / No tri-button (click the selected one again to clear)
+//   'ynna'   -- Yes / No / N/A (Correct shelf strip? only -- a store may have no strip to judge)
+//   'count'  -- free-text numeric count, stored as an integer (null when blank)
+// Saved per tab to report_verdicts (CI + Eileen) / extra_report_verdicts (Extra), same column
+// names in both tables -- see STD_REVIEW_DB_COLS and migrate_standard_review_fields.sql.
+const VERTICAL_PLACEMENT_OPTIONS = [['top','Top Shelf'],['eye','Eye Level'],['middle','Middle'],['bottom','Bottom Shelf']];
+const STD_REVIEW_FIELDS = [
+  { key:'verticalPlacement',  label:'Vertical placement',        type:'select' },
+  { key:'productPresent',     label:'Product there?',            type:'yn' },
+  { key:'productVisible',     label:'Product visible?',          type:'yn' },
+  { key:'shelfStripPresent',  label:'Shelf strip present?',      type:'yn' },
+  { key:'shelfStripCorrect',  label:'Correct shelf strip?',      type:'ynna' },
+  { key:'facingsWithProduct', label:'# of facings w/ product?',  type:'count' },
+  { key:'facingsEmptyCount',  label:'# of facings empty',        type:'count' },
+  { key:'needsProduct',       label:'Needs product?',            type:'yn' },
 ];
+const STD_REVIEW_DB_COLS = {
+  verticalPlacement:'vertical_placement', productPresent:'product_present', productVisible:'product_visible',
+  shelfStripPresent:'shelf_strip_present', shelfStripCorrect:'shelf_strip_correct',
+  facingsWithProduct:'facings_with_product', facingsEmptyCount:'facings_empty_count', needsProduct:'needs_product'
+};
+function stdReviewBlank() { const o = {}; STD_REVIEW_FIELDS.forEach(f => { o[f.key] = null; }); return o; }
+// Client value -> DB column value. shelf_strip_correct is a text column ('true'/'false'/'na') since
+// it allows N/A; the rest are boolean / integer / text and pass through as-is.
+function stdReviewToDb(verdict) {
+  const row = {};
+  STD_REVIEW_FIELDS.forEach(f => {
+    const v = verdict[f.key] === undefined ? null : verdict[f.key];
+    row[STD_REVIEW_DB_COLS[f.key]] = f.type === 'ynna' ? (v === true ? 'true' : v === false ? 'false' : v === 'na' ? 'na' : null) : v;
+  });
+  return row;
+}
+function stdReviewFromDb(row) {
+  const o = {};
+  STD_REVIEW_FIELDS.forEach(f => {
+    const v = row[STD_REVIEW_DB_COLS[f.key]];
+    o[f.key] = f.type === 'ynna' ? (v === 'true' ? true : v === 'false' ? false : v === 'na' ? 'na' : null)
+             : (v === undefined ? null : v);
+  });
+  return o;
+}
+function stdReviewParseCount(value) {
+  const digits = String(value === null || value === undefined ? '' : value).replace(/[^0-9]/g, '');
+  return digits === '' ? null : parseInt(digits, 10);
+}
+function stdReviewDisplay(f, v) {
+  if (f.type === 'select') { const o = VERTICAL_PLACEMENT_OPTIONS.find(x => x[0] === v); return o ? o[1] : ''; }
+  if (f.type === 'count') return v === null || v === undefined ? '' : String(v);
+  return rrYNCsv(v);
+}
+// CSV/report columns for the 8 fields, e.g. { VerticalPlacement: 'Eye Level', ProductThere: 'Yes', ... }
+function stdReviewCsvCols(draft) {
+  const names = { verticalPlacement:'VerticalPlacement', productPresent:'ProductThere', productVisible:'ProductVisible',
+    shelfStripPresent:'ShelfStripPresent', shelfStripCorrect:'CorrectShelfStrip', facingsWithProduct:'FacingsWithProduct',
+    facingsEmptyCount:'FacingsEmpty', needsProduct:'NeedsProduct' };
+  const out = {};
+  STD_REVIEW_FIELDS.forEach(f => { out[names[f.key]] = stdReviewDisplay(f, draft[f.key]); });
+  return out;
+}
+// Renders the 8 fields. `call.answer(key, jsLiteral)` / `call.value(key)` return the onclick /
+// onchange JS for this tab's own setters; `hint` (optional) shows a "Rep said:" line per field.
+function stdReviewFieldsHtml(draft, dis, call, hint) {
+  hint = hint || {};
+  return STD_REVIEW_FIELDS.map(f => {
+    const val = draft[f.key];
+    const h = hint[f.key];
+    const hintHtml = h === undefined || h === null ? `<div class="civr-vq-pre">&nbsp;</div>` : `<div class="civr-vq-pre">Rep said: ${rrHintLabel(h)}</div>`;
+    let input;
+    if (f.type === 'select') {
+      input = `<select class="civr-select" ${dis} onchange="${call.value(f.key)}">
+        <option value="" ${!val?'selected':''}>—</option>
+        ${VERTICAL_PLACEMENT_OPTIONS.map(([v,l]) => `<option value="${v}" ${val===v?'selected':''}>${l}</option>`).join('')}
+      </select>`;
+    } else if (f.type === 'count') {
+      input = `<input type="text" inputmode="numeric" class="civr-notes-input" style="max-width:90px;" placeholder="e.g. 3" value="${val===null||val===undefined?'':esc(String(val))}" ${dis} oninput="this.value=this.value.replace(/[^0-9]/g,'')" onchange="${call.value(f.key)}">`;
+    } else {
+      input = `<div class="civr-tri-btn">
+        <button class="civr-tbtn ${val===true?'civr-on-yes':''}" ${dis} onclick="${call.answer(f.key, 'true')}">Yes</button>
+        <button class="civr-tbtn ${val===false?'civr-on-no':''}" ${dis} onclick="${call.answer(f.key, 'false')}">No</button>
+        ${f.type === 'ynna' ? `<button class="civr-tbtn ${val==='na'?'civr-on-na':''}" ${dis} onclick="${call.answer(f.key, `'na'`)}">N/A</button>` : ''}
+      </div>`;
+    }
+    return `<div class="civr-vq"><div class="civr-vq-label">${f.label}</div>${hintHtml}${input}</div>`;
+  }).join('');
+}
+// call-builders for the CI/Eileen shared setters (src+id addressed) and Extra's own (id addressed)
+function civStdCall(src, id) {
+  const sid = JSON.stringify(id);
+  return { answer: (k, lit) => `civSetVerdictAnswer('${src}', ${sid}, '${k}', ${lit})`, value: k => `civSetVerdictValue('${src}', ${sid}, '${k}', this.value)` };
+}
+function extraStdCall(id) {
+  return { answer: (k, lit) => `extraSetAnswer(${id}, '${k}', ${lit})`, value: k => `extraSetValue(${id}, '${k}', this.value)` };
+}
 function rrHintLabel(v) { return v === true ? 'Yes' : v === false ? 'No' : '—'; }
 function rrYNCsv(v) { return v === true ? 'Yes' : v === false ? 'No' : v === 'na' ? 'N/A' : ''; }
 
@@ -4349,33 +4423,25 @@ function civPrevVersionFor(reportId, beforeVersionId) {
   return versions[0] || null;
 }
 function civBlankVerdictSnapshot(src) {
-  return src === 'eileen'
-    ? { facingsStatus:null, facingsEmptyCount:null, unitsMissingOver25:null, shelfStripPresent:null, shelfStripCorrect:null, skuObserved:{}, decisionOverride:null, notes:'', flag:false }
-    : { productPresent:null, stripPresent:null, stripAccurate:null, stripAdded:null, needsProduct:null, revisit:null, notes:'', flag:false };
+  return Object.assign(stdReviewBlank(), src === 'eileen' ? { decisionOverride: null } : {}, { notes: '', flag: false });
 }
 
-const EIV_DIFF_FIELDS = [['facingsStatus','Total Lucy Facings'],['facingsEmptyCount','# of Facings Empty'],['unitsMissingOver25','Units Missing > 25%?'],['shelfStripPresent','Shelf Strip Present?'],['shelfStripCorrect','Shelf Strip Correct?'],['skuObserved','SKUs Observed'],['decisionOverride','Decision Override'],['notes','Notes'],['flag','Flagged']];
-const CIV_DIFF_FIELDS = [['productPresent','Product There?'],['stripPresent','Strip There?'],['stripAccurate','Strip Accurate?'],['stripAdded','Strip Added?'],['needsProduct','Needs Product?'],['revisit','Revisit?'],['notes','Notes'],['flag','Flagged']];
+const STD_DIFF_FIELDS = STD_REVIEW_FIELDS.map(f => [f.key, f.label]);
+const EIV_DIFF_FIELDS = STD_DIFF_FIELDS.concat([['decisionOverride','Decision Override'],['notes','Notes'],['flag','Flagged']]);
+const CIV_DIFF_FIELDS = STD_DIFF_FIELDS.concat([['notes','Notes'],['flag','Flagged']]);
 function civDiffHtml(current, target) {
   const src = current.src || target.src;
   const fields = src === 'eileen' ? EIV_DIFF_FIELDS : CIV_DIFF_FIELDS;
-  // skuObserved is the one verdict field shaped as an object (per-flavor {present,count,detail})
-  // rather than a primitive -- summarized to "Flavor: Present (count) [detail]" pairs here so
-  // Change History reads like the rest of this diff instead of showing "[object Object]". There
-  // is no "Not Present" state -- an unmarked flavor is simply omitted from the summary.
-  const fmt = (v) => {
-    if (v && typeof v === 'object') {
-      const parts = Object.keys(v).filter(k => v[k] && v[k].present === true)
-        .map(k => `${k}: Present${v[k].count ? ' ('+v[k].count+')' : ''}${v[k].detail ? ' ['+v[k].detail+']' : ''}`);
-      return parts.length ? parts.join('; ') : '—';
-    }
+  const fmt = (f, v) => {
+    const std = STD_REVIEW_FIELDS.find(x => x.key === f);
+    if (std) { const s = stdReviewDisplay(std, v); return s === '' ? '—' : s; }
     return typeof v === 'boolean' ? (v ? 'Yes' : 'No') : v === 'na' ? 'N/A' : (v || v === 0 ? v : '—');
   };
   return fields.map(([f,label]) => {
     const changed = JSON.stringify(current[f]) !== JSON.stringify(target[f]);
     return `<div class="civauth-diff-row" style="${changed?'background:#fff8e8;':''}">
-      <div class="civauth-diff-col"><div class="civauth-diff-label">${escHtml(label)} — Current</div>${escHtml(String(fmt(current[f])))}</div>
-      <div class="civauth-diff-col"><div class="civauth-diff-label">${escHtml(label)} — Target</div><strong>${escHtml(String(fmt(target[f])))}</strong></div>
+      <div class="civauth-diff-col"><div class="civauth-diff-label">${escHtml(label)} — Current</div>${escHtml(String(fmt(f, current[f])))}</div>
+      <div class="civauth-diff-col"><div class="civauth-diff-label">${escHtml(label)} — Target</div><strong>${escHtml(String(fmt(f, target[f])))}</strong></div>
     </div>`;
   }).join('');
 }
@@ -4593,16 +4659,14 @@ function civRepHint(rec) {
     const facingsCount = rec.skuFacings && typeof rec.skuFacings === 'object' ? Object.keys(rec.skuFacings).length : 0;
     return {
       productPresent: facingsCount > 0 ? true : null,
-      stripPresent: rec.shelfStripPresent === true ? true : rec.shelfStripPresent === false ? false : null,
-      stripAccurate: rec.shelfStripMatchesPromo === true ? true : rec.shelfStripMatchesPromo === false ? false : (rec.promoCorrect === true ? true : rec.promoCorrect === false ? false : null),
-      stripAdded: null,
+      shelfStripPresent: rec.shelfStripPresent === true ? true : rec.shelfStripPresent === false ? false : null,
+      shelfStripCorrect: rec.shelfStripMatchesPromo === true ? true : rec.shelfStripMatchesPromo === false ? false : (rec.promoCorrect === true ? true : rec.promoCorrect === false ? false : null),
       needsProduct: rec.orderingIssue ? true : null
     };
   }
   return {
     productPresent: rec.si === 1 ? true : rec.si === 0 ? false : null,
-    stripPresent: rec.sp === 1 ? true : rec.sp === 0 ? false : null,
-    stripAdded: null,
+    shelfStripPresent: rec.sp === 1 ? true : rec.sp === 0 ? false : null,
     needsProduct: Array.isArray(rec.oo) ? rec.oo.length > 0 : null
   };
 }
@@ -4618,20 +4682,18 @@ function civDraftVerdict(rec) {
       // Eileen's source CSV is a pure photo log -- no rep-reported stock/promo field of any
       // kind exists to pre-fill from (confirmed by direct inspection), so this always starts
       // fully blank, same honesty convention as every other blank verdict in this app.
-      CIV_VERDICT_DRAFT[k] = { facingsStatus: null, facingsEmptyCount: null, shelfStripPresent: null, shelfStripCorrect: null, skuObserved: {}, decisionOverride: null, notes: '', flag: false };
+      CIV_VERDICT_DRAFT[k] = civBlankVerdictSnapshot('eileen');
     } else {
-      // First time this CI visit has ever been opened for review: pre-fill Strip Present/Needs
-      // Product from the rep's own reported data, same convention as Report Review. Strip Added
-      // has no reliable rep-side signal for CI (see civRepHint) so stays blank; Product There
-      // intentionally still stays an independent manager call even though `si` exists, matching
-      // the exact same design decision already confirmed for Report Review. Strip Accurate is a
-      // pure manager judgment call with no rep-side field at all (unlike Strip Present, no source
-      // column even attempts to capture it), so it always starts blank too.
+      // First time this CI visit has ever been opened for review: pre-fill Shelf strip present? /
+      // Needs product? from the rep's own reported data, same convention as Report Review. Product
+      // there? intentionally still stays an independent manager call even though `si` exists, and
+      // Correct shelf strip? is a pure manager judgment call, so both start blank (the rep's value
+      // still shows as a "Rep said:" hint above each button row).
       const hint = civRepHint(rec);
-      CIV_VERDICT_DRAFT[k] = {
-        productPresent: null, stripPresent: hint.stripPresent, stripAccurate: null, stripAdded: hint.stripAdded,
-        needsProduct: hint.needsProduct, revisit: null, notes: '', flag: false
-      };
+      CIV_VERDICT_DRAFT[k] = Object.assign(civBlankVerdictSnapshot(rec.src), {
+        shelfStripPresent: hint.shelfStripPresent === undefined ? null : hint.shelfStripPresent,
+        needsProduct: hint.needsProduct === undefined ? null : hint.needsProduct
+      });
     }
   }
   return CIV_VERDICT_DRAFT[k];
@@ -4662,6 +4724,19 @@ function civSetVerdictAnswer(src, id, field, value) {
   draft[field] = draft[field] === value ? null : value;
   civDirtySet.add(reportKey(rec));
   civLogAudit('edit', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, field, previous_value: prev===null?null:String(prev), new_value: draft[field]===null?null:String(draft[field]) });
+  civRerenderActive();
+}
+// Non-toggle setter for the Standard Fields' dropdown (Vertical placement) and the two facings
+// counts -- counts are parsed to integers (blank -> null) so they save as real numbers.
+function civSetVerdictValue(src, id, field, value) {
+  if (!civCanEdit()) return;
+  const rec = { src, id };
+  const draft = civDraftVerdict(rec);
+  const prev = draft[field];
+  const f = STD_REVIEW_FIELDS.find(x => x.key === field);
+  draft[field] = f && f.type === 'count' ? stdReviewParseCount(value) : (value === '' ? null : value);
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, field, previous_value: prev===null||prev===undefined?null:String(prev), new_value: draft[field]===null?null:String(draft[field]) });
   civRerenderActive();
 }
 function civSetNote(src, id, value) {
@@ -4902,7 +4977,7 @@ function civDateFilterControlHtml(prefix, filters, picker) {
   </span>`;
 }
 
-let civrFilters = Object.assign({ chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' }, civDateFilterBlank());
+let civrFilters = Object.assign({ chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', flagged:'' }, civDateFilterBlank());
 let civrDatePicker = civDatePickerBlank();
 function civrSetDateFilter(val) { civSetDateFilterShared(civrFilters, civrDatePicker, val, renderCiVisitReview); civrPage = 0; }
 function civrDatePickerOpen() { civDatePickerOpenShared(civrFilters, civrDatePicker, renderCiVisitReview); }
@@ -4923,7 +4998,7 @@ function civrSetFilter(key, val) { civrFilters[key] = val; civrPage = 0; civrBul
 const civrRenderDebounced = civDebounce(renderCiVisitReview, 300);
 function civrSetSearch(val) { civrSearchQuery = val; civrPage = 0; civrRenderDebounced(); }
 function civrResetFilters() {
-  civrFilters = Object.assign({ chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', revisit:'', flagged:'' }, civDateFilterBlank());
+  civrFilters = Object.assign({ chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', flagged:'' }, civDateFilterBlank());
   civrDatePicker = civDatePickerBlank();
   civrSearchQuery = '';
   civrPage = 0; civrBulkMsg = '';
@@ -4957,9 +5032,6 @@ function civrFilteredReports() {
     if (civrFilters.productThere === 'yes' && draft.productPresent !== true) return false;
     if (civrFilters.productThere === 'no' && draft.productPresent !== false) return false;
     if (civrFilters.productThere === 'blank' && draft.productPresent !== null) return false;
-    if (civrFilters.revisit === 'yes' && draft.revisit !== true) return false;
-    if (civrFilters.revisit === 'no' && draft.revisit !== false) return false;
-    if (civrFilters.revisit === 'blank' && draft.revisit !== null) return false;
     if (civrFilters.flagged === 'yes' && !draft.flag) return false;
     return true;
   // Stores with a real Weekly Velocity figure sort first; "Not Tracked" ones go to the back --
@@ -4975,7 +5047,7 @@ function civrStats() {
   CIV_ALL_REPORTS.forEach(r => {
     const status = getReportStatus(r);
     const draft = civDraftVerdict(r);
-    if (status === 'Reviewed') { sub++; if (draft.stripPresent) stripY++; if (draft.needsProduct) needsY++; }
+    if (status === 'Reviewed') { sub++; if (draft.shelfStripPresent) stripY++; if (draft.needsProduct) needsY++; }
     if (draft.flag) flagC++;
   });
   const total = CIV_ALL_REPORTS.length;
@@ -4986,13 +5058,6 @@ function civrStats() {
 // but this project has a documented incident where a native dialog froze the whole Browser pane
 // tool during automated verification) -- an inline message after the fact instead. Applies to
 // every report matching the CURRENT filters, not just the current page.
-function civrBulkSetRevisit(val) {
-  if (!civCanEdit()) return;
-  const list = civrFilteredReports();
-  list.forEach(r => { civDraftVerdict(r).revisit = val; });
-  civrBulkMsg = `✓ ${list.length} report${list.length===1?'':'s'} marked ${val ? 'Yes Revisit' : 'No Revisit'}`;
-  renderCiVisitReview();
-}
 function civrBulkSubmit() {
   if (!civCanEdit()) return;
   const list = civrFilteredReports();
@@ -5061,8 +5126,8 @@ function civrBadgesHtml(rec, hint, status) {
   badges += rec.src === 'poppromo'
     ? `<span class="civr-badge civr-b-source-pop">POP Marketing Check</span>`
     : `<span class="civr-badge civr-b-source-ci">CI Visit</span>`;
-  if (hint.stripPresent === true) badges += `<span class="civr-badge civr-b-strip-yes">Strip present</span>`;
-  else if (hint.stripPresent === false) badges += `<span class="civr-badge civr-b-strip-no">No strip</span>`;
+  if (hint.shelfStripPresent === true) badges += `<span class="civr-badge civr-b-strip-yes">Strip present</span>`;
+  else if (hint.shelfStripPresent === false) badges += `<span class="civr-badge civr-b-strip-no">No strip</span>`;
   if (rec.src !== 'poppromo') {
     if (Array.isArray(rec.oo) && rec.oo.length) badges += `<span class="civr-badge civr-b-oos">Rep: OOS</span>`;
     else badges += `<span class="civr-badge civr-b-ok">Rep: in stock</span>`;
@@ -5095,20 +5160,7 @@ function civrVerdictBarHtml(rec, draft, hint, status) {
   const locked = status === 'Reviewed';
   const canEdit = civCanEdit(); // Viewer role (or logged-out/Artifact host) -- read-only, real gate is the RLS policy
   const dis = canEdit ? '' : 'disabled';
-  const qHtml = VERDICT_QS.map(([field,label,hasNA]) => {
-    const val = draft[field];
-    const hintVal = hint[field];
-    const hintHtml = hintVal===undefined || hintVal===null ? `<div class="civr-vq-pre">&nbsp;</div>` : `<div class="civr-vq-pre">Rep said: ${rrHintLabel(hintVal)}</div>`;
-    return `<div class="civr-vq">
-      <div class="civr-vq-label">${label}</div>
-      ${hintHtml}
-      <div class="civr-tri-btn">
-        <button class="civr-tbtn ${val===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('${rec.src}', ${JSON.stringify(rec.id)}, '${field}', true)">Yes</button>
-        <button class="civr-tbtn ${val===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('${rec.src}', ${JSON.stringify(rec.id)}, '${field}', false)">No</button>
-        ${hasNA ? `<button class="civr-tbtn ${val==='na'?'civr-on-na':''}" ${dis} onclick="civSetVerdictAnswer('${rec.src}', ${JSON.stringify(rec.id)}, '${field}', 'na')">N/A</button>` : ''}
-      </div>
-    </div>`;
-  }).join('');
+  const qHtml = stdReviewFieldsHtml(draft, dis, civStdCall(rec.src, rec.id), hint);
   const isDirty = civDirtySet.has(reportKey(rec));
   return `<div class="civr-verdict-bar">
     ${qHtml}
@@ -5264,10 +5316,8 @@ function civrExportCSV(range) {
       Store: rec.a||'', City: rec.ci||'', State: rec.st||'', Chain: rec.ch||'', VisitDate: rec.vd||rec.month||'',
       RepStripPresent: rec.sp===1?'yes':rec.sp===0?'no':'',
       RepOOS: Array.isArray(rec.oo)&&rec.oo.length?'yes':'no', RepOOSItems: Array.isArray(rec.oo)?rec.oo.join('; '):'',
-      YourProductThere: rrYNCsv(draft.productPresent), YourStripWasThere: rrYNCsv(draft.stripPresent),
-      YourStripAccurate: rrYNCsv(draft.stripAccurate),
-      YourStripAdded: rrYNCsv(draft.stripAdded), YourNeedsProduct: rrYNCsv(draft.needsProduct),
-      Revisit: rrYNCsv(draft.revisit), Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
+      ...stdReviewCsvCols(draft),
+      Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No',
       SubmittedAt: getReportStatus(rec)==='Reviewed' ? fmtSubmittedAt(getReportStatusUpdatedAt(rec)) : '',
       WeeklyVelocity: (() => { const s = civrVelocitySnapshot(rec); return s ? s.value.toFixed(1)+' u/wk ('+(civFmtMonthLabel(s.period)||'unknown month')+')' : ''; })()
@@ -5388,13 +5438,6 @@ function renderCiVisitReview() {
       <option value="no" ${civrFilters.productThere==='no'?'selected':''}>No</option>
       <option value="blank" ${civrFilters.productThere==='blank'?'selected':''}>Not answered</option>
     </select>
-    <label>Revisit:</label>
-    <select class="civr-select" onchange="civrSetFilter('revisit', this.value)">
-      <option value="">All</option>
-      <option value="yes" ${civrFilters.revisit==='yes'?'selected':''}>Yes</option>
-      <option value="no" ${civrFilters.revisit==='no'?'selected':''}>No</option>
-      <option value="blank" ${civrFilters.revisit==='blank'?'selected':''}>Not answered</option>
-    </select>
     <label>Flagged:</label>
     <select class="civr-select" onchange="civrSetFilter('flagged', this.value)">
       <option value="">All</option>
@@ -5407,8 +5450,6 @@ function renderCiVisitReview() {
 
   ${civCanEdit() ? `<div class="civr-bulk-bar">
     <span class="civr-bulk-count">${fmtNum(filtered.length)} report${filtered.length===1?'':'s'} currently filtered</span>
-    <button class="civr-bulk-btn civr-bulk-no" onclick="civrBulkSetRevisit(false)">✗ Mark all filtered — No Revisit</button>
-    <button class="civr-bulk-btn civr-bulk-yes" onclick="civrBulkSetRevisit(true)">✓ Mark all filtered — Yes Revisit</button>
     <button class="civr-bulk-btn civr-bulk-submit" onclick="civrBulkSubmit()">⇧ Submit all filtered</button>
     ${civrBulkMsg ? `<span class="civr-bulk-msg">${escHtml(civrBulkMsg)}</span>` : ''}
   </div>` : ''}
@@ -5442,23 +5483,6 @@ function renderCiVisitReview() {
 // Review's own 'civauth'-prefixed ones, since both tabs' rendered HTML can coexist in the DOM at
 // once (switching tabs only toggles display:none, it doesn't clear the previous tab's content).
 
-// The 6 shared interaction handlers (civSetVerdictAnswer/civSetNote/civToggleFlag/
-// civSubmitVerdict/civUndoVerdict/civDiscardChanges) are already generic over (src,id) and cover
-// 3 of these 4 fields directly -- civSetVerdictAnswer('eileen', id, 'facingsStatus', 'full'/'empty'),
-// ('shelfStripPresent', true/false), ('shelfStripCorrect', true/false/'na') all reuse its existing
-// toggle-on-same-value semantics exactly like CI's tri-buttons do. Only the free-text facings-empty
-// count needs its own setter, since a text field doesn't fit that toggle behavior.
-function eivSetFacingsEmptyCount(id, value) {
-  if (!civCanEdit()) return;
-  const rec = { src: 'eileen', id };
-  const draft = civDraftVerdict(rec);
-  const prev = draft.facingsEmptyCount;
-  const trimmed = String(value).trim();
-  draft.facingsEmptyCount = trimmed === '' ? null : trimmed;
-  civDirtySet.add(reportKey(rec));
-  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'facingsEmptyCount', previous_value: prev, new_value: draft.facingsEmptyCount });
-  civRerenderActive();
-}
 
 // Decision dropdown: system recommendation is always derived live from the door's real sales
 // history (salesByMonth) + the current Shelf Strip Correct? answer, never from door.realVelocity
@@ -5501,96 +5525,8 @@ function eivSetDecisionOverride(id, value) {
   civRerenderActive();
 }
 
-// SKUs Observed (editable): unlike CI/poppromo's civrSkuTableHtml, Eileen's source has no raw
-// per-flavor facings data to read read-only (confirmed -- pure photo log, no compliance fields at
-// all), so this is a reviewer-entered field instead: restricted to the approved LUCY flavor list
-// below (Breakers 8mg/4mg, Pouches 12mg/4mg), each flavor toggled Present plus a free-text count
-// beside it. An "Others" row (kept visually separate from the approved list) covers any observed
-// flavor that isn't on this list, with its own free-text detail field. There is no "Not Present"
-// state -- an unmarked flavor simply isn't toggled on.
-const EIV_SKU_LIST = [
-  'Breakers 8mg Mint', 'Breakers 8mg Apple Ice', 'Breakers 8mg Mango', 'Breakers 8mg Apple Cider', 'Breakers 8mg Berry Citrus',
-  'Breakers 4mg Mint', 'Breakers 4mg Apple Ice', 'Breakers 4mg Mango', 'Breakers 4mg Apple Cider', 'Breakers 4mg Berry Citrus',
-  'Pouches 12mg Wintergreen', 'Pouches 12mg Mint',
-  'Pouches 4mg Wintergreen', 'Pouches 4mg Mint'
-];
-function eivSetSkuPresent(id, flavor) {
-  if (!civCanEdit()) return;
-  const rec = { src: 'eileen', id };
-  const draft = civDraftVerdict(rec);
-  if (!draft.skuObserved) draft.skuObserved = {};
-  const row = draft.skuObserved[flavor] || { present: null, count: null };
-  const prev = row.present;
-  row.present = row.present === true ? null : true;
-  draft.skuObserved[flavor] = row;
-  civDirtySet.add(reportKey(rec));
-  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: `skuObserved.${flavor}.present`, previous_value: prev===null?null:String(prev), new_value: row.present===null?null:String(row.present) });
-  civRerenderActive();
-}
-function eivSetSkuCount(id, flavor, value) {
-  if (!civCanEdit()) return;
-  const rec = { src: 'eileen', id };
-  const draft = civDraftVerdict(rec);
-  if (!draft.skuObserved) draft.skuObserved = {};
-  const row = draft.skuObserved[flavor] || { present: null, count: null };
-  const prev = row.count;
-  const trimmed = String(value).trim();
-  row.count = trimmed === '' ? null : trimmed;
-  draft.skuObserved[flavor] = row;
-  civDirtySet.add(reportKey(rec));
-  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: `skuObserved.${flavor}.count`, previous_value: prev, new_value: row.count });
-  civRerenderActive();
-}
-function eivSetOtherFlavorText(id, value) {
-  if (!civCanEdit()) return;
-  const rec = { src: 'eileen', id };
-  const draft = civDraftVerdict(rec);
-  if (!draft.skuObserved) draft.skuObserved = {};
-  const row = draft.skuObserved['Others'] || { present: null, count: null, detail: null };
-  const prev = row.detail;
-  const trimmed = String(value).trim();
-  row.detail = trimmed === '' ? null : trimmed;
-  draft.skuObserved['Others'] = row;
-  civDirtySet.add(reportKey(rec));
-  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'skuObserved.Others.detail', previous_value: prev, new_value: row.detail });
-  civRerenderActive();
-}
-function eivrSkuTableHtml(rec, draft) {
-  const canEdit = civCanEdit();
-  const dis = canEdit ? '' : 'disabled';
-  const skuObserved = draft.skuObserved || {};
-  const rows = EIV_SKU_LIST.map(flavor => {
-    const row = skuObserved[flavor] || { present: null, count: null };
-    return `<tr>
-      <td>${escHtml(flavor)}</td>
-      <td>
-        <div class="civr-present-count">
-          <button class="civr-tbtn ${row.present===true?'civr-on-yes':''}" ${dis} onclick="eivSetSkuPresent(${rec.id}, '${flavor}')">Present</button>
-          <input type="text" class="civr-notes-input civr-sku-count-input" placeholder="count" value="${esc(row.count||'')}" ${dis} onchange="eivSetSkuCount(${rec.id}, '${flavor}', this.value)">
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-  const othersRow = skuObserved['Others'] || { present: null, count: null, detail: null };
-  const othersHtml = `<div class="civr-sku-others">
-    <div class="civr-sku-others-label">Others <span class="civr-sku-sub">(flavor not on the approved list above)</span></div>
-    <div class="civr-present-count">
-      <button class="civr-tbtn ${othersRow.present===true?'civr-on-yes':''}" ${dis} onclick="eivSetSkuPresent(${rec.id}, 'Others')">Present</button>
-      <input type="text" class="civr-notes-input civr-sku-count-input" placeholder="count" value="${esc(othersRow.count||'')}" ${dis} onchange="eivSetSkuCount(${rec.id}, 'Others', this.value)">
-    </div>
-    <input type="text" class="civr-notes-input civr-sku-others-detail" placeholder="Flavor / details" value="${esc(othersRow.detail||'')}" ${dis} onchange="eivSetOtherFlavorText(${rec.id}, this.value)">
-  </div>`;
-  return `<div class="civr-sku-box">
-    <div class="civr-sku-title">SKUs Observed <span class="civr-sku-sub">(approved LUCY flavors only — mark Present, then enter a count)</span></div>
-    <table class="civr-sku-table">
-      <thead><tr><th>Flavor</th><th>Present</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    ${othersHtml}
-  </div>`;
-}
 
-let eivrFilters = Object.assign({ chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
+let eivrFilters = Object.assign({ chain:'', status:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
 let eivrDatePicker = civDatePickerBlank();
 function eivrSetDateFilter(val) { civSetDateFilterShared(eivrFilters, eivrDatePicker, val, renderEileenVisitReview); eivrPage = 0; }
 function eivrDatePickerOpen() { civDatePickerOpenShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); }
@@ -5609,7 +5545,7 @@ function eivrSetFilter(key, val) { eivrFilters[key] = val; eivrPage = 0; eivrBul
 const eivrRenderDebounced = civDebounce(renderEileenVisitReview, 300);
 function eivrSetSearch(val) { eivrSearchQuery = val; eivrPage = 0; eivrRenderDebounced(); }
 function eivrResetFilters() {
-  eivrFilters = Object.assign({ chain:'', status:'', facingsStatus:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
+  eivrFilters = Object.assign({ chain:'', status:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
   eivrDatePicker = civDatePickerBlank();
   eivrSearchQuery = '';
   eivrPage = 0; eivrBulkMsg = '';
@@ -5651,7 +5587,6 @@ function eivrFilteredReports() {
     if (eivrFilters.status === 'pending' && status === 'Reviewed') return false;
     if (eivrFilters.status === 'done' && status !== 'Reviewed') return false;
     const draft = civDraftVerdict(r);
-    if (eivrFilters.facingsStatus && draft.facingsStatus !== eivrFilters.facingsStatus) return false;
     if (eivrFilters.shelfStripPresent === 'yes' && draft.shelfStripPresent !== true) return false;
     if (eivrFilters.shelfStripPresent === 'no' && draft.shelfStripPresent !== false) return false;
     if (eivrFilters.shelfStripCorrect && String(draft.shelfStripCorrect) !== eivrFilters.shelfStripCorrect) return false;
@@ -5671,7 +5606,7 @@ function eivrStats() {
     const draft = civDraftVerdict(r);
     if (status === 'Reviewed') sub++;
     if (draft.shelfStripPresent === true) stripPresentY++;
-    if (draft.facingsStatus === 'empty') facingsEmptyY++;
+    if (draft.facingsEmptyCount > 0) facingsEmptyY++;
     if (draft.flag) flagC++;
   });
   const total = EIV_ALL_REPORTS.length;
@@ -5716,39 +5651,7 @@ function eivrVerdictBarHtml(rec, draft, status) {
     : 'No sales history on file';
   const thresholdStatusLabel = dec.vel.avg === null ? 'N/A (no data)' : (dec.meetsThreshold ? 'Meets Threshold' : 'Below Threshold');
   return `<div class="civr-verdict-bar">
-    <div class="civr-vq">
-      <div class="civr-vq-label">Total Lucy Facings</div>
-      <div class="civr-tri-btn">
-        <button class="civr-tbtn ${draft.facingsStatus==='full'?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'facingsStatus', 'full')">Full</button>
-        <button class="civr-tbtn ${draft.facingsStatus==='empty'?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'facingsStatus', 'empty')">Empty</button>
-      </div>
-    </div>
-    <div class="civr-vq">
-      <div class="civr-vq-label"># of Facings Empty</div>
-      <input type="text" class="civr-notes-input" style="max-width:100px;" placeholder="e.g. 3" value="${esc(draft.facingsEmptyCount||'')}" ${dis} onchange="eivSetFacingsEmptyCount(${rec.id}, this.value)">
-    </div>
-    <div class="civr-vq">
-      <div class="civr-vq-label">Units Missing &gt; 25%?</div>
-      <div class="civr-tri-btn">
-        <button class="civr-tbtn ${draft.unitsMissingOver25===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'unitsMissingOver25', true)">Yes</button>
-        <button class="civr-tbtn ${draft.unitsMissingOver25===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'unitsMissingOver25', false)">No</button>
-      </div>
-    </div>
-    <div class="civr-vq">
-      <div class="civr-vq-label">Shelf Strip Present?</div>
-      <div class="civr-tri-btn">
-        <button class="civr-tbtn ${draft.shelfStripPresent===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripPresent', true)">Yes</button>
-        <button class="civr-tbtn ${draft.shelfStripPresent===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripPresent', false)">No</button>
-      </div>
-    </div>
-    <div class="civr-vq">
-      <div class="civr-vq-label">Shelf Strip Correct?</div>
-      <div class="civr-tri-btn">
-        <button class="civr-tbtn ${draft.shelfStripCorrect===true?'civr-on-yes':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripCorrect', true)">Yes</button>
-        <button class="civr-tbtn ${draft.shelfStripCorrect===false?'civr-on-no':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripCorrect', false)">No</button>
-        <button class="civr-tbtn ${draft.shelfStripCorrect==='na'?'civr-on-na':''}" ${dis} onclick="civSetVerdictAnswer('eileen', ${rec.id}, 'shelfStripCorrect', 'na')">N/A</button>
-      </div>
-    </div>
+    ${stdReviewFieldsHtml(draft, dis, civStdCall('eileen', rec.id))}
     <div class="civr-vq">
       <div class="civr-vq-label">Decision</div>
       <select class="civr-select" ${dis} onchange="eivSetDecisionOverride(${rec.id}, this.value)">
@@ -5787,7 +5690,6 @@ function eivrCardHtml(rec) {
   <div class="civr-card-body">
     ${civrPhotosHtml(rec)}
     ${civrVelocityHtml(rec)}
-    ${eivrSkuTableHtml(rec, draft)}
   </div>
   ${eivrVerdictBarHtml(rec, draft, status)}
   ${civrSubmittedBannerHtml(rec, draft, status)}`;
@@ -5802,12 +5704,7 @@ function eivrExportCSV(range) {
     const decisionStatus = (draft.decisionOverride && draft.decisionOverride !== dec.recommendation) ? 'Manually Overridden' : 'Automatic';
     return {
       Store: rec.a||'', City: rec.ci||'', State: rec.st||'', Chain: rec.ch||'', VisitDate: rec.vd||rec.month||'',
-      TotalLucyFacings: draft.facingsStatus === 'full' ? 'Full' : draft.facingsStatus === 'empty' ? 'Empty' : '',
-      FacingsEmptyCount: draft.facingsEmptyCount||'',
-      UnitsMissingOver25: rrYNCsv(draft.unitsMissingOver25),
-      ShelfStripPresent: rrYNCsv(draft.shelfStripPresent), ShelfStripCorrect: rrYNCsv(draft.shelfStripCorrect),
-      SKUsObserved: Object.keys(draft.skuObserved||{}).filter(k => draft.skuObserved[k] && draft.skuObserved[k].present===true)
-        .map(k => `${k}${k==='Others'&&draft.skuObserved[k].detail?' ('+draft.skuObserved[k].detail+')':''}: Present${draft.skuObserved[k].count?' ('+draft.skuObserved[k].count+')':''}`).join('; '),
+      ...stdReviewCsvCols(draft),
       Decision: EIV_DECISION_LABELS[finalDecision]||'', SystemRecommendation: EIV_DECISION_LABELS[dec.recommendation]||'', DecisionStatus: decisionStatus,
       Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No',
@@ -5902,19 +5799,13 @@ function renderEileenVisitReview() {
       <option value="pending" ${eivrFilters.status==='pending'?'selected':''}>Pending</option>
       <option value="done" ${eivrFilters.status==='done'?'selected':''}>Submitted</option>
     </select>
-    <label>Total Lucy Facings:</label>
-    <select class="civr-select" onchange="eivrSetFilter('facingsStatus', this.value)">
-      <option value="">All</option>
-      <option value="full" ${eivrFilters.facingsStatus==='full'?'selected':''}>Full</option>
-      <option value="empty" ${eivrFilters.facingsStatus==='empty'?'selected':''}>Empty</option>
-    </select>
-    <label>Shelf Strip Present?:</label>
+    <label>Shelf strip present?:</label>
     <select class="civr-select" onchange="eivrSetFilter('shelfStripPresent', this.value)">
       <option value="">All</option>
       <option value="yes" ${eivrFilters.shelfStripPresent==='yes'?'selected':''}>Yes</option>
       <option value="no" ${eivrFilters.shelfStripPresent==='no'?'selected':''}>No</option>
     </select>
-    <label>Shelf Strip Correct?:</label>
+    <label>Correct shelf strip?:</label>
     <select class="civr-select" onchange="eivrSetFilter('shelfStripCorrect', this.value)">
       <option value="">All</option>
       <option value="true" ${eivrFilters.shelfStripCorrect==='true'?'selected':''}>Yes</option>
@@ -6069,6 +5960,9 @@ function extraCardHtml(v) {
     ${v.photoRef ? `<div class="civr-vq-pre">Photo reference (source file only, not viewable — no image files were provided alongside this data): ${escHtml(v.photoRef)}</div>` : ''}
   </div>
   <div class="civr-verdict-bar">
+    ${stdReviewFieldsHtml(draft, dis, extraStdCall(v.id))}
+  </div>
+  <div class="civr-verdict-bar">
     <div class="civr-vq" style="flex:2 1 260px;">
       <div class="civr-vq-label">Recommendation / Action</div>
       <input type="text" class="civr-notes-input" placeholder="e.g. Follow up on shelf strip, escalate to manager…" value="${esc(draft.recommendation||'')}" ${dis} oninput="extraSetRecommendation(${v.id}, this.value)" onchange="extraSetRecommendation(${v.id}, this.value)">
@@ -6098,6 +5992,7 @@ function extraExportCSV(range) {
     return {
       Chain: v.chain||'', Store: v.storeId||'', Address: extraFullAddress(v), VisitDate: v.visitDate||'',
       Evaluator: extraEvaluatorLabel(v), Facings: v.facings ?? '', FieldNotes: v.notes||'',
+      ...stdReviewCsvCols(draft),
       Recommendation: draft.recommendation||'', ReviewerNotes: draft.reviewerNotes||'',
       Status: getExtraStatus(v.id), Flagged: draft.flag?'Yes':'No',
       ReviewedBy: draft.reviewedBy||'', ReviewedAt: draft.reviewedAt||''
@@ -7460,7 +7355,7 @@ function xlsxLatestVisitInfo(door) {
     const rec = { src: v.src, id: v.ciId };
     const verdict = getReportStatus(rec) === 'Reviewed' ? REPORT_VERDICT_CACHE[reportKey(rec)] : null;
     if (verdict) {
-      shelfStrip = verdict.stripPresent === true ? 'Present' : verdict.stripPresent === false ? 'Missing' : 'Not Recorded';
+      shelfStrip = verdict.shelfStripPresent === true ? 'Present' : verdict.shelfStripPresent === false ? 'Missing' : 'Not Recorded';
       pop = verdict.productPresent === true ? 'Yes' : verdict.productPresent === false ? 'No' : 'Not Recorded';
     } else if (v.src === 'poppromo') {
       shelfStrip = v.shelfStripPresent === true ? 'Present' : v.shelfStripPresent === false ? 'Missing' : 'Not Recorded';
@@ -7472,7 +7367,7 @@ function xlsxLatestVisitInfo(door) {
     const verdict = getReportStatus(rec) === 'Reviewed' ? REPORT_VERDICT_CACHE[reportKey(rec)] : null;
     if (verdict) {
       shelfStrip = verdict.shelfStripPresent === true ? 'Present' : verdict.shelfStripPresent === false ? 'Missing' : 'Not Recorded';
-      pop = verdict.facingsStatus === 'full' ? 'Yes' : verdict.facingsStatus === 'empty' ? 'No' : 'Not Recorded';
+      pop = verdict.productPresent === true ? 'Yes' : verdict.productPresent === false ? 'No' : 'Not Recorded';
     }
   } else if (v.src === 'clarks') {
     // A real 4th source in this dataset, distinct from the spec's listed CI/Eileen/GoSpotCheck --
@@ -8169,10 +8064,10 @@ async function loadAllData() {
     extraStatusRows.forEach(s => { EXTRA_STATUS_CACHE[s.visit_id] = { status: s.status, updatedAt: s.updated_at }; });
     EXTRA_VERDICT_CACHE = {};
     extraVerdictsRows.forEach(v => {
-      EXTRA_VERDICT_CACHE[v.visit_id] = {
+      EXTRA_VERDICT_CACHE[v.visit_id] = Object.assign(stdReviewFromDb(v), {
         recommendation: v.recommendation, reviewerNotes: v.reviewer_notes, flag: !!v.flag,
         reviewedBy: v.reviewed_by, reviewedAt: v.reviewed_at, updatedAt: v.updated_at
-      };
+      });
     });
   } catch (err) {
     console.error('Extra Visit Reviews data load failed (tab will show empty until the extra_visits migration is run):', err);
@@ -8189,31 +8084,13 @@ async function loadAllData() {
   });
   REPORT_VERDICT_CACHE = {};
   reportVerdictsRows.forEach(rv => {
-    // strip_accurate round-trips as the literal text 'true'/'false'/'na' (see setReportVerdict) --
-    // normalize back to a real boolean/'na'/null here so client-side comparisons (val===true etc.)
-    // behave identically whether the value came from this hydration or from a same-session write.
-    if (rv.src === 'eileen') {
-      const shelfStripCorrectIn = rv.shelf_strip_correct === 'true' ? true : rv.shelf_strip_correct === 'false' ? false : rv.shelf_strip_correct === 'na' ? 'na' : null;
-      REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = {
-        facingsStatus: rv.facings_status, facingsEmptyCount: rv.facings_empty_count,
-        unitsMissingOver25: rv.units_missing_over_25,
-        shelfStripPresent: rv.shelf_strip_present, shelfStripCorrect: shelfStripCorrectIn,
-        skuObserved: rv.sku_observed || {},
-        // Only restore the override when the last save was actually a manual override -- an
-        // 'automatic' save must keep decisionOverride null so it keeps live-following whatever
-        // the system recommendation computes to on future loads, not a frozen past value.
-        decisionOverride: rv.decision_status === 'manual_override' ? rv.decision : null,
-        notes: rv.notes || '', flag: !!rv.flag,
-        updatedAt: rv.updated_at
-      };
-      return;
-    }
-    const stripAccurateIn = rv.strip_accurate === 'true' ? true : rv.strip_accurate === 'false' ? false : rv.strip_accurate === 'na' ? 'na' : null;
-    REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = {
-      productPresent: rv.product_present, stripPresent: rv.strip_present, stripAccurate: stripAccurateIn, stripAdded: rv.strip_added,
-      needsProduct: rv.needs_product, revisit: rv.revisit, notes: rv.notes || '', flag: !!rv.flag,
-      updatedAt: rv.updated_at
-    };
+    // Same 8 Standard Fields for every source (stdReviewFromDb normalizes shelf_strip_correct's
+    // 'true'/'false'/'na' text back to true/false/'na'). Eileen additionally restores its Decision
+    // override -- only when the last save was actually a manual override, so an 'automatic' save
+    // keeps live-following the system recommendation on future loads.
+    REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = Object.assign(stdReviewFromDb(rv),
+      rv.src === 'eileen' ? { decisionOverride: rv.decision_status === 'manual_override' ? rv.decision : null } : {},
+      { notes: rv.notes || '', flag: !!rv.flag, updatedAt: rv.updated_at });
   });
 }
 
