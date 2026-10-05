@@ -7621,7 +7621,7 @@ function renderStoresTab() {
     <div style="margin-bottom:16px;">
       <select onchange="cpSelectChain(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;min-width:280px;">
         <option value="">— Select a chain —</option>
-        ${[...CHAINS].sort((a,b)=>a.chain.localeCompare(b.chain)).map(c => `<option value="${esc(c.chain)}" ${chainName===c.chain?'selected':''}>${escHtml(c.chain)} (${fmtNum(c.total)} stores)</option>`).join('')}
+        ${[...CHAINS].sort((a,b)=>a.chain.localeCompare(b.chain)).map(c => `<option value="${esc(c.chain)}" ${chainName===c.chain?'selected':''}>${escHtml(c.chain)} (${fmtNum(chainStoreCount(c.chain))} stores)</option>`).join('')}
       </select>
     </div>`;
 
@@ -7736,6 +7736,18 @@ function chainsResetFilters() {
   renderChains();
 }
 
+// Real store (door) count per chain from DOORS -- c.total is the chain's VISIT count, which
+// reads as "0 stores" for roster-only chains like Sheetz. Cached per DOORS array instance.
+let _chainStoreCountsSrc = null, _chainStoreCounts = {};
+function chainStoreCount(chainName) {
+  if (_chainStoreCountsSrc !== DOORS) {
+    _chainStoreCounts = {};
+    DOORS.forEach(d => { _chainStoreCounts[d.chain] = (_chainStoreCounts[d.chain] || 0) + 1; });
+    _chainStoreCountsSrc = DOORS;
+  }
+  return _chainStoreCounts[chainName] || 0;
+}
+
 function chainHealthStatus(avgScore) {
   if (avgScore === null || avgScore === undefined) return { label: 'Unknown', cls: 'unknown' };
   if (avgScore >= 3) return { label: 'Healthy', cls: 'healthy' };
@@ -7814,14 +7826,14 @@ function renderChains() {
   }
   if (chainsFilterState.minDoors) {
     const minD = parseFloat(chainsFilterState.minDoors) || 0;
-    list = list.filter(x => x.c.total >= minD);
+    list = list.filter(x => chainStoreCount(x.c.chain) >= minD);
   }
 
   const sortFns = {
     health_desc: (a,b) => (b.c.avg_score||0) - (a.c.avg_score||0),
     health_asc: (a,b) => (a.c.avg_score||0) - (b.c.avg_score||0),
     velocity_desc: (a,b) => (b.vel&&b.vel.recentUnits||0) - (a.vel&&a.vel.recentUnits||0),
-    doors_desc: (a,b) => b.c.total - a.c.total,
+    doors_desc: (a,b) => chainStoreCount(b.c.chain) - chainStoreCount(a.c.chain),
     name_asc: (a,b) => a.c.chain.localeCompare(b.c.chain),
   };
   list.sort(sortFns[chainsSortMode] || sortFns.health_desc);
@@ -7845,14 +7857,15 @@ function renderChains() {
       [c.score_0/total*100, '#DC2626'],
     ].filter(([p]) => p > 0);
 
-    const pctOfAll = totalDoorsAll ? (c.total / totalDoorsAll * 100).toFixed(1) : '0.0';
+    const storeCount = chainStoreCount(c.chain);
+    const pctOfAll = totalDoorsAll ? (storeCount / totalDoorsAll * 100).toFixed(1) : '0.0';
     const visited60 = chainDoorsVisitedWithinDays(c.chain, 60);
 
     return `<div class="chain-card" onclick="drillChain('${esc(c.chain)}')">
       <div class="cc-header">
         <div>
           <div class="cc-name">${escHtml(c.chain)}</div>
-          <div class="cc-count">${c.total} stores · avg ${c.avg_score!==null&&c.avg_score!==undefined?c.avg_score.toFixed(2):'—'}/4</div>
+          <div class="cc-count">${fmtNum(storeCount)} stores · ${fmtNum(c.total)} visits · avg ${c.avg_score!==null&&c.avg_score!==undefined?c.avg_score.toFixed(2):'—'}/4</div>
         </div>
         <div class="score-donut-wrap">
           <svg width="56" height="56" viewBox="0 0 56 56">
@@ -7878,7 +7891,7 @@ function renderChains() {
         ${vel && vel.recentUnits!==null&&vel.recentUnits!==undefined ? `<div class="cc-stat"><strong>${fmtNum(vel.recentUnits)}</strong>Units</div>` : ''}
       </div>
       <div class="cc-coverage">
-        <strong>${fmtNum(c.total)}</strong> doors · <strong>${pctOfAll}%</strong> of all doors · <strong>${fmtNum(visited60)}</strong> visited last 60d
+        <strong>${fmtNum(storeCount)}</strong> doors · <strong>${pctOfAll}%</strong> of all doors · <strong>${fmtNum(visited60)}</strong> visited last 60d
       </div>
       <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
         <span class="cc-health-badge ${status.cls}" onclick="event.stopPropagation();drillChain('${esc(c.chain)}')">${status.label==='Critical'?'⚠':status.label==='Warning'?'●':status.label==='Healthy'?'✓':'—'} ${status.label}</span>
