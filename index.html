@@ -1184,150 +1184,152 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
    layout), NOT from this dashboard's Report Review tab -- deliberately its own visual language,
    scoped entirely under #view-civisitreview / civr- prefixed classes so it can't leak into or
    collide with the rest of the app. */
-#view-civisitreview .civr-header, #view-eileenvisitreview .civr-header, #view-extravisitreview .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
-#view-civisitreview .civr-header h1, #view-eileenvisitreview .civr-header h1, #view-extravisitreview .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civr-progress-wrap, #view-eileenvisitreview .civr-progress-wrap, #view-extravisitreview .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
-#view-civisitreview .civr-progress-bar, #view-eileenvisitreview .civr-progress-bar, #view-extravisitreview .civr-progress-bar{width:220px;height:4px;background:#e0ddd6;border-radius:2px;overflow:hidden;}
-#view-civisitreview .civr-progress-fill, #view-eileenvisitreview .civr-progress-fill, #view-extravisitreview .civr-progress-fill{height:100%;background:#2a7a2a;border-radius:2px;transition:width 0.3s;}
-#view-civisitreview .civr-progress-text, #view-eileenvisitreview .civr-progress-text, #view-extravisitreview .civr-progress-text{font-size:12px;color:#888;}
-#view-civisitreview .civr-export-btn, #view-eileenvisitreview .civr-export-btn, #view-extravisitreview .civr-export-btn{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid #bbb;background:#fff;color:#1a1a18;cursor:pointer;font-weight:500;}
-#view-civisitreview .civr-export-btn:hover, #view-eileenvisitreview .civr-export-btn:hover, #view-extravisitreview .civr-export-btn:hover{background:#f0efe8;}
-#view-civisitreview .civr-stats-bar, #view-eileenvisitreview .civr-stats-bar, #view-extravisitreview .civr-stats-bar{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;}
-#view-civisitreview .civr-stat, #view-eileenvisitreview .civr-stat, #view-extravisitreview .civr-stat{display:flex;flex-direction:column;gap:1px;}
-#view-civisitreview .civr-slabel, #view-eileenvisitreview .civr-slabel, #view-extravisitreview .civr-slabel{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;}
-#view-civisitreview .civr-sval, #view-eileenvisitreview .civr-sval, #view-extravisitreview .civr-sval{font-size:22px;font-weight:700;color:#1a1a18;}
-#view-civisitreview .civr-stat.civr-green .civr-sval, #view-eileenvisitreview .civr-stat.civr-green .civr-sval, #view-extravisitreview .civr-stat.civr-green .civr-sval{color:#1a7a1a;}
-#view-civisitreview .civr-stat.civr-red .civr-sval, #view-eileenvisitreview .civr-stat.civr-red .civr-sval, #view-extravisitreview .civr-stat.civr-red .civr-sval{color:#b03020;}
-#view-civisitreview .civr-stat.civr-blue .civr-sval, #view-eileenvisitreview .civr-stat.civr-blue .civr-sval, #view-extravisitreview .civr-stat.civr-blue .civr-sval{color:#1a5fa0;}
-#view-civisitreview .civr-stat.civr-amber .civr-sval, #view-eileenvisitreview .civr-stat.civr-amber .civr-sval, #view-extravisitreview .civr-stat.civr-amber .civr-sval{color:#8a5000;}
-#view-civisitreview .civr-filters, #view-eileenvisitreview .civr-filters, #view-extravisitreview .civr-filters{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-#view-civisitreview .civr-filters label, #view-eileenvisitreview .civr-filters label, #view-extravisitreview .civr-filters label{font-size:12px;color:#666;font-weight:500;}
-#view-civisitreview .civr-select, #view-eileenvisitreview .civr-select, #view-extravisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
-#view-civisitreview .civr-reset, #view-eileenvisitreview .civr-reset, #view-extravisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
-#view-civisitreview .civr-reset:hover, #view-eileenvisitreview .civr-reset:hover, #view-extravisitreview .civr-reset:hover{text-decoration:underline;}
-#view-civisitreview .civdate-filter-wrap, #view-eileenvisitreview .civdate-filter-wrap, #view-extravisitreview .civdate-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;}
-#view-civisitreview .civdate-display, #view-eileenvisitreview .civdate-display, #view-extravisitreview .civdate-display{font-size:12px;color:#1a5fa0;font-weight:600;background:#e3f0ff;padding:3px 8px;border-radius:6px;white-space:nowrap;}
-#view-civisitreview .civdate-picker, #view-eileenvisitreview .civdate-picker, #view-extravisitreview .civdate-picker{position:absolute;top:calc(100% + 6px);left:0;z-index:50;background:#fff;border:1px solid #e0ddd6;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:12px;width:230px;}
-#view-civisitreview .civdate-picker-header, #view-eileenvisitreview .civdate-picker-header, #view-extravisitreview .civdate-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-#view-civisitreview .civdate-month-label, #view-eileenvisitreview .civdate-month-label, #view-extravisitreview .civdate-month-label{font-size:13px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civdate-nav, #view-eileenvisitreview .civdate-nav, #view-extravisitreview .civdate-nav{cursor:pointer;font-size:15px;color:#1a5fa0;padding:2px 8px;border-radius:4px;user-select:none;}
-#view-civisitreview .civdate-nav:hover, #view-eileenvisitreview .civdate-nav:hover, #view-extravisitreview .civdate-nav:hover{background:#f0f0ee;}
-#view-civisitreview .civdate-grid, #view-eileenvisitreview .civdate-grid, #view-extravisitreview .civdate-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;}
-#view-civisitreview .civdate-dow, #view-eileenvisitreview .civdate-dow, #view-extravisitreview .civdate-dow{font-size:10px;color:#999;text-transform:uppercase;font-weight:600;text-align:center;}
-#view-civisitreview .civdate-cell, #view-eileenvisitreview .civdate-cell, #view-extravisitreview .civdate-cell{font-size:12px;text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;color:#1a1a18;}
-#view-civisitreview .civdate-cell:hover, #view-eileenvisitreview .civdate-cell:hover, #view-extravisitreview .civdate-cell:hover{background:#f0f0ee;}
-#view-civisitreview .civdate-cell.civdate-blank, #view-eileenvisitreview .civdate-cell.civdate-blank, #view-extravisitreview .civdate-cell.civdate-blank{cursor:default;}
-#view-civisitreview .civdate-cell.civdate-blank:hover, #view-eileenvisitreview .civdate-cell.civdate-blank:hover, #view-extravisitreview .civdate-cell.civdate-blank:hover{background:none;}
-#view-civisitreview .civdate-cell.civdate-in-range, #view-eileenvisitreview .civdate-cell.civdate-in-range, #view-extravisitreview .civdate-cell.civdate-in-range{background:#e3f0ff;border-radius:0;}
-#view-civisitreview .civdate-cell.civdate-range-start, #view-eileenvisitreview .civdate-cell.civdate-range-start,
-#view-civisitreview .civdate-cell.civdate-range-end, #view-eileenvisitreview .civdate-cell.civdate-range-end, #view-extravisitreview .civdate-cell.civdate-range-end{background:#1a5fa0;color:#fff;font-weight:600;}
-#view-civisitreview .civdate-picker-footer, #view-eileenvisitreview .civdate-picker-footer, #view-extravisitreview .civdate-picker-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
-#view-civisitreview .civdate-range-label, #view-eileenvisitreview .civdate-range-label, #view-extravisitreview .civdate-range-label{font-size:11px;color:#666;}
-#view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar, #view-extravisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-#view-civisitreview .civr-bulk-count, #view-eileenvisitreview .civr-bulk-count, #view-extravisitreview .civr-bulk-count{font-size:13px;color:#666;}
-#view-civisitreview .civr-bulk-btn, #view-eileenvisitreview .civr-bulk-btn, #view-extravisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
-#view-civisitreview .civr-bulk-no, #view-eileenvisitreview .civr-bulk-no, #view-extravisitreview .civr-bulk-no{border-color:#c03020;background:#fdecea;color:#8a1010;}
-#view-civisitreview .civr-bulk-yes, #view-eileenvisitreview .civr-bulk-yes, #view-extravisitreview .civr-bulk-yes{border-color:#2a7a2a;background:#e6f5e6;color:#1a5a1a;}
-#view-civisitreview .civr-bulk-submit, #view-eileenvisitreview .civr-bulk-submit, #view-extravisitreview .civr-bulk-submit{border-color:#1a5fa0;background:#e3f0ff;color:#1a4a80;}
-#view-civisitreview .civr-bulk-msg, #view-eileenvisitreview .civr-bulk-msg, #view-extravisitreview .civr-bulk-msg{font-size:12px;color:#2a7a2a;font-weight:600;}
-#view-civisitreview .civr-main, #view-eileenvisitreview .civr-main, #view-extravisitreview .civr-main{max-width:1000px;width:100%;margin:0 auto;padding:16px;}
+#view-civisitreview .civr-header, #view-eileenvisitreview .civr-header, #view-highwayreview .civr-header, #view-extravisitreview .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+#view-civisitreview .civr-header h1, #view-eileenvisitreview .civr-header h1, #view-highwayreview .civr-header h1, #view-extravisitreview .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-progress-wrap, #view-eileenvisitreview .civr-progress-wrap, #view-highwayreview .civr-progress-wrap, #view-extravisitreview .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
+#view-civisitreview .civr-progress-bar, #view-eileenvisitreview .civr-progress-bar, #view-highwayreview .civr-progress-bar, #view-extravisitreview .civr-progress-bar{width:220px;height:4px;background:#e0ddd6;border-radius:2px;overflow:hidden;}
+#view-civisitreview .civr-progress-fill, #view-eileenvisitreview .civr-progress-fill, #view-highwayreview .civr-progress-fill, #view-extravisitreview .civr-progress-fill{height:100%;background:#2a7a2a;border-radius:2px;transition:width 0.3s;}
+#view-civisitreview .civr-progress-text, #view-eileenvisitreview .civr-progress-text, #view-highwayreview .civr-progress-text, #view-extravisitreview .civr-progress-text{font-size:12px;color:#888;}
+#view-civisitreview .civr-export-btn, #view-eileenvisitreview .civr-export-btn, #view-highwayreview .civr-export-btn, #view-extravisitreview .civr-export-btn{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid #bbb;background:#fff;color:#1a1a18;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-export-btn:hover, #view-eileenvisitreview .civr-export-btn:hover, #view-highwayreview .civr-export-btn:hover, #view-extravisitreview .civr-export-btn:hover{background:#f0efe8;}
+#view-civisitreview .civr-stats-bar, #view-eileenvisitreview .civr-stats-bar, #view-highwayreview .civr-stats-bar, #view-extravisitreview .civr-stats-bar{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;}
+#view-civisitreview .civr-stat, #view-eileenvisitreview .civr-stat, #view-highwayreview .civr-stat, #view-extravisitreview .civr-stat{display:flex;flex-direction:column;gap:1px;}
+#view-civisitreview .civr-slabel, #view-eileenvisitreview .civr-slabel, #view-highwayreview .civr-slabel, #view-extravisitreview .civr-slabel{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;}
+#view-civisitreview .civr-sval, #view-eileenvisitreview .civr-sval, #view-highwayreview .civr-sval, #view-extravisitreview .civr-sval{font-size:22px;font-weight:700;color:#1a1a18;}
+#view-civisitreview .civr-stat.civr-green .civr-sval, #view-eileenvisitreview .civr-stat.civr-green .civr-sval, #view-highwayreview .civr-stat.civr-green .civr-sval, #view-extravisitreview .civr-stat.civr-green .civr-sval{color:#1a7a1a;}
+#view-civisitreview .civr-stat.civr-red .civr-sval, #view-eileenvisitreview .civr-stat.civr-red .civr-sval, #view-highwayreview .civr-stat.civr-red .civr-sval, #view-extravisitreview .civr-stat.civr-red .civr-sval{color:#b03020;}
+#view-civisitreview .civr-stat.civr-blue .civr-sval, #view-eileenvisitreview .civr-stat.civr-blue .civr-sval, #view-highwayreview .civr-stat.civr-blue .civr-sval, #view-extravisitreview .civr-stat.civr-blue .civr-sval{color:#1a5fa0;}
+#view-civisitreview .civr-stat.civr-amber .civr-sval, #view-eileenvisitreview .civr-stat.civr-amber .civr-sval, #view-highwayreview .civr-stat.civr-amber .civr-sval, #view-extravisitreview .civr-stat.civr-amber .civr-sval{color:#8a5000;}
+#view-civisitreview .civr-filters, #view-eileenvisitreview .civr-filters, #view-highwayreview .civr-filters, #view-extravisitreview .civr-filters{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+#view-civisitreview .civr-filters label, #view-eileenvisitreview .civr-filters label, #view-highwayreview .civr-filters label, #view-extravisitreview .civr-filters label{font-size:12px;color:#666;font-weight:500;}
+#view-civisitreview .civr-select, #view-eileenvisitreview .civr-select, #view-highwayreview .civr-select, #view-extravisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
+#view-civisitreview .civr-reset, #view-eileenvisitreview .civr-reset, #view-highwayreview .civr-reset, #view-extravisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
+#view-civisitreview .civr-reset:hover, #view-eileenvisitreview .civr-reset:hover, #view-highwayreview .civr-reset:hover, #view-extravisitreview .civr-reset:hover{text-decoration:underline;}
+#view-civisitreview .civdate-filter-wrap, #view-eileenvisitreview .civdate-filter-wrap, #view-highwayreview .civdate-filter-wrap, #view-extravisitreview .civdate-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;}
+#view-civisitreview .civdate-display, #view-eileenvisitreview .civdate-display, #view-highwayreview .civdate-display, #view-extravisitreview .civdate-display{font-size:12px;color:#1a5fa0;font-weight:600;background:#e3f0ff;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+#view-civisitreview .civdate-picker, #view-eileenvisitreview .civdate-picker, #view-highwayreview .civdate-picker, #view-extravisitreview .civdate-picker{position:absolute;top:calc(100% + 6px);left:0;z-index:50;background:#fff;border:1px solid #e0ddd6;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:12px;width:230px;}
+#view-civisitreview .civdate-picker-header, #view-eileenvisitreview .civdate-picker-header, #view-highwayreview .civdate-picker-header, #view-extravisitreview .civdate-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+#view-civisitreview .civdate-month-label, #view-eileenvisitreview .civdate-month-label, #view-highwayreview .civdate-month-label, #view-extravisitreview .civdate-month-label{font-size:13px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civdate-nav, #view-eileenvisitreview .civdate-nav, #view-highwayreview .civdate-nav, #view-extravisitreview .civdate-nav{cursor:pointer;font-size:15px;color:#1a5fa0;padding:2px 8px;border-radius:4px;user-select:none;}
+#view-civisitreview .civdate-nav:hover, #view-eileenvisitreview .civdate-nav:hover, #view-highwayreview .civdate-nav:hover, #view-extravisitreview .civdate-nav:hover{background:#f0f0ee;}
+#view-civisitreview .civdate-grid, #view-eileenvisitreview .civdate-grid, #view-highwayreview .civdate-grid, #view-extravisitreview .civdate-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;}
+#view-civisitreview .civdate-dow, #view-eileenvisitreview .civdate-dow, #view-highwayreview .civdate-dow, #view-extravisitreview .civdate-dow{font-size:10px;color:#999;text-transform:uppercase;font-weight:600;text-align:center;}
+#view-civisitreview .civdate-cell, #view-eileenvisitreview .civdate-cell, #view-highwayreview .civdate-cell, #view-extravisitreview .civdate-cell{font-size:12px;text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;color:#1a1a18;}
+#view-civisitreview .civdate-cell:hover, #view-eileenvisitreview .civdate-cell:hover, #view-highwayreview .civdate-cell:hover, #view-extravisitreview .civdate-cell:hover{background:#f0f0ee;}
+#view-civisitreview .civdate-cell.civdate-blank, #view-eileenvisitreview .civdate-cell.civdate-blank, #view-highwayreview .civdate-cell.civdate-blank, #view-extravisitreview .civdate-cell.civdate-blank{cursor:default;}
+#view-civisitreview .civdate-cell.civdate-blank:hover, #view-eileenvisitreview .civdate-cell.civdate-blank:hover, #view-highwayreview .civdate-cell.civdate-blank:hover, #view-extravisitreview .civdate-cell.civdate-blank:hover{background:none;}
+#view-civisitreview .civdate-cell.civdate-in-range, #view-eileenvisitreview .civdate-cell.civdate-in-range, #view-highwayreview .civdate-cell.civdate-in-range, #view-extravisitreview .civdate-cell.civdate-in-range{background:#e3f0ff;border-radius:0;}
+#view-civisitreview .civdate-cell.civdate-range-start, #view-eileenvisitreview .civdate-cell.civdate-range-start, #view-highwayreview .civdate-cell.civdate-range-start,
+#view-civisitreview .civdate-cell.civdate-range-end, #view-eileenvisitreview .civdate-cell.civdate-range-end, #view-highwayreview .civdate-cell.civdate-range-end, #view-extravisitreview .civdate-cell.civdate-range-end{background:#1a5fa0;color:#fff;font-weight:600;}
+#view-civisitreview .civdate-picker-footer, #view-eileenvisitreview .civdate-picker-footer, #view-highwayreview .civdate-picker-footer, #view-extravisitreview .civdate-picker-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+#view-civisitreview .civdate-range-label, #view-eileenvisitreview .civdate-range-label, #view-highwayreview .civdate-range-label, #view-extravisitreview .civdate-range-label{font-size:11px;color:#666;}
+#view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar, #view-highwayreview .civr-bulk-bar, #view-extravisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+#view-civisitreview .civr-bulk-count, #view-eileenvisitreview .civr-bulk-count, #view-highwayreview .civr-bulk-count, #view-extravisitreview .civr-bulk-count{font-size:13px;color:#666;}
+#view-civisitreview .civr-bulk-btn, #view-eileenvisitreview .civr-bulk-btn, #view-highwayreview .civr-bulk-btn, #view-extravisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
+#view-civisitreview .civr-bulk-no, #view-eileenvisitreview .civr-bulk-no, #view-highwayreview .civr-bulk-no, #view-extravisitreview .civr-bulk-no{border-color:#c03020;background:#fdecea;color:#8a1010;}
+#view-civisitreview .civr-bulk-yes, #view-eileenvisitreview .civr-bulk-yes, #view-highwayreview .civr-bulk-yes, #view-extravisitreview .civr-bulk-yes{border-color:#2a7a2a;background:#e6f5e6;color:#1a5a1a;}
+#view-civisitreview .civr-bulk-submit, #view-eileenvisitreview .civr-bulk-submit, #view-highwayreview .civr-bulk-submit, #view-extravisitreview .civr-bulk-submit{border-color:#1a5fa0;background:#e3f0ff;color:#1a4a80;}
+#view-civisitreview .civr-bulk-msg, #view-eileenvisitreview .civr-bulk-msg, #view-highwayreview .civr-bulk-msg, #view-extravisitreview .civr-bulk-msg{font-size:12px;color:#2a7a2a;font-weight:600;}
+#view-civisitreview .civr-main, #view-eileenvisitreview .civr-main, #view-highwayreview .civr-main, #view-extravisitreview .civr-main{max-width:1000px;width:100%;margin:0 auto;padding:16px;}
 
-#view-civisitreview .civr-store-card, #view-eileenvisitreview .civr-store-card, #view-extravisitreview .civr-store-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;}
-#view-civisitreview .civr-store-card.civr-submitted, #view-eileenvisitreview .civr-store-card.civr-submitted, #view-extravisitreview .civr-store-card.civr-submitted{border-left:4px solid #1a7a1a;}
-#view-civisitreview .civr-store-card.civr-submitted-flag, #view-eileenvisitreview .civr-store-card.civr-submitted-flag, #view-extravisitreview .civr-store-card.civr-submitted-flag{border-left:4px solid #e08020;}
-#view-civisitreview .civr-card-head, #view-eileenvisitreview .civr-card-head, #view-extravisitreview .civr-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0;}
-#view-civisitreview .civr-card-title, #view-eileenvisitreview .civr-card-title, #view-extravisitreview .civr-card-title{font-size:14px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civr-card-sub, #view-eileenvisitreview .civr-card-sub, #view-extravisitreview .civr-card-sub{font-size:12px;color:#777;margin-top:2px;}
-#view-civisitreview .civr-badges, #view-eileenvisitreview .civr-badges, #view-extravisitreview .civr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-bottom:10px;}
-#view-civisitreview .civr-badge, #view-eileenvisitreview .civr-badge, #view-extravisitreview .civr-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
-#view-civisitreview .civr-b-strip-yes, #view-eileenvisitreview .civr-b-strip-yes, #view-extravisitreview .civr-b-strip-yes{background:#ddeeff;color:#1a5fa0;border:1px solid #aaccee;}
-#view-civisitreview .civr-b-strip-no, #view-eileenvisitreview .civr-b-strip-no, #view-extravisitreview .civr-b-strip-no{background:#fff3e0;color:#a06010;border:1px solid #e8c060;}
-#view-civisitreview .civr-b-oos, #view-eileenvisitreview .civr-b-oos, #view-extravisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
-#view-civisitreview .civr-b-ok, #view-eileenvisitreview .civr-b-ok, #view-extravisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
-#view-civisitreview .civr-b-lock, #view-eileenvisitreview .civr-b-lock, #view-extravisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
-#view-civisitreview .civr-b-source-ci, #view-eileenvisitreview .civr-b-source-ci, #view-extravisitreview .civr-b-source-ci{background:#eef0fb;color:#39409a;border:1px solid #c0c6ee;}
-#view-civisitreview .civr-b-source-pop, #view-eileenvisitreview .civr-b-source-pop, #view-extravisitreview .civr-b-source-pop{background:#f5eefb;color:#7a3aa0;border:1px solid #d8bce8;}
-#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen, #view-extravisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
-#view-civisitreview .civr-card-body, #view-eileenvisitreview .civr-card-body, #view-extravisitreview .civr-card-body{padding:0 16px 14px;}
+#view-civisitreview .civr-store-card, #view-eileenvisitreview .civr-store-card, #view-highwayreview .civr-store-card, #view-extravisitreview .civr-store-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;}
+#view-civisitreview .civr-store-card.civr-submitted, #view-eileenvisitreview .civr-store-card.civr-submitted, #view-highwayreview .civr-store-card.civr-submitted, #view-extravisitreview .civr-store-card.civr-submitted{border-left:4px solid #1a7a1a;}
+#view-civisitreview .civr-store-card.civr-submitted-flag, #view-eileenvisitreview .civr-store-card.civr-submitted-flag, #view-highwayreview .civr-store-card.civr-submitted-flag, #view-extravisitreview .civr-store-card.civr-submitted-flag{border-left:4px solid #e08020;}
+#view-civisitreview .civr-card-head, #view-eileenvisitreview .civr-card-head, #view-highwayreview .civr-card-head, #view-extravisitreview .civr-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0;}
+#view-civisitreview .civr-card-title, #view-eileenvisitreview .civr-card-title, #view-highwayreview .civr-card-title, #view-extravisitreview .civr-card-title{font-size:14px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-card-sub, #view-eileenvisitreview .civr-card-sub, #view-highwayreview .civr-card-sub, #view-extravisitreview .civr-card-sub{font-size:12px;color:#777;margin-top:2px;}
+#view-civisitreview .civr-badges, #view-eileenvisitreview .civr-badges, #view-highwayreview .civr-badges, #view-extravisitreview .civr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-bottom:10px;}
+#view-civisitreview .civr-badge, #view-eileenvisitreview .civr-badge, #view-highwayreview .civr-badge, #view-extravisitreview .civr-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+#view-civisitreview .civr-b-strip-yes, #view-eileenvisitreview .civr-b-strip-yes, #view-highwayreview .civr-b-strip-yes, #view-extravisitreview .civr-b-strip-yes{background:#ddeeff;color:#1a5fa0;border:1px solid #aaccee;}
+#view-civisitreview .civr-b-strip-no, #view-eileenvisitreview .civr-b-strip-no, #view-highwayreview .civr-b-strip-no, #view-extravisitreview .civr-b-strip-no{background:#fff3e0;color:#a06010;border:1px solid #e8c060;}
+#view-civisitreview .civr-b-oos, #view-eileenvisitreview .civr-b-oos, #view-highwayreview .civr-b-oos, #view-extravisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
+#view-civisitreview .civr-b-ok, #view-eileenvisitreview .civr-b-ok, #view-highwayreview .civr-b-ok, #view-extravisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
+#view-civisitreview .civr-b-lock, #view-eileenvisitreview .civr-b-lock, #view-highwayreview .civr-b-lock, #view-extravisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
+#view-civisitreview .civr-b-source-ci, #view-eileenvisitreview .civr-b-source-ci, #view-highwayreview .civr-b-source-ci, #view-extravisitreview .civr-b-source-ci{background:#eef0fb;color:#39409a;border:1px solid #c0c6ee;}
+#view-civisitreview .civr-b-source-pop, #view-eileenvisitreview .civr-b-source-pop, #view-highwayreview .civr-b-source-pop, #view-extravisitreview .civr-b-source-pop{background:#f5eefb;color:#7a3aa0;border:1px solid #d8bce8;}
+#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen, #view-highwayreview .civr-b-source-eileen, #view-extravisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
+#view-highwayreview .civr-b-source-hwy{background:#e8f1fb;color:#1f5a99;border:1px solid #b3cdea;}
+#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen, #view-highwayreview .civr-b-source-eileen, #view-extravisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
+#view-civisitreview .civr-card-body, #view-eileenvisitreview .civr-card-body, #view-highwayreview .civr-card-body, #view-extravisitreview .civr-card-body{padding:0 16px 14px;}
 
-#view-civisitreview .civr-rep-notes, #view-eileenvisitreview .civr-rep-notes, #view-extravisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
-#view-civisitreview .civr-rep-notes-title, #view-eileenvisitreview .civr-rep-notes-title, #view-extravisitreview .civr-rep-notes-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;}
-#view-civisitreview .civr-rep-grid, #view-eileenvisitreview .civr-rep-grid, #view-extravisitreview .civr-rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
-#view-civisitreview .civr-rep-row, #view-eileenvisitreview .civr-rep-row, #view-extravisitreview .civr-rep-row{display:flex;gap:6px;padding:2px 0;align-items:baseline;}
-#view-civisitreview .civr-rep-key, #view-eileenvisitreview .civr-rep-key, #view-extravisitreview .civr-rep-key{color:#999;flex-shrink:0;min-width:130px;font-size:11px;}
-#view-civisitreview .civr-rep-val, #view-eileenvisitreview .civr-rep-val, #view-extravisitreview .civr-rep-val{color:#1a1a18;font-weight:500;font-size:12px;}
-#view-civisitreview .civr-rep-val.alert, #view-eileenvisitreview .civr-rep-val.alert, #view-extravisitreview .civr-rep-val.alert{color:#a02020;}
-#view-civisitreview .civr-rep-val.good, #view-eileenvisitreview .civr-rep-val.good, #view-extravisitreview .civr-rep-val.good{color:#1a7a1a;}
-#view-civisitreview .civr-rep-note-long, #view-eileenvisitreview .civr-rep-note-long, #view-extravisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
-#view-civisitreview .civr-refusal-banner, #view-eileenvisitreview .civr-refusal-banner, #view-extravisitreview .civr-refusal-banner{background:#fdecea;border:1px solid #eeb0b0;border-radius:6px;padding:8px 10px;}
-#view-civisitreview .civr-refusal-title, #view-eileenvisitreview .civr-refusal-title, #view-extravisitreview .civr-refusal-title{display:block;color:#a02020;font-weight:700;font-size:12px;margin-bottom:5px;}
+#view-civisitreview .civr-rep-notes, #view-eileenvisitreview .civr-rep-notes, #view-highwayreview .civr-rep-notes, #view-extravisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-rep-notes-title, #view-eileenvisitreview .civr-rep-notes-title, #view-highwayreview .civr-rep-notes-title, #view-extravisitreview .civr-rep-notes-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;}
+#view-civisitreview .civr-rep-grid, #view-eileenvisitreview .civr-rep-grid, #view-highwayreview .civr-rep-grid, #view-extravisitreview .civr-rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
+#view-civisitreview .civr-rep-row, #view-eileenvisitreview .civr-rep-row, #view-highwayreview .civr-rep-row, #view-extravisitreview .civr-rep-row{display:flex;gap:6px;padding:2px 0;align-items:baseline;}
+#view-civisitreview .civr-rep-key, #view-eileenvisitreview .civr-rep-key, #view-highwayreview .civr-rep-key, #view-extravisitreview .civr-rep-key{color:#999;flex-shrink:0;min-width:130px;font-size:11px;}
+#view-civisitreview .civr-rep-val, #view-eileenvisitreview .civr-rep-val, #view-highwayreview .civr-rep-val, #view-extravisitreview .civr-rep-val{color:#1a1a18;font-weight:500;font-size:12px;}
+#view-civisitreview .civr-rep-val.alert, #view-eileenvisitreview .civr-rep-val.alert, #view-highwayreview .civr-rep-val.alert, #view-extravisitreview .civr-rep-val.alert{color:#a02020;}
+#view-civisitreview .civr-rep-val.good, #view-eileenvisitreview .civr-rep-val.good, #view-highwayreview .civr-rep-val.good, #view-extravisitreview .civr-rep-val.good{color:#1a7a1a;}
+#view-civisitreview .civr-rep-note-long, #view-eileenvisitreview .civr-rep-note-long, #view-highwayreview .civr-rep-note-long, #view-extravisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
+#view-civisitreview .civr-refusal-banner, #view-eileenvisitreview .civr-refusal-banner, #view-highwayreview .civr-refusal-banner, #view-extravisitreview .civr-refusal-banner{background:#fdecea;border:1px solid #eeb0b0;border-radius:6px;padding:8px 10px;}
+#view-civisitreview .civr-refusal-title, #view-eileenvisitreview .civr-refusal-title, #view-highwayreview .civr-refusal-title, #view-extravisitreview .civr-refusal-title{display:block;color:#a02020;font-weight:700;font-size:12px;margin-bottom:5px;}
 
-#view-civisitreview .civr-photos-row, #view-eileenvisitreview .civr-photos-row, #view-extravisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
-#view-civisitreview .civr-plabel, #view-eileenvisitreview .civr-plabel, #view-extravisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
-#view-civisitreview .civr-photo-wrap, #view-eileenvisitreview .civr-photo-wrap, #view-extravisitreview .civr-photo-wrap{position:relative;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid #e0ddd6;background:#f5f4f0;cursor:pointer;}
-#view-civisitreview .civr-photo-wrap img, #view-eileenvisitreview .civr-photo-wrap img, #view-extravisitreview .civr-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
-#view-civisitreview .civr-photo-wrap img:hover, #view-eileenvisitreview .civr-photo-wrap img:hover, #view-extravisitreview .civr-photo-wrap img:hover{opacity:0.88;}
-#view-civisitreview .civr-photo-hint, #view-eileenvisitreview .civr-photo-hint, #view-extravisitreview .civr-photo-hint{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
-#view-civisitreview .civr-no-photo, #view-eileenvisitreview .civr-no-photo, #view-extravisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
-#view-civisitreview .civr-view-all, #view-eileenvisitreview .civr-view-all, #view-extravisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
-#view-civisitreview .civr-view-all:hover, #view-eileenvisitreview .civr-view-all:hover, #view-extravisitreview .civr-view-all:hover{text-decoration:underline;}
+#view-civisitreview .civr-photos-row, #view-eileenvisitreview .civr-photos-row, #view-highwayreview .civr-photos-row, #view-extravisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
+#view-civisitreview .civr-plabel, #view-eileenvisitreview .civr-plabel, #view-highwayreview .civr-plabel, #view-extravisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
+#view-civisitreview .civr-photo-wrap, #view-eileenvisitreview .civr-photo-wrap, #view-highwayreview .civr-photo-wrap, #view-extravisitreview .civr-photo-wrap{position:relative;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid #e0ddd6;background:#f5f4f0;cursor:pointer;}
+#view-civisitreview .civr-photo-wrap img, #view-eileenvisitreview .civr-photo-wrap img, #view-highwayreview .civr-photo-wrap img, #view-extravisitreview .civr-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+#view-civisitreview .civr-photo-wrap img:hover, #view-eileenvisitreview .civr-photo-wrap img:hover, #view-highwayreview .civr-photo-wrap img:hover, #view-extravisitreview .civr-photo-wrap img:hover{opacity:0.88;}
+#view-civisitreview .civr-photo-hint, #view-eileenvisitreview .civr-photo-hint, #view-highwayreview .civr-photo-hint, #view-extravisitreview .civr-photo-hint{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
+#view-civisitreview .civr-no-photo, #view-eileenvisitreview .civr-no-photo, #view-highwayreview .civr-no-photo, #view-extravisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
+#view-civisitreview .civr-view-all, #view-eileenvisitreview .civr-view-all, #view-highwayreview .civr-view-all, #view-extravisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
+#view-civisitreview .civr-view-all:hover, #view-eileenvisitreview .civr-view-all:hover, #view-highwayreview .civr-view-all:hover, #view-extravisitreview .civr-view-all:hover{text-decoration:underline;}
 
-#view-civisitreview .civr-verdict-bar, #view-eileenvisitreview .civr-verdict-bar, #view-extravisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
-#view-civisitreview .civr-vq, #view-eileenvisitreview .civr-vq, #view-extravisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
-#view-civisitreview .civr-vq:last-of-type, #view-eileenvisitreview .civr-vq:last-of-type, #view-extravisitreview .civr-vq:last-of-type{border-right:none;padding-right:0;padding-left:12px;}
-#view-civisitreview .civr-vq-label, #view-eileenvisitreview .civr-vq-label, #view-extravisitreview .civr-vq-label{font-size:11px;font-weight:600;color:#666;margin-bottom:4px;}
-#view-civisitreview .civr-vq-pre, #view-eileenvisitreview .civr-vq-pre, #view-extravisitreview .civr-vq-pre{font-size:10px;color:#aaa;margin-bottom:2px;}
-#view-civisitreview .civr-tri-btn, #view-eileenvisitreview .civr-tri-btn, #view-extravisitreview .civr-tri-btn{display:flex;gap:3px;}
-#view-civisitreview .civr-tbtn, #view-eileenvisitreview .civr-tbtn, #view-extravisitreview .civr-tbtn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;cursor:pointer;font-weight:500;transition:all 0.12s;white-space:nowrap;}
-#view-civisitreview .civr-tbtn:hover, #view-eileenvisitreview .civr-tbtn:hover, #view-extravisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
-#view-civisitreview .civr-tbtn.civr-on-yes, #view-eileenvisitreview .civr-tbtn.civr-on-yes, #view-extravisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
-#view-civisitreview .civr-tbtn.civr-on-no, #view-eileenvisitreview .civr-tbtn.civr-on-no, #view-extravisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
-#view-civisitreview .civr-tbtn.civr-on-na, #view-eileenvisitreview .civr-tbtn.civr-on-na, #view-extravisitreview .civr-tbtn.civr-on-na{background:#eee;border-color:#888;color:#555;font-weight:700;}
-#view-civisitreview .civr-velocity-box, #view-eileenvisitreview .civr-velocity-box, #view-extravisitreview .civr-velocity-box{
+#view-civisitreview .civr-verdict-bar, #view-eileenvisitreview .civr-verdict-bar, #view-highwayreview .civr-verdict-bar, #view-extravisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+#view-civisitreview .civr-vq, #view-eileenvisitreview .civr-vq, #view-highwayreview .civr-vq, #view-extravisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
+#view-civisitreview .civr-vq:last-of-type, #view-eileenvisitreview .civr-vq:last-of-type, #view-highwayreview .civr-vq:last-of-type, #view-extravisitreview .civr-vq:last-of-type{border-right:none;padding-right:0;padding-left:12px;}
+#view-civisitreview .civr-vq-label, #view-eileenvisitreview .civr-vq-label, #view-highwayreview .civr-vq-label, #view-extravisitreview .civr-vq-label{font-size:11px;font-weight:600;color:#666;margin-bottom:4px;}
+#view-civisitreview .civr-vq-pre, #view-eileenvisitreview .civr-vq-pre, #view-highwayreview .civr-vq-pre, #view-extravisitreview .civr-vq-pre{font-size:10px;color:#aaa;margin-bottom:2px;}
+#view-civisitreview .civr-tri-btn, #view-eileenvisitreview .civr-tri-btn, #view-highwayreview .civr-tri-btn, #view-extravisitreview .civr-tri-btn{display:flex;gap:3px;}
+#view-civisitreview .civr-tbtn, #view-eileenvisitreview .civr-tbtn, #view-highwayreview .civr-tbtn, #view-extravisitreview .civr-tbtn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;cursor:pointer;font-weight:500;transition:all 0.12s;white-space:nowrap;}
+#view-civisitreview .civr-tbtn:hover, #view-eileenvisitreview .civr-tbtn:hover, #view-highwayreview .civr-tbtn:hover, #view-extravisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
+#view-civisitreview .civr-tbtn.civr-on-yes, #view-eileenvisitreview .civr-tbtn.civr-on-yes, #view-highwayreview .civr-tbtn.civr-on-yes, #view-extravisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-no, #view-eileenvisitreview .civr-tbtn.civr-on-no, #view-highwayreview .civr-tbtn.civr-on-no, #view-extravisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-na, #view-eileenvisitreview .civr-tbtn.civr-on-na, #view-highwayreview .civr-tbtn.civr-on-na, #view-extravisitreview .civr-tbtn.civr-on-na{background:#eee;border-color:#888;color:#555;font-weight:700;}
+#view-civisitreview .civr-velocity-box, #view-eileenvisitreview .civr-velocity-box, #view-highwayreview .civr-velocity-box, #view-extravisitreview .civr-velocity-box{
   display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
   background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;
 }
-#view-civisitreview .civr-velocity-label, #view-eileenvisitreview .civr-velocity-label, #view-extravisitreview .civr-velocity-label{color:#666;font-weight:600;}
-#view-civisitreview .civr-velocity-period, #view-eileenvisitreview .civr-velocity-period, #view-extravisitreview .civr-velocity-period{font-weight:400;color:#999;}
-#view-civisitreview .civr-velocity-val, #view-eileenvisitreview .civr-velocity-val, #view-extravisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
-#view-civisitreview .civr-sku-box, #view-eileenvisitreview .civr-sku-box, #view-extravisitreview .civr-sku-box{background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;}
-#view-civisitreview .civr-sku-title, #view-eileenvisitreview .civr-sku-title, #view-extravisitreview .civr-sku-title{color:#666;font-weight:600;margin-bottom:6px;}
-#view-civisitreview .civr-sku-sub, #view-eileenvisitreview .civr-sku-sub, #view-extravisitreview .civr-sku-sub{font-weight:400;color:#999;}
-#view-civisitreview .civr-sku-empty, #view-eileenvisitreview .civr-sku-empty, #view-extravisitreview .civr-sku-empty{color:#999;font-style:italic;}
-#view-civisitreview .civr-sku-table, #view-eileenvisitreview .civr-sku-table, #view-extravisitreview .civr-sku-table{width:100%;border-collapse:collapse;}
-#view-civisitreview .civr-sku-table th, #view-eileenvisitreview .civr-sku-table th, #view-extravisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
-#view-civisitreview .civr-sku-table td, #view-eileenvisitreview .civr-sku-table td, #view-extravisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
-#view-civisitreview .civr-sku-num, #view-eileenvisitreview .civr-sku-num, #view-extravisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
-#view-eileenvisitreview .civr-present-count, #view-extravisitreview .civr-present-count{display:flex;align-items:center;gap:6px;}
-#view-eileenvisitreview .civr-sku-count-input, #view-extravisitreview .civr-sku-count-input{max-width:70px;}
-#view-eileenvisitreview .civr-sku-others, #view-extravisitreview .civr-sku-others{margin-top:8px;padding-top:8px;border-top:1px dashed #e0ddd6;}
-#view-eileenvisitreview .civr-sku-others-label, #view-extravisitreview .civr-sku-others-label{color:#666;font-weight:600;margin-bottom:4px;font-size:11px;}
-#view-eileenvisitreview .civr-sku-others-detail, #view-extravisitreview .civr-sku-others-detail{width:100%;max-width:none;margin-top:4px;}
-#view-civisitreview .civr-sku-totals, #view-eileenvisitreview .civr-sku-totals, #view-extravisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
-#view-civisitreview .civr-submit-col, #view-eileenvisitreview .civr-submit-col, #view-extravisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
-#view-civisitreview .civr-submit-btn, #view-eileenvisitreview .civr-submit-btn, #view-extravisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
-#view-civisitreview .civr-submit-btn:hover, #view-eileenvisitreview .civr-submit-btn:hover, #view-extravisitreview .civr-submit-btn:hover{background:#144d88;}
-#view-civisitreview .civr-submit-btn.civr-submit-done, #view-eileenvisitreview .civr-submit-btn.civr-submit-done, #view-extravisitreview .civr-submit-btn.civr-submit-done{background:#2a7a2a;cursor:default;}
-#view-civisitreview .civr-flag-btn, #view-eileenvisitreview .civr-flag-btn, #view-extravisitreview .civr-flag-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;}
-#view-civisitreview .civr-flag-btn:hover, #view-eileenvisitreview .civr-flag-btn:hover, #view-extravisitreview .civr-flag-btn:hover{background:#fff8e0;border-color:#e0a020;color:#8a5000;}
-#view-civisitreview .civr-flag-btn.civr-flagged, #view-eileenvisitreview .civr-flag-btn.civr-flagged, #view-extravisitreview .civr-flag-btn.civr-flagged{background:#fff3e0;border-color:#e0a020;color:#8a5000;font-weight:600;}
+#view-civisitreview .civr-velocity-label, #view-eileenvisitreview .civr-velocity-label, #view-highwayreview .civr-velocity-label, #view-extravisitreview .civr-velocity-label{color:#666;font-weight:600;}
+#view-civisitreview .civr-velocity-period, #view-eileenvisitreview .civr-velocity-period, #view-highwayreview .civr-velocity-period, #view-extravisitreview .civr-velocity-period{font-weight:400;color:#999;}
+#view-civisitreview .civr-velocity-val, #view-eileenvisitreview .civr-velocity-val, #view-highwayreview .civr-velocity-val, #view-extravisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
+#view-civisitreview .civr-sku-box, #view-eileenvisitreview .civr-sku-box, #view-highwayreview .civr-sku-box, #view-extravisitreview .civr-sku-box{background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-sku-title, #view-eileenvisitreview .civr-sku-title, #view-highwayreview .civr-sku-title, #view-extravisitreview .civr-sku-title{color:#666;font-weight:600;margin-bottom:6px;}
+#view-civisitreview .civr-sku-sub, #view-eileenvisitreview .civr-sku-sub, #view-highwayreview .civr-sku-sub, #view-extravisitreview .civr-sku-sub{font-weight:400;color:#999;}
+#view-civisitreview .civr-sku-empty, #view-eileenvisitreview .civr-sku-empty, #view-highwayreview .civr-sku-empty, #view-extravisitreview .civr-sku-empty{color:#999;font-style:italic;}
+#view-civisitreview .civr-sku-table, #view-eileenvisitreview .civr-sku-table, #view-highwayreview .civr-sku-table, #view-extravisitreview .civr-sku-table{width:100%;border-collapse:collapse;}
+#view-civisitreview .civr-sku-table th, #view-eileenvisitreview .civr-sku-table th, #view-highwayreview .civr-sku-table th, #view-extravisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
+#view-civisitreview .civr-sku-table td, #view-eileenvisitreview .civr-sku-table td, #view-highwayreview .civr-sku-table td, #view-extravisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
+#view-civisitreview .civr-sku-num, #view-eileenvisitreview .civr-sku-num, #view-highwayreview .civr-sku-num, #view-extravisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
+#view-eileenvisitreview .civr-present-count, #view-highwayreview .civr-present-count, #view-extravisitreview .civr-present-count{display:flex;align-items:center;gap:6px;}
+#view-eileenvisitreview .civr-sku-count-input, #view-highwayreview .civr-sku-count-input, #view-extravisitreview .civr-sku-count-input{max-width:70px;}
+#view-eileenvisitreview .civr-sku-others, #view-highwayreview .civr-sku-others, #view-extravisitreview .civr-sku-others{margin-top:8px;padding-top:8px;border-top:1px dashed #e0ddd6;}
+#view-eileenvisitreview .civr-sku-others-label, #view-highwayreview .civr-sku-others-label, #view-extravisitreview .civr-sku-others-label{color:#666;font-weight:600;margin-bottom:4px;font-size:11px;}
+#view-eileenvisitreview .civr-sku-others-detail, #view-highwayreview .civr-sku-others-detail, #view-extravisitreview .civr-sku-others-detail{width:100%;max-width:none;margin-top:4px;}
+#view-civisitreview .civr-sku-totals, #view-eileenvisitreview .civr-sku-totals, #view-highwayreview .civr-sku-totals, #view-extravisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+#view-civisitreview .civr-submit-col, #view-eileenvisitreview .civr-submit-col, #view-highwayreview .civr-submit-col, #view-extravisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
+#view-civisitreview .civr-submit-btn, #view-eileenvisitreview .civr-submit-btn, #view-highwayreview .civr-submit-btn, #view-extravisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
+#view-civisitreview .civr-submit-btn:hover, #view-eileenvisitreview .civr-submit-btn:hover, #view-highwayreview .civr-submit-btn:hover, #view-extravisitreview .civr-submit-btn:hover{background:#144d88;}
+#view-civisitreview .civr-submit-btn.civr-submit-done, #view-eileenvisitreview .civr-submit-btn.civr-submit-done, #view-highwayreview .civr-submit-btn.civr-submit-done, #view-extravisitreview .civr-submit-btn.civr-submit-done{background:#2a7a2a;cursor:default;}
+#view-civisitreview .civr-flag-btn, #view-eileenvisitreview .civr-flag-btn, #view-highwayreview .civr-flag-btn, #view-extravisitreview .civr-flag-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;}
+#view-civisitreview .civr-flag-btn:hover, #view-eileenvisitreview .civr-flag-btn:hover, #view-highwayreview .civr-flag-btn:hover, #view-extravisitreview .civr-flag-btn:hover{background:#fff8e0;border-color:#e0a020;color:#8a5000;}
+#view-civisitreview .civr-flag-btn.civr-flagged, #view-eileenvisitreview .civr-flag-btn.civr-flagged, #view-highwayreview .civr-flag-btn.civr-flagged, #view-extravisitreview .civr-flag-btn.civr-flagged{background:#fff3e0;border-color:#e0a020;color:#8a5000;font-weight:600;}
 
-#view-civisitreview .civr-submitted-banner, #view-eileenvisitreview .civr-submitted-banner, #view-extravisitreview .civr-submitted-banner{display:none;background:#e8f5e8;border-top:1px solid #b0d8b0;padding:8px 16px;font-size:12px;color:#1a6a1a;font-weight:600;align-items:center;justify-content:space-between;}
-#view-civisitreview .civr-submitted-banner.civr-show, #view-eileenvisitreview .civr-submitted-banner.civr-show, #view-extravisitreview .civr-submitted-banner.civr-show{display:flex;}
-#view-civisitreview .civr-undo-btn, #view-eileenvisitreview .civr-undo-btn, #view-extravisitreview .civr-undo-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #88bb88;background:#fff;color:#1a6a1a;cursor:pointer;}
-#view-civisitreview .civr-undo-btn:hover, #view-eileenvisitreview .civr-undo-btn:hover, #view-extravisitreview .civr-undo-btn:hover{background:#d0ecd0;}
+#view-civisitreview .civr-submitted-banner, #view-eileenvisitreview .civr-submitted-banner, #view-highwayreview .civr-submitted-banner, #view-extravisitreview .civr-submitted-banner{display:none;background:#e8f5e8;border-top:1px solid #b0d8b0;padding:8px 16px;font-size:12px;color:#1a6a1a;font-weight:600;align-items:center;justify-content:space-between;}
+#view-civisitreview .civr-submitted-banner.civr-show, #view-eileenvisitreview .civr-submitted-banner.civr-show, #view-highwayreview .civr-submitted-banner.civr-show, #view-extravisitreview .civr-submitted-banner.civr-show{display:flex;}
+#view-civisitreview .civr-undo-btn, #view-eileenvisitreview .civr-undo-btn, #view-highwayreview .civr-undo-btn, #view-extravisitreview .civr-undo-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #88bb88;background:#fff;color:#1a6a1a;cursor:pointer;}
+#view-civisitreview .civr-undo-btn:hover, #view-eileenvisitreview .civr-undo-btn:hover, #view-highwayreview .civr-undo-btn:hover, #view-extravisitreview .civr-undo-btn:hover{background:#d0ecd0;}
 
-#view-civisitreview .civr-notes-bar, #view-eileenvisitreview .civr-notes-bar, #view-extravisitreview .civr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:#fafaf8;border-top:1px solid #eae8df;}
-#view-civisitreview .civr-notes-label, #view-eileenvisitreview .civr-notes-label, #view-extravisitreview .civr-notes-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;flex-shrink:0;}
-#view-civisitreview .civr-notes-input, #view-eileenvisitreview .civr-notes-input, #view-extravisitreview .civr-notes-input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;font-family:inherit;}
-#view-civisitreview .civr-notes-input:focus, #view-eileenvisitreview .civr-notes-input:focus, #view-extravisitreview .civr-notes-input:focus{outline:2px solid #4a90d0;border-color:#4a90d0;}
+#view-civisitreview .civr-notes-bar, #view-eileenvisitreview .civr-notes-bar, #view-highwayreview .civr-notes-bar, #view-extravisitreview .civr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:#fafaf8;border-top:1px solid #eae8df;}
+#view-civisitreview .civr-notes-label, #view-eileenvisitreview .civr-notes-label, #view-highwayreview .civr-notes-label, #view-extravisitreview .civr-notes-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;flex-shrink:0;}
+#view-civisitreview .civr-notes-input, #view-eileenvisitreview .civr-notes-input, #view-highwayreview .civr-notes-input, #view-extravisitreview .civr-notes-input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;font-family:inherit;}
+#view-civisitreview .civr-notes-input:focus, #view-eileenvisitreview .civr-notes-input:focus, #view-highwayreview .civr-notes-input:focus, #view-extravisitreview .civr-notes-input:focus{outline:2px solid #4a90d0;border-color:#4a90d0;}
 
-#view-civisitreview .civr-pager, #view-eileenvisitreview .civr-pager, #view-extravisitreview .civr-pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 0;}
-#view-civisitreview .civr-page-btn, #view-eileenvisitreview .civr-page-btn, #view-extravisitreview .civr-page-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:500;}
-#view-civisitreview .civr-page-btn:hover:not(:disabled), #view-eileenvisitreview .civr-page-btn:hover:not(:disabled), #view-extravisitreview .civr-page-btn:hover:not(:disabled){background:#f0efe8;}
-#view-civisitreview .civr-page-btn:disabled, #view-eileenvisitreview .civr-page-btn:disabled, #view-extravisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
-#view-civisitreview .civr-page-info, #view-eileenvisitreview .civr-page-info, #view-extravisitreview .civr-page-info{font-size:13px;color:#666;}
-#view-civisitreview .civr-empty, #view-eileenvisitreview .civr-empty, #view-extravisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
+#view-civisitreview .civr-pager, #view-eileenvisitreview .civr-pager, #view-highwayreview .civr-pager, #view-extravisitreview .civr-pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 0;}
+#view-civisitreview .civr-page-btn, #view-eileenvisitreview .civr-page-btn, #view-highwayreview .civr-page-btn, #view-extravisitreview .civr-page-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-page-btn:hover:not(:disabled), #view-eileenvisitreview .civr-page-btn:hover:not(:disabled), #view-highwayreview .civr-page-btn:hover:not(:disabled), #view-extravisitreview .civr-page-btn:hover:not(:disabled){background:#f0efe8;}
+#view-civisitreview .civr-page-btn:disabled, #view-eileenvisitreview .civr-page-btn:disabled, #view-highwayreview .civr-page-btn:disabled, #view-extravisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
+#view-civisitreview .civr-page-info, #view-eileenvisitreview .civr-page-info, #view-highwayreview .civr-page-info, #view-extravisitreview .civr-page-info{font-size:13px;color:#666;}
+#view-civisitreview .civr-empty, #view-eileenvisitreview .civr-empty, #view-highwayreview .civr-empty, #view-extravisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
 
 /* CI VISIT REVIEW -- AUTH / ACCESS CONTROL / AUDIT / VERSION HISTORY -- scoped entirely under
    #view-civisitreview like the rest of the civr-* rules, so none of this affects any other tab. */
@@ -1614,6 +1616,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div class="tab" onclick="switchTab(&#39;civisitreview&#39;)" id="tab-civisitreview"><span class="tab-icon">📷</span> CI Visit Review</div>
     <div class="tab" onclick="switchTab(&#39;eileenvisitreview&#39;)" id="tab-eileenvisitreview"><span class="tab-icon">🛍</span> Eileen Visit Review</div>
     <div class="tab" onclick="switchTab(&#39;extravisitreview&#39;)" id="tab-extravisitreview"><span class="tab-icon">📝</span> Extra Visit Reviews</div>
+    <div class="tab" onclick="switchTab(&#39;highwayreview&#39;)" id="tab-highwayreview"><span class="tab-icon">🛣</span> Highway Partners Reviews</div>
   </div>
   <div class="topbar-right">
     <div class="recency-filter">
@@ -2398,6 +2401,11 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
       <div id="extra-main"></div>
     </div>
 
+    <!-- HIGHWAY PARTNERS REVIEWS VIEW -->
+    <div id="view-highwayreview" style="display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:0;">
+      <div id="hwr-main"></div>
+    </div>
+
 
     <!-- Shared across every tab (not nested inside any single view's display:none toggle) --
          civr-scroll-fab is scoped to CI Visit Review + Eileen Visit Review specifically via
@@ -2999,25 +3007,26 @@ document.addEventListener('click', closePanelOnOutsideClick, true);
 let civPendingTabSwitch = null;
 
 function switchTab(tab) {
-  const leavingReviewTab = currentTab === 'civisitreview' || currentTab === 'eileenvisitreview';
+  const leavingReviewTab = currentTab === 'civisitreview' || currentTab === 'eileenvisitreview' || currentTab === 'highwayreview';
   if (leavingReviewTab && tab !== currentTab && civDirtySet.size > 0) {
     civPendingTabSwitch = tab;
     civModalOpen = 'leave-warning';
     renderCivModal();
     return;
   }
-  if ((tab === 'civisitreview' || tab === 'eileenvisitreview') && currentTab !== tab) civLogAudit('access', {});
+  if ((tab === 'civisitreview' || tab === 'eileenvisitreview' || tab === 'highwayreview') && currentTab !== tab) civLogAudit('access', {});
   // Right-hand detail panel is contextual to whatever was selected in the PREVIOUS view --
   // never carry it over into a different tab; reopening always requires a fresh selection.
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  const views = ['overview','map','chains','stores','civisitreview','eileenvisitreview','extravisitreview'];
+  const views = ['overview','map','chains','stores','civisitreview','eileenvisitreview','extravisitreview','highwayreview'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
   if (tab === 'civisitreview') renderCiVisitReview();
   if (tab === 'eileenvisitreview') renderEileenVisitReview();
   if (tab === 'extravisitreview') renderExtraVisitReview();
+  if (tab === 'highwayreview') renderHighwayReview();
   if (tab === 'map' && !leafletMap) initMap();
   if (tab === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
   if (tab === 'overview') renderOverview();
@@ -3863,6 +3872,10 @@ let POPPROMO_REPORTS = [];
 // (the source CSV is a straight cumulative export, not a monthly kit cycle), so every ingested
 // visit is reviewable -- no SITE_REVIEW_MONTHS-style month filter applied.
 let EIV_ALL_REPORTS = [];
+// Highway Partners Reviews' own report list (highway_visits table, src:'highway'). Reviewer status/
+// verdicts ride the SHARED report_status/report_verdicts caches under that src, exactly like Eileen.
+let HIGHWAY = [];
+let HIGHWAY_ALL_REPORTS = [];
 
 // Rebuilds every in-memory index/derived array that depends on CI/EILEEN/DOORS being populated.
 // These used to be synchronous top-level statements (safe when data was always already embedded
@@ -3897,6 +3910,21 @@ function buildDerivedIndexes() {
     .concat(POPPROMO_REPORTS.filter(r => SITE_REVIEW_MONTHS.includes(r.month)));
 
   EIV_ALL_REPORTS = EILEEN.slice();
+
+  // Highway Partners: every ingested visit is reviewable (no month window, same as Eileen). The
+  // visit's matched door (resolved at ETL time, door_key) is registered in REPORT_TO_DOOR so the
+  // shared reportDoor()/Weekly Velocity machinery works unchanged; unmatched stores simply show
+  // "Not Tracked", same as any CI visit without a door.
+  buildHighwayIndex();
+}
+// Split out so the live-Supabase path (where highway_visits is fetched AFTER the main data load,
+// see loadAllData) can refresh just this part once HIGHWAY arrives.
+function buildHighwayIndex() {
+  HIGHWAY_ALL_REPORTS = HIGHWAY.slice();
+  HIGHWAY_ALL_REPORTS.forEach(h => {
+    const door = h.doorKey ? DOORS_BY_KEY[h.doorKey] : null;
+    if (door) REPORT_TO_DOOR['highway|' + h.id] = door;
+  });
 }
 
 function reportKey(rec) { return rec.src + '|' + rec.id; }
@@ -4402,7 +4430,7 @@ function civHistorySetFilter(key, val) { civHistoryFilters[key] = val; renderCiv
 
 function civVersionRowMeta(v) {
   const src = (v.snapshot && v.snapshot.src) || 'ci';
-  const arr = src === 'poppromo' ? POPPROMO_REPORTS : src === 'eileen' ? EILEEN : CI;
+  const arr = src === 'poppromo' ? POPPROMO_REPORTS : src === 'eileen' ? EILEEN : src === 'highway' ? HIGHWAY_ALL_REPORTS : CI;
   const rec = arr.find(x => x.id === v.report_id);
   return { chain: rec ? rec.ch : '—', store: rec ? rec.a : '—' };
 }
@@ -4594,7 +4622,7 @@ function renderCivModal() {
 // scrolls (body is 100vh/overflow:hidden by design), each tab's view panel scrolls within itself,
 // so #view-civisitreview (not window) is the element both buttons act on.
 function civrScrollFabInit() {
-  ['view-civisitreview', 'view-eileenvisitreview'].forEach(id => {
+  ['view-civisitreview', 'view-eileenvisitreview', 'view-highwayreview'].forEach(id => {
     const container = document.getElementById(id);
     if (container) container.addEventListener('scroll', civrUpdateScrollFab);
   });
@@ -4611,7 +4639,7 @@ function civrFabBack() {
 function civrUpdateScrollFab() {
   const el = document.getElementById('civr-scroll-fab');
   if (!el) return;
-  if (currentTab !== 'civisitreview' && currentTab !== 'eileenvisitreview') { el.innerHTML = ''; return; }
+  if (currentTab !== 'civisitreview' && currentTab !== 'eileenvisitreview' && currentTab !== 'highwayreview') { el.innerHTML = ''; return; }
   const container = document.getElementById('view-' + currentTab);
   const lightbox = document.getElementById('lightbox');
   const showBack = !!civModalOpen || !!(lightbox && lightbox.classList.contains('open'));
@@ -4669,11 +4697,13 @@ function civDraftVerdict(rec) {
     const saved = REPORT_VERDICT_CACHE[k];
     if (saved) {
       CIV_VERDICT_DRAFT[k] = Object.assign({}, saved);
-    } else if (rec.src === 'eileen') {
+    } else if (rec.src === 'eileen' || rec.src === 'highway') {
+      // Highway Partners' source (a GoSpotCheck reset-checklist export) has no rep-reported stock/
+      // strip field that maps onto the Standard Fields, so it starts fully blank like Eileen's.
       // Eileen's source CSV is a pure photo log -- no rep-reported stock/promo field of any
       // kind exists to pre-fill from (confirmed by direct inspection), so this always starts
       // fully blank, same honesty convention as every other blank verdict in this app.
-      CIV_VERDICT_DRAFT[k] = civBlankVerdictSnapshot('eileen');
+      CIV_VERDICT_DRAFT[k] = civBlankVerdictSnapshot(rec.src);
     } else {
       // First time this CI visit has ever been opened for review: pre-fill Shelf strip present? /
       // Needs product? from the rep's own reported data, same convention as Report Review. Product
@@ -4693,7 +4723,7 @@ function civDraftVerdict(rec) {
 // different source systems (CI's own small sequential ids vs. GoSpotCheck's ~9-digit Mission
 // Response IDs), so a bare id can't safely identify a record once both sources are reviewable.
 function civReportChain(src, id) {
-  const arr = src === 'poppromo' ? POPPROMO_REPORTS : src === 'eileen' ? EILEEN : CI;
+  const arr = src === 'poppromo' ? POPPROMO_REPORTS : src === 'eileen' ? EILEEN : src === 'highway' ? HIGHWAY_ALL_REPORTS : CI;
   const r = arr.find(x => x.id === id);
   return r ? r.ch : null;
 }
@@ -4705,6 +4735,7 @@ function civRerenderActive() {
   if (currentTab === 'civisitreview') renderCiVisitReview();
   else if (currentTab === 'eileenvisitreview') renderEileenVisitReview();
   else if (currentTab === 'extravisitreview') renderExtraVisitReview();
+  else if (currentTab === 'highwayreview') renderHighwayReview();
 }
 
 function civSetVerdictAnswer(src, id, field, value) {
@@ -6093,6 +6124,349 @@ function renderExtraVisitReview() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// HIGHWAY PARTNERS REVIEWS -- same civr-* review-queue layout and behavior as CI Visit Review
+// (sticky header + progress bar, activity dashboard, stats bar, filters, bulk submit, paginated
+// cards, Standard Fields for Review verdict bar, Weekly Velocity box, quick notes, submitted banner,
+// Change History / Activity Log / Revert / Restore), fed by the Highway Partners GoSpotCheck reset-
+// checklist export (Sheetz + Wawa, highway_visits table) instead of CI/POP data. Review state rides the
+// SHARED report_status / report_verdicts / civ_report_versions / civ_audit_log machinery under src
+// 'highway' (every handler there is already generic over (src, id), same as Eileen), so there is no
+// second copy of any save/undo/history logic here -- only the list, filters, card and export below.
+// What differs from CI on purpose: the "Rep field notes" box shows this source's own checklist
+// fields (tobacco reset, POG type / slide-by size, sign plate / pricers, notes), and the photo row
+// uses this source's own named slots. There is no SKU-facings table (this source has none).
+// ══════════════════════════════════════════════════════════════════════════
+let hwrFilters = Object.assign({ chain:'', status:'', tobaccoReset:'', needsProduct:'', productThere:'', flagged:'' }, civDateFilterBlank());
+let hwrDatePicker = civDatePickerBlank();
+function hwrSetDateFilter(val) { civSetDateFilterShared(hwrFilters, hwrDatePicker, val, renderHighwayReview); hwrPage = 0; }
+function hwrDatePickerOpen() { civDatePickerOpenShared(hwrFilters, hwrDatePicker, renderHighwayReview); }
+function hwrDatePickerClickDay(d) { civDatePickerClickDayShared(hwrDatePicker, d, renderHighwayReview); }
+function hwrDatePickerNav(dir) { civDatePickerNavShared(hwrDatePicker, dir, renderHighwayReview); }
+function hwrDatePickerApply() { civDatePickerApplyShared(hwrFilters, hwrDatePicker, renderHighwayReview); hwrPage = 0; }
+function hwrDatePickerCancel() { civDatePickerCancelShared(hwrFilters, hwrDatePicker, renderHighwayReview); }
+let hwrPage = 0;
+const HWR_PAGE_SIZE = 6;
+const HWR_JUMP_PAGES = Math.round(50 / HWR_PAGE_SIZE); // same page-indexed "Next/Prev 50" approximation as CIVR_JUMP_PAGES
+let hwrBulkMsg = '';
+let hwrSearchQuery = '';
+
+function hwrSetFilter(key, val) { hwrFilters[key] = val; hwrPage = 0; hwrBulkMsg = ''; renderHighwayReview(); }
+const hwrRenderDebounced = civDebounce(renderHighwayReview, 300);
+function hwrSetSearch(val) { hwrSearchQuery = val; hwrPage = 0; hwrRenderDebounced(); }
+function hwrResetFilters() {
+  hwrFilters = Object.assign({ chain:'', status:'', tobaccoReset:'', needsProduct:'', productThere:'', flagged:'' }, civDateFilterBlank());
+  hwrDatePicker = civDatePickerBlank();
+  hwrSearchQuery = '';
+  hwrPage = 0; hwrBulkMsg = '';
+  renderHighwayReview();
+}
+function hwrChangePage(dir) { hwrPage += dir; renderHighwayReview(); civrScrollToTop(); }
+
+function hwrFilteredReports() {
+  const q = hwrSearchQuery.trim().toLowerCase();
+  return HIGHWAY_ALL_REPORTS.filter(r => {
+    if (!civMatchesDateFilter(r.vd, hwrFilters)) return false;
+    if (hwrFilters.chain && r.ch !== hwrFilters.chain) return false;
+    if (hwrFilters.tobaccoReset && (r.tobaccoReset || '') !== hwrFilters.tobaccoReset) return false;
+    if (q) {
+      const hay = [r.ch, r.storeName, r.storeNo, r.a, r.ci, r.st, r.zip, civDraftVerdict(r).notes].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    const status = getReportStatus(r);
+    if (hwrFilters.status === 'pending' && status === 'Reviewed') return false;
+    if (hwrFilters.status === 'done' && status !== 'Reviewed') return false;
+    const draft = civDraftVerdict(r);
+    if (hwrFilters.needsProduct === 'yes' && draft.needsProduct !== true) return false;
+    if (hwrFilters.needsProduct === 'no' && draft.needsProduct !== false) return false;
+    if (hwrFilters.productThere === 'yes' && draft.productPresent !== true) return false;
+    if (hwrFilters.productThere === 'no' && draft.productPresent !== false) return false;
+    if (hwrFilters.productThere === 'blank' && draft.productPresent !== null) return false;
+    if (hwrFilters.flagged === 'yes' && !draft.flag) return false;
+    return true;
+  // Same ordering rule as CI Visit Review: stores with a real Weekly Velocity first, "Not Tracked" last
+  // (stable sort -- nothing reorders within either group).
+  }).sort((a, b) => (civrVelocitySnapshot(a) ? 0 : 1) - (civrVelocitySnapshot(b) ? 0 : 1));
+}
+
+// Always computed over the FULL scope (not the current filter), same as civrStats().
+function hwrStats() {
+  let sub = 0, stripY = 0, needsY = 0, flagC = 0;
+  HIGHWAY_ALL_REPORTS.forEach(r => {
+    const status = getReportStatus(r);
+    const draft = civDraftVerdict(r);
+    if (status === 'Reviewed') { sub++; if (draft.shelfStripPresent) stripY++; if (draft.needsProduct) needsY++; }
+    if (draft.flag) flagC++;
+  });
+  const total = HIGHWAY_ALL_REPORTS.length;
+  return { total, sub, stripY, needsY, flagC, pend: total - sub };
+}
+
+// Same inline-message (no blocking confirm()/alert()) bulk submit as civrBulkSubmit(); applies to
+// every report matching the CURRENT filters, not just the current page.
+function hwrBulkSubmit() {
+  if (!civCanEdit()) return;
+  const list = hwrFilteredReports();
+  const unsubmitted = list.filter(r => getReportStatus(r) !== 'Reviewed');
+  unsubmitted.forEach(r => {
+    const draft = civDraftVerdict(r);
+    setReportVerdict(r, draft);
+    setReportStatus(r, 'Reviewed');
+    const versionSnapshot = Object.assign({}, draft, { src: r.src, velocitySnapshot: civrVelocitySnapshot(r) });
+    delete CIV_VERDICT_DRAFT[reportKey(r)];
+    civSaveVersion(r.id, versionSnapshot).then(version => {
+      civLogAudit('save', { chain: r.ch, door_key: civReportDoorKey(r.src, r.id), report_id: r.id, version_id: version ? version.id : null });
+    });
+  });
+  hwrBulkMsg = unsubmitted.length ? `✓ ${unsubmitted.length} report${unsubmitted.length===1?'':'s'} submitted` : 'All filtered reports are already submitted.';
+  renderHighwayReview();
+}
+
+// Checklist answers in this source are free-text multi-selects ("YES", "NO - LUCY Pricer is missing",
+// "YES, OTHER: See NOTES ..."). Colour by what the answer actually says: any "NO" is an alert, an
+// answer that is only YES-type is good, anything else (OTHER ...) stays neutral.
+function hwrAnswerClass(v) {
+  if (!v) return '';
+  const u = String(v).toUpperCase();
+  if (/(^|, )NO\b/.test(u)) return 'alert';
+  if (/^YES/.test(u)) return 'good';
+  return '';
+}
+function hwrFieldNotesHtml(rec) {
+  const rows = [
+    civrNoteRow('2026 tobacco reset completed', rec.tobaccoReset, rec.tobaccoReset === 'No' ? 'alert' : rec.tobaccoReset === 'Yes' ? 'good' : ''),
+    rec.pogType ? civrNoteRow('POG type (Wall / Core)', rec.pogType) : '',
+    rec.slidebySize ? civrNoteRow('Slide-by POG size', rec.slidebySize) : '',
+    rec.signPlateInPlace ? civrNoteRow('Sign plate & POS insert in place', rec.signPlateInPlace, hwrAnswerClass(rec.signPlateInPlace)) : '',
+    rec.pricersInPlace ? civrNoteRow('Pricers & flip signs in place', rec.pricersInPlace, hwrAnswerClass(rec.pricersInPlace)) : ''
+  ].join('');
+  let html = `<div class="civr-rep-notes"><div class="civr-rep-notes-title">Field checklist (from source file)</div><div class="civr-rep-grid">${rows}</div>`;
+  if (rec.notes) html += `<div class="civr-rep-note-long">${escHtml(rec.notes)}</div>`;
+  return html + `</div>`;
+}
+
+// This source names its photo slots (and they differ by chain), so labels are real, not "Photo N".
+// A slot fills only from a real image URL in the data; the exported CSV flattens the sheet's
+// "View photo" hyperlinks to plain text, so most records currently have no URL to show.
+const HWR_PHOTO_SLOTS = {
+  Wawa:   ['Before - Full Section', 'Before - Shelf/Space', 'After - L-B Space'],
+  Sheetz: ['Before - Full Section', 'After - L-B Space', 'After - Full Slide-by POG']
+};
+function hwrPhotosHtml(rec) {
+  const all = Array.isArray(rec.ph) ? rec.ph : [];
+  const urls = all.map(p => p.url);
+  const lit = jsArrayLiteral(urls);
+  const labels = HWR_PHOTO_SLOTS[rec.ch] || ['Before - Full Section', 'After - L-B Space', 'After - Full Slide-by POG'];
+  const cols = labels.map(label => {
+    const p = all.find(x => x.label === label);
+    const idx = p ? urls.indexOf(p.url) : -1;
+    const cell = p
+      ? `<div class="civr-photo-wrap" onclick="openLightbox('${esc(p.url)}', ${lit}, ${idx})"><img src="${esc(p.url)}" loading="lazy"><span class="civr-photo-hint">expand</span></div>`
+      : `<div class="civr-photo-wrap"><div class="civr-no-photo">No photo</div></div>`;
+    return `<div class="civr-photo-col"><div class="civr-plabel">${escHtml(label)}</div>${cell}</div>`;
+  }).join('');
+  const viewAll = urls.length > 1 ? `<div class="civr-view-all" onclick="openLightbox('${esc(urls[0])}', ${lit}, 0)">View all ${urls.length} photos →</div>` : '';
+  return `<div class="civr-photos-row">${cols}</div>${viewAll}`;
+}
+
+function hwrBadgesHtml(rec, status) {
+  let badges = `<span class="civr-badge civr-b-source-hwy">Highway Partners</span>`;
+  if (rec.tobaccoReset === 'Yes') badges += `<span class="civr-badge civr-b-strip-yes">Tobacco reset done</span>`;
+  else if (rec.tobaccoReset === 'No') badges += `<span class="civr-badge civr-b-strip-no">Reset not done</span>`;
+  if (status === 'Reviewed') badges += `<span class="civr-badge civr-b-lock">✓ Submitted</span>`;
+  return badges;
+}
+
+function hwrVerdictBarHtml(rec, draft, status) {
+  const locked = status === 'Reviewed';
+  const canEdit = civCanEdit();
+  const dis = canEdit ? '' : 'disabled';
+  const isDirty = civDirtySet.has(reportKey(rec));
+  return `<div class="civr-verdict-bar">
+    ${stdReviewFieldsHtml(draft, dis, civStdCall('highway', rec.id))}
+    <div class="civr-submit-col">
+      <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict('highway', ${rec.id})">${locked?'Submitted ✓':'Submit ✓'}</button>
+      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag('highway', ${rec.id})">⚑ Flag</button>
+      ${isDirty && canEdit ? `<button class="civr-flag-btn" onclick="civDiscardChanges('highway', ${rec.id})">Discard</button>` : ''}
+    </div>
+  </div>
+  <div class="civr-notes-bar">
+    <span class="civr-notes-label">Quick notes</span>
+    <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" ${dis} onchange="civSetNote('highway', ${rec.id}, this.value)" oninput="civSetNote('highway', ${rec.id}, this.value)">
+  </div>`;
+}
+
+function hwrCardHtml(rec) {
+  const status = getReportStatus(rec);
+  const draft = civDraftVerdict(rec);
+  const isDirty = civDirtySet.has(reportKey(rec));
+  return `<div class="civr-card-head">
+    <div>
+      <div class="civr-card-title">${escHtml(rec.ch||'—')} — ${escHtml(rec.a||'—')}${isDirty ? '<span class="civauth-dirty">● Unsaved Changes</span>' : ''}</div>
+      <div class="civr-card-sub">${escHtml(rec.ci||'')}${rec.ci&&rec.st?', ':''}${escHtml(rec.st||'')} • ${escHtml(rec.vd||'—')}${rec.storeNo ? ' • Store #' + escHtml(rec.storeNo) : ''}</div>
+      <div class="civr-badges">${hwrBadgesHtml(rec, status)}</div>
+    </div>
+  </div>
+  <div class="civr-card-body">
+    ${hwrFieldNotesHtml(rec)}
+    ${hwrPhotosHtml(rec)}
+    ${civrVelocityHtml(rec)}
+  </div>
+  ${hwrVerdictBarHtml(rec, draft, status)}
+  ${civrSubmittedBannerHtml(rec, draft, status)}`;
+}
+
+function hwrExportCSV(range) {
+  const src = range ? HIGHWAY_ALL_REPORTS.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : HIGHWAY_ALL_REPORTS;
+  const rows = src.map(rec => {
+    const draft = civDraftVerdict(rec);
+    return {
+      Chain: rec.ch||'', Store: rec.storeName||'', StoreNumber: rec.storeNo||'', Address: rec.a||'', City: rec.ci||'', State: rec.st||'', Zip: rec.zip||'',
+      VisitDate: rec.vd||'', MissionResponseID: rec.id,
+      TobaccoResetCompleted: rec.tobaccoReset||'', POGType: rec.pogType||'', SlideByPOGSize: rec.slidebySize||'',
+      SignPlatePOSInsert: rec.signPlateInPlace||'', PricersFlipSigns: rec.pricersInPlace||'', SourceNotes: rec.notes||'',
+      ...stdReviewCsvCols(draft),
+      Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
+      Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No',
+      SubmittedAt: getReportStatus(rec)==='Reviewed' ? fmtSubmittedAt(getReportStatusUpdatedAt(rec)) : '',
+      WeeklyVelocity: (() => { const s = civrVelocitySnapshot(rec); return s ? s.value.toFixed(1)+' u/wk ('+(civFmtMonthLabel(s.period)||'unknown month')+')' : ''; })()
+    };
+  });
+  downloadRecentCSV(exportRecentFilename('highway_partners_reviews', range), rows, range);
+}
+
+function renderHighwayReview() {
+  const el = document.getElementById('hwr-main');
+  if (!el) return;
+
+  // Same access rule as CI/Eileen: login required on the real host; read-only on the Artifact host.
+  if (!usingEmbeddedSnapshot) {
+    const gate = civAuthGateHtml('Highway Partners Reviews', 'hwrauth');
+    if (gate) { el.innerHTML = gate; return; }
+  }
+
+  const filtered = hwrFilteredReports();
+  const stats = hwrStats();
+  const chains = [...new Set(HIGHWAY_ALL_REPORTS.map(r => r.ch).filter(Boolean))].sort();
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / HWR_PAGE_SIZE));
+  if (hwrPage >= totalPages) hwrPage = totalPages - 1;
+  if (hwrPage < 0) hwrPage = 0;
+  const start = hwrPage * HWR_PAGE_SIZE;
+  const pageReports = filtered.slice(start, start + HWR_PAGE_SIZE);
+
+  const cardsHtml = filtered.length === 0
+    ? `<div class="civr-empty">${HIGHWAY_ALL_REPORTS.length === 0 ? 'No Highway Partners visits loaded yet.' : 'No reports match the current filters.'}</div>`
+    : pageReports.map(rec => `<div class="${civrCardWrapperClass(rec)}" id="hwr-card-${rec.id}">${hwrCardHtml(rec)}</div>`).join('');
+
+  const u = civCurrentUser();
+  const topBannerHtml = usingEmbeddedSnapshot ? renderCivReadOnlyBanner() : '';
+  const identityHtml = u ? `<div class="civauth-identity">Logged in as: <strong>${escHtml(u.fullName)}</strong> (${escHtml(u.role)}) · Last Activity: ${civLastActivityAt ? new Date(civLastActivityAt).toLocaleTimeString() : '—'} <span class="civauth-signout" onclick="civSignOut()">Log out</span></div>` : '';
+  const dashHtml = u ? `<div class="civauth-dash">
+    <div class="civauth-dash-stats">
+      <span>Current User: <b>${escHtml(u.fullName)}</b></span>
+      <span>Last Login: <b>${civFmtWhen(civSessionLoginAt)}</b></span>
+      <span>Unsaved Changes: <b>${fmtNum(civDirtySet.size)}</b></span>
+      <span>Changes Today: <b>${fmtNum(civChangesTodayCount)}</b></span>
+      <span>Last Saved Version: <b>${civLastSavedVersionId ? civFmtVersion(civLastSavedVersionId) : '—'}</b></span>
+    </div>
+    <div class="civauth-dash-actions">
+      <button class="civauth-dash-btn" ${civCanEdit() && civDirtySet.size ? '' : 'disabled'} onclick="civSaveAllDirty()">Save Changes</button>
+      <button class="civauth-dash-btn" onclick="civOpenHistoryModal()">Change History</button>
+      <button class="civauth-dash-btn" onclick="civOpenActivityModal()">Activity Log</button>
+      ${civCanAdmin() ? `<button class="civauth-dash-btn" onclick="civOpenHistoryModal()">Restore Version</button>` : ''}
+    </div>
+  </div>` : '';
+
+  el.innerHTML = `
+  ${topBannerHtml}
+  <div class="civr-header">
+    <div>
+      <h1>Highway Partners Reviews</h1>
+      <div class="civr-progress-wrap">
+        <div class="civr-progress-bar"><div class="civr-progress-fill" style="width:${stats.total?Math.round(stats.sub/stats.total*100):0}%"></div></div>
+        <span class="civr-progress-text">${fmtNum(stats.sub)} of ${fmtNum(stats.total)} submitted</span>
+      </div>
+      ${identityHtml}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="civr-export-btn" onclick="hwrExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="hwrExportCSV('24h')" title="Only evaluations submitted in the past 24 hours">Export Last 24 Hrs</button>
+      <button class="civr-export-btn" onclick="hwrExportCSV('7d')" title="Only evaluations submitted today and the previous 7 days">Export Last 7 Days</button>
+      <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
+    </div>
+  </div>
+  ${dashHtml}
+
+  <div class="civr-stats-bar">
+    <div class="civr-stat"><span class="civr-slabel">Total</span><span class="civr-sval">${fmtNum(stats.total)}</span></div>
+    <div class="civr-stat civr-blue"><span class="civr-slabel">Submitted</span><span class="civr-sval">${fmtNum(stats.sub)}</span></div>
+    <div class="civr-stat civr-green"><span class="civr-slabel">Strip confirmed</span><span class="civr-sval">${fmtNum(stats.stripY)}</span></div>
+    <div class="civr-stat civr-red"><span class="civr-slabel">Needs product</span><span class="civr-sval">${fmtNum(stats.needsY)}</span></div>
+    <div class="civr-stat civr-amber"><span class="civr-slabel">Flagged</span><span class="civr-sval">${fmtNum(stats.flagC)}</span></div>
+    <div class="civr-stat"><span class="civr-slabel">Pending</span><span class="civr-sval">${fmtNum(stats.pend)}</span></div>
+  </div>
+
+  <div class="civr-filters">
+    <label>Chain:</label>
+    <select class="civr-select" onchange="hwrSetFilter('chain', this.value)">
+      <option value="">All chains</option>
+      ${chains.map(c=>`<option value="${esc(c)}" ${hwrFilters.chain===c?'selected':''}>${escHtml(c)}</option>`).join('')}
+    </select>
+    <label>Status:</label>
+    <select class="civr-select" onchange="hwrSetFilter('status', this.value)">
+      <option value="">All</option>
+      <option value="pending" ${hwrFilters.status==='pending'?'selected':''}>Pending</option>
+      <option value="done" ${hwrFilters.status==='done'?'selected':''}>Submitted</option>
+    </select>
+    <label>Tobacco reset:</label>
+    <select class="civr-select" onchange="hwrSetFilter('tobaccoReset', this.value)">
+      <option value="">All</option>
+      <option value="Yes" ${hwrFilters.tobaccoReset==='Yes'?'selected':''}>Completed</option>
+      <option value="No" ${hwrFilters.tobaccoReset==='No'?'selected':''}>Not completed</option>
+    </select>
+    <label>Needs product:</label>
+    <select class="civr-select" onchange="hwrSetFilter('needsProduct', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${hwrFilters.needsProduct==='yes'?'selected':''}>Needs product</option>
+      <option value="no" ${hwrFilters.needsProduct==='no'?'selected':''}>Stock OK</option>
+    </select>
+    <label>Product there:</label>
+    <select class="civr-select" onchange="hwrSetFilter('productThere', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${hwrFilters.productThere==='yes'?'selected':''}>Yes</option>
+      <option value="no" ${hwrFilters.productThere==='no'?'selected':''}>No</option>
+      <option value="blank" ${hwrFilters.productThere==='blank'?'selected':''}>Not answered</option>
+    </select>
+    <label>Flagged:</label>
+    <select class="civr-select" onchange="hwrSetFilter('flagged', this.value)">
+      <option value="">All</option>
+      <option value="yes" ${hwrFilters.flagged==='yes'?'selected':''}>Flagged only</option>
+    </select>
+    ${civDateFilterControlHtml('hwr', hwrFilters, hwrDatePicker)}
+    <input type="text" class="search-box" placeholder="🔍 Search by address, store #, city…" value="${esc(hwrSearchQuery)}" oninput="hwrSetSearch(this.value)" style="min-width:220px;">
+    <span class="civr-reset" onclick="hwrResetFilters()">Reset filters</span>
+  </div>
+
+  ${civCanEdit() ? `<div class="civr-bulk-bar">
+    <span class="civr-bulk-count">${fmtNum(filtered.length)} report${filtered.length===1?'':'s'} currently filtered</span>
+    <button class="civr-bulk-btn civr-bulk-submit" onclick="hwrBulkSubmit()">⇧ Submit all filtered</button>
+    ${hwrBulkMsg ? `<span class="civr-bulk-msg">${escHtml(hwrBulkMsg)}</span>` : ''}
+  </div>` : ''}
+
+  <div class="civr-main">
+    ${cardsHtml}
+    <div class="civr-pager">
+      <button class="civr-page-btn" onclick="hwrChangePage(-${HWR_JUMP_PAGES})" ${hwrPage<=0?'disabled':''}>← Prev 50</button>
+      <button class="civr-page-btn" onclick="hwrChangePage(-1)" ${hwrPage<=0?'disabled':''}>← Prev</button>
+      <span class="civr-page-info">${filtered.length===0?'':`${start+1}–${Math.min(start+HWR_PAGE_SIZE, filtered.length)} of ${filtered.length}`}</span>
+      <button class="civr-page-btn" onclick="hwrChangePage(1)" ${hwrPage>=totalPages-1?'disabled':''}>Next →</button>
+      <button class="civr-page-btn" onclick="hwrChangePage(${HWR_JUMP_PAGES})" ${hwrPage>=totalPages-1?'disabled':''}>Next 50 →</button>
+    </div>
+  </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // ACTION CENTER + REVIEW WORKFLOW (localStorage-backed)
 // ══════════════════════════════════════════════════════════════════════════
 const ACTION_TYPES = ['Ship new shelf strip','Force out product','Schedule merchandising visit','Increase inventory','Replace display','Meet with store manager','Promotional follow-up','Customer impact visit','POP compliance issue','Follow up on missing data','Other'];
@@ -6524,7 +6898,7 @@ function printCurrentView() { window.print(); }
   style.textContent = `
     .topbar, .detail-panel, .ac-toolbar, .breadcrumb .bc-link, select, .ac-btn { display:none !important; }
     .body, .content { display:block !important; overflow:visible !important; height:auto !important; }
-    #view-overview, #view-civisitreview, #view-eileenvisitreview, #view-extravisitreview { display:block !important; overflow:visible !important; padding:0 !important; }
+    #view-overview, #view-civisitreview, #view-eileenvisitreview, #view-highwayreview, #view-extravisitreview { display:block !important; overflow:visible !important; padding:0 !important; }
     .chart-card, .kpi-card, .drill-card { break-inside:avoid; }
     body { background:#fff !important; overflow:visible !important; height:auto !important; }
     /* When a report detail is open, print only the report: show .detail-panel in normal flow
@@ -8020,6 +8394,7 @@ async function loadAllData() {
     CI = snap.CI; EILEEN = snap.EILEEN; CLARKS = snap.CLARKS || []; CHAINS = snap.CHAINS; SALES = snap.SALES; DOORS = snap.DOORS;
     CHAIN_PROGRAMS = snap.CHAIN_PROGRAMS || []; // absent from older snapshots until the next artifact rebuild -- degrades to "Not Tracked" everywhere, never an error
     EXTRA_VISITS = snap.EXTRA_VISITS || []; // same "absent from older snapshots" degradation as CHAIN_PROGRAMS above
+    HIGHWAY = snap.HIGHWAY || []; // same degradation: absent from older snapshots -> empty Highway Partners Reviews tab, never an error
     buildDerivedIndexes();
     // No live Supabase connection on this build -- Actions/Report Status fall back to this
     // browser's own localStorage, same as the whole dashboard did before this migration.
@@ -8075,6 +8450,25 @@ async function loadAllData() {
   } catch (err) {
     console.error('Extra Visit Reviews data load failed (tab will show empty until the extra_visits migration is run):', err);
     EXTRA_VISITS = []; EXTRA_STATUS_CACHE = {}; EXTRA_VERDICT_CACHE = {};
+  }
+
+  // Highway Partners Reviews' visits table -- same "fetch OUTSIDE the main Promise.all, own try/catch"
+  // rule as Extra above (a missing table must never empty the whole app). Its reviewer status/verdicts
+  // arrive through the shared report_status/report_verdicts fetches above (src:'highway').
+  try {
+    const highwayRows = await sbFetchAll('highway_visits', 'id');
+    HIGHWAY = highwayRows.map(v => ({
+      id: v.id, src: 'highway', ch: v.chain, storeName: v.store_name, storeNo: v.store_no,
+      a: v.address, ci: v.city, st: v.state, zip: v.zip, vd: v.visit_date,
+      missionName: v.mission_name, missionId: v.mission_id, placeId: v.place_id, phone: v.phone,
+      tobaccoReset: v.tobacco_reset, pogType: v.pog_type, slidebySize: v.slideby_size,
+      pricersInPlace: v.pricers_in_place, signPlateInPlace: v.sign_plate_in_place,
+      notes: v.notes, ph: Array.isArray(v.photos) ? v.photos : [], doorKey: v.door_key
+    }));
+    buildHighwayIndex();
+  } catch (err) {
+    console.error('Highway Partners Reviews data load failed (tab will show empty until migrate_highway_reviews_schema.sql is run):', err);
+    HIGHWAY = []; buildHighwayIndex();
   }
 
   ACTIONS_CACHE = actionsRows.map(a => ({
