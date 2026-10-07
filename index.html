@@ -6264,7 +6264,9 @@ function hwrPhotosHtml(rec) {
       : `<div class="civr-photo-wrap"><div class="civr-no-photo">No photo</div></div>`;
     return `<div class="civr-photo-col"><div class="civr-plabel">${escHtml(label)}</div>${cell}</div>`;
   }).join('');
-  const viewAll = urls.length > 1 ? `<div class="civr-view-all" onclick="openLightbox('${esc(urls[0])}', ${lit}, 0)">View all ${urls.length} photos →</div>` : '';
+  // Only offer "View all" when some photos don't fit in the named slots (same rule as CI's "more than 3").
+  const shown = labels.filter(l => all.some(x => x.label === l)).length;
+  const viewAll = urls.length > shown ? `<div class="civr-view-all" onclick="openLightbox('${esc(urls[0])}', ${lit}, 0)">View all ${urls.length} photos →</div>` : '';
   return `<div class="civr-photos-row">${cols}</div>${viewAll}`;
 }
 
