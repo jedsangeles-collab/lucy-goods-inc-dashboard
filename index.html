@@ -5007,10 +5007,10 @@ function civrDatePickerNav(dir) { civDatePickerNavShared(civrDatePicker, dir, re
 function civrDatePickerApply() { civDatePickerApplyShared(civrFilters, civrDatePicker, renderCiVisitReview); civrPage = 0; }
 function civrDatePickerCancel() { civDatePickerCancelShared(civrFilters, civrDatePicker, renderCiVisitReview); }
 let civrPage = 0;
-const CIVR_PAGE_SIZE = 6; // matches the reference prototype's own PER_PAGE exactly
+const CIVR_PAGE_SIZE = 10; // 10 cards per page on every Visit Review tab (was 6, the reference prototype's PER_PAGE)
 // "Next/Prev 50" jump by roughly 50 records at a time -- expressed as a page delta since
-// pagination here is page-indexed, not record-offset-indexed (Math.round(50/6)=8 pages, 48
-// records; close enough to "50" that re-deriving a record-offset pager wasn't worth it).
+// pagination here is page-indexed, not record-offset-indexed (Math.round(50/10)=5 pages, exactly 50
+// records now that the page size divides 50 evenly).
 const CIVR_JUMP_PAGES = Math.round(50 / CIVR_PAGE_SIZE);
 let civrBulkMsg = '';
 let civrSearchQuery = '';
@@ -5556,7 +5556,7 @@ function eivrDatePickerNav(dir) { civDatePickerNavShared(eivrDatePicker, dir, re
 function eivrDatePickerApply() { civDatePickerApplyShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); eivrPage = 0; }
 function eivrDatePickerCancel() { civDatePickerCancelShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); }
 let eivrPage = 0;
-const EIVR_PAGE_SIZE = 6;
+const EIVR_PAGE_SIZE = 10;
 // See CIVR_JUMP_PAGES's comment -- same "Next/Prev 50" approximation, page-indexed pagination.
 const EIVR_JUMP_PAGES = Math.round(50 / EIVR_PAGE_SIZE);
 let eivrBulkMsg = '';
@@ -5890,7 +5890,7 @@ let extraFilters = Object.assign({ chain:'', evaluator:'', status:'', flagged:''
 let extraDatePicker = civDatePickerBlank();
 let extraSearchQuery = '';
 let extraPage = 0;
-const EXTRA_PAGE_SIZE = 8;
+const EXTRA_PAGE_SIZE = 10;
 const EXTRA_JUMP_PAGES = Math.round(50 / EXTRA_PAGE_SIZE);
 let extraBulkMsg = '';
 
@@ -6145,7 +6145,7 @@ function hwrDatePickerNav(dir) { civDatePickerNavShared(hwrDatePicker, dir, rend
 function hwrDatePickerApply() { civDatePickerApplyShared(hwrFilters, hwrDatePicker, renderHighwayReview); hwrPage = 0; }
 function hwrDatePickerCancel() { civDatePickerCancelShared(hwrFilters, hwrDatePicker, renderHighwayReview); }
 let hwrPage = 0;
-const HWR_PAGE_SIZE = 6;
+const HWR_PAGE_SIZE = 10;
 const HWR_JUMP_PAGES = Math.round(50 / HWR_PAGE_SIZE); // same page-indexed "Next/Prev 50" approximation as CIVR_JUMP_PAGES
 let hwrBulkMsg = '';
 let hwrSearchQuery = '';
