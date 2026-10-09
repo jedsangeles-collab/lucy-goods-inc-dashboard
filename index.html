@@ -3966,7 +3966,7 @@ function setReportVerdict(rec, verdict) {
   }
   // CI, poppromo and Eileen all write the same 8 Standard Fields for Review columns.
   const row = Object.assign({ src: rec.src, report_id: rec.id }, stdReviewToDb(verdict), { notes: verdict.notes, flag: verdict.flag, updated_at: updatedAt });
-  if (rec.src === 'eileen') {
+  if (rec.src === 'eileen' || rec.src === 'highway') {
     // Decision fields are recomputed fresh here (not just copied off the draft) so a save always
     // reflects the CURRENT door velocity + CURRENT Correct shelf strip? answer, even if something
     // upstream changed between when the card last rendered and when Submit was actually clicked.
@@ -4442,7 +4442,7 @@ function civPrevVersionFor(reportId, beforeVersionId) {
   return versions[0] || null;
 }
 function civBlankVerdictSnapshot(src) {
-  return Object.assign(stdReviewBlank(), src === 'eileen' ? { decisionOverride: null } : {}, { notes: '', flag: false });
+  return Object.assign(stdReviewBlank(), (src === 'eileen' || src === 'highway') ? { decisionOverride: null } : {}, { notes: '', flag: false });
 }
 
 const STD_DIFF_FIELDS = STD_REVIEW_FIELDS.map(f => [f.key, f.label]);
@@ -4450,7 +4450,7 @@ const EIV_DIFF_FIELDS = STD_DIFF_FIELDS.concat([['decisionOverride','Decision Ov
 const CIV_DIFF_FIELDS = STD_DIFF_FIELDS.concat([['notes','Notes'],['flag','Flagged']]);
 function civDiffHtml(current, target) {
   const src = current.src || target.src;
-  const fields = src === 'eileen' ? EIV_DIFF_FIELDS : CIV_DIFF_FIELDS;
+  const fields = (src === 'eileen' || src === 'highway') ? EIV_DIFF_FIELDS : CIV_DIFF_FIELDS;
   const fmt = (f, v) => {
     const std = STD_REVIEW_FIELDS.find(x => x.key === f);
     if (std) { const s = stdReviewDisplay(std, v); return s === '' ? '—' : s; }
@@ -5535,14 +5535,14 @@ function eivComputeSystemRecommendation(rec, draft) {
   else recommendation = 'send_shelf_strip'; // covers false, 'na', and unanswered (null) alike
   return { recommendation, vel, meetsThreshold };
 }
-function eivSetDecisionOverride(id, value) {
+function eivSetDecisionOverride(id, value, src = 'eileen') {
   if (!civCanEdit()) return;
-  const rec = { src: 'eileen', id };
+  const rec = { src, id };
   const draft = civDraftVerdict(rec);
   const prev = draft.decisionOverride;
   draft.decisionOverride = value;
   civDirtySet.add(reportKey(rec));
-  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'decisionOverride', previous_value: prev, new_value: draft.decisionOverride });
+  civLogAudit('edit', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, field: 'decisionOverride', previous_value: prev, new_value: draft.decisionOverride });
   civRerenderActive();
 }
 
@@ -6283,8 +6283,31 @@ function hwrVerdictBarHtml(rec, draft, status) {
   const canEdit = civCanEdit();
   const dis = canEdit ? '' : 'disabled';
   const isDirty = civDirtySet.has(reportKey(rec));
+  // Decision: same model as Eileen Visit Review -- system recommendation derived live from the door's real
+  // sales history (up to 6 months, /4.33 per month) + the Correct shelf strip? answer, with a manual override.
+  // Stores with no sales history (all of Sheetz, which only has chain totals) skip the velocity gate and
+  // are decided from Correct shelf strip? alone, per the same rule Eileen uses.
+  const dec = eivComputeSystemRecommendation(rec, draft);
+  const finalDecision = draft.decisionOverride || dec.recommendation;
+  const decisionStatus = (draft.decisionOverride && draft.decisionOverride !== dec.recommendation) ? 'manual_override' : 'automatic';
+  const velLine = dec.vel.avg !== null
+    ? `${dec.vel.monthsUsed}-Month Avg Velocity: ${dec.vel.avg.toFixed(1)} units/wk (${civFmtMonthLabel(dec.vel.periodStart)} – ${civFmtMonthLabel(dec.vel.periodEnd)})`
+    : 'No sales history on file';
+  const thresholdStatusLabel = dec.vel.avg === null ? 'N/A (no data)' : (dec.meetsThreshold ? 'Meets Threshold' : 'Below Threshold');
   return `<div class="civr-verdict-bar">
     ${stdReviewFieldsHtml(draft, dis, civStdCall('highway', rec.id))}
+    <div class="civr-vq">
+      <div class="civr-vq-label">Decision</div>
+      <select class="civr-select" ${dis} onchange="eivSetDecisionOverride(${rec.id}, this.value, 'highway')">
+        <option value="no_action_needed" ${finalDecision==='no_action_needed'?'selected':''}>No Action Needed</option>
+        <option value="send_shelf_strip" ${finalDecision==='send_shelf_strip'?'selected':''}>Send Shelf Strip</option>
+        <option value="customer_impact_visit" ${finalDecision==='customer_impact_visit'?'selected':''}>Customer Impact Visit</option>
+      </select>
+      <div class="civr-vq-pre">${esc(velLine)}</div>
+      <div class="civr-vq-pre">Threshold: ${EIV_DECISION_THRESHOLD} units/wk &middot; ${thresholdStatusLabel}</div>
+      <div class="civr-vq-pre" style="font-style:italic;">System Rec: ${EIV_DECISION_LABELS[dec.recommendation]}</div>
+      <span class="civr-tbtn ${decisionStatus==='manual_override'?'civr-on-na':'civr-on-yes'}" style="pointer-events:none; display:inline-block; margin-top:2px;">${decisionStatus==='manual_override'?'Manually Overridden':'Automatic'}</span>
+    </div>
     <div class="civr-submit-col">
       <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict('highway', ${rec.id})">${locked?'Submitted ✓':'Submit ✓'}</button>
       <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag('highway', ${rec.id})">⚑ Flag</button>
@@ -6312,6 +6335,7 @@ function hwrCardHtml(rec) {
     ${hwrFieldNotesHtml(rec)}
     ${hwrPhotosHtml(rec)}
     ${civrVelocityHtml(rec)}
+    ${rec.ch === 'Sheetz' && !civrVelocitySnapshot(rec) ? `<div class="civr-vq-pre" style="margin-top:4px;">Sheetz sales are only on file as chain totals (no store-level data), so Weekly Velocity can't be calculated for Sheetz stores.</div>` : ''}
   </div>
   ${hwrVerdictBarHtml(rec, draft, status)}
   ${civrSubmittedBannerHtml(rec, draft, status)}`;
@@ -6321,12 +6345,16 @@ function hwrExportCSV(range) {
   const src = range ? HIGHWAY_ALL_REPORTS.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : HIGHWAY_ALL_REPORTS;
   const rows = src.map(rec => {
     const draft = civDraftVerdict(rec);
+    const dec = eivComputeSystemRecommendation(rec, draft);
+    const finalDecision = draft.decisionOverride || dec.recommendation;
+    const decisionStatus = (draft.decisionOverride && draft.decisionOverride !== dec.recommendation) ? 'Manually Overridden' : 'Automatic';
     return {
       Chain: rec.ch||'', Store: rec.storeName||'', StoreNumber: rec.storeNo||'', Address: rec.a||'', City: rec.ci||'', State: rec.st||'', Zip: rec.zip||'',
       VisitDate: rec.vd||'', MissionResponseID: rec.id,
       TobaccoResetCompleted: rec.tobaccoReset||'', POGType: rec.pogType||'', SlideByPOGSize: rec.slidebySize||'',
       SignPlatePOSInsert: rec.signPlateInPlace||'', PricersFlipSigns: rec.pricersInPlace||'', SourceNotes: rec.notes||'',
       ...stdReviewCsvCols(draft),
+      Decision: EIV_DECISION_LABELS[finalDecision]||'', SystemRecommendation: EIV_DECISION_LABELS[dec.recommendation]||'', DecisionStatus: decisionStatus,
       Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No',
       SubmittedAt: getReportStatus(rec)==='Reviewed' ? fmtSubmittedAt(getReportStatusUpdatedAt(rec)) : '',
@@ -8488,7 +8516,7 @@ async function loadAllData() {
     // override -- only when the last save was actually a manual override, so an 'automatic' save
     // keeps live-following the system recommendation on future loads.
     REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = Object.assign(stdReviewFromDb(rv),
-      rv.src === 'eileen' ? { decisionOverride: rv.decision_status === 'manual_override' ? rv.decision : null } : {},
+      (rv.src === 'eileen' || rv.src === 'highway') ? { decisionOverride: rv.decision_status === 'manual_override' ? rv.decision : null } : {},
       { notes: rv.notes || '', flag: !!rv.flag, updatedAt: rv.updated_at });
   });
 }
