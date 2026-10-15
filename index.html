@@ -1012,9 +1012,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 }
 .logo{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:var(--orange);letter-spacing:-0.5px;margin-right:32px;white-space:nowrap;}
 .logo em{color:var(--muted);font-style:normal;font-weight:400;}
-.nav-tabs{display:flex;gap:2px;flex:1;}
+/* 9 tabs no longer fit a laptop-width window: let the tab strip scroll sideways instead of clipping the last tabs off-screen */
+.nav-tabs{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;}
+.nav-tabs::-webkit-scrollbar{height:4px;}
+.nav-tabs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 .tab{
-  padding:0 18px;height:52px;display:flex;align-items:center;gap:7px;
+  flex-shrink:0;
+  padding:0 15px;height:52px;display:flex;align-items:center;gap:7px;
   font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;
   border-bottom:2px solid transparent;margin-bottom:-1px;
   transition:color .15s,border-color .15s;white-space:nowrap;
@@ -1023,6 +1027,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .tab.active{color:var(--text);border-bottom-color:var(--orange);}
 .tab-icon{font-size:15px;}
 .topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+/* the long data-count badge was crowding the tab strip off laptop-width screens (9 tabs now) -- hide just it below 1500px */
+@media (max-width:1500px){ .sync-badge{display:none;} }
 .sync-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:3px 9px;border-radius:20px;white-space:nowrap;}
 #load-overlay{position:fixed;inset:0;z-index:2000;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px;}
 .load-overlay-spinner{width:36px;height:36px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--orange);animation:load-spin 0.8s linear infinite;}
@@ -1184,152 +1190,187 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
    layout), NOT from this dashboard's Report Review tab -- deliberately its own visual language,
    scoped entirely under #view-civisitreview / civr- prefixed classes so it can't leak into or
    collide with the rest of the app. */
-#view-civisitreview .civr-header, #view-eileenvisitreview .civr-header, #view-highwayreview .civr-header, #view-extravisitreview .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
-#view-civisitreview .civr-header h1, #view-eileenvisitreview .civr-header h1, #view-highwayreview .civr-header h1, #view-extravisitreview .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civr-progress-wrap, #view-eileenvisitreview .civr-progress-wrap, #view-highwayreview .civr-progress-wrap, #view-extravisitreview .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
-#view-civisitreview .civr-progress-bar, #view-eileenvisitreview .civr-progress-bar, #view-highwayreview .civr-progress-bar, #view-extravisitreview .civr-progress-bar{width:220px;height:4px;background:#e0ddd6;border-radius:2px;overflow:hidden;}
-#view-civisitreview .civr-progress-fill, #view-eileenvisitreview .civr-progress-fill, #view-highwayreview .civr-progress-fill, #view-extravisitreview .civr-progress-fill{height:100%;background:#2a7a2a;border-radius:2px;transition:width 0.3s;}
-#view-civisitreview .civr-progress-text, #view-eileenvisitreview .civr-progress-text, #view-highwayreview .civr-progress-text, #view-extravisitreview .civr-progress-text{font-size:12px;color:#888;}
-#view-civisitreview .civr-export-btn, #view-eileenvisitreview .civr-export-btn, #view-highwayreview .civr-export-btn, #view-extravisitreview .civr-export-btn{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid #bbb;background:#fff;color:#1a1a18;cursor:pointer;font-weight:500;}
-#view-civisitreview .civr-export-btn:hover, #view-eileenvisitreview .civr-export-btn:hover, #view-highwayreview .civr-export-btn:hover, #view-extravisitreview .civr-export-btn:hover{background:#f0efe8;}
-#view-civisitreview .civr-stats-bar, #view-eileenvisitreview .civr-stats-bar, #view-highwayreview .civr-stats-bar, #view-extravisitreview .civr-stats-bar{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;}
-#view-civisitreview .civr-stat, #view-eileenvisitreview .civr-stat, #view-highwayreview .civr-stat, #view-extravisitreview .civr-stat{display:flex;flex-direction:column;gap:1px;}
-#view-civisitreview .civr-slabel, #view-eileenvisitreview .civr-slabel, #view-highwayreview .civr-slabel, #view-extravisitreview .civr-slabel{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;}
-#view-civisitreview .civr-sval, #view-eileenvisitreview .civr-sval, #view-highwayreview .civr-sval, #view-extravisitreview .civr-sval{font-size:22px;font-weight:700;color:#1a1a18;}
-#view-civisitreview .civr-stat.civr-green .civr-sval, #view-eileenvisitreview .civr-stat.civr-green .civr-sval, #view-highwayreview .civr-stat.civr-green .civr-sval, #view-extravisitreview .civr-stat.civr-green .civr-sval{color:#1a7a1a;}
-#view-civisitreview .civr-stat.civr-red .civr-sval, #view-eileenvisitreview .civr-stat.civr-red .civr-sval, #view-highwayreview .civr-stat.civr-red .civr-sval, #view-extravisitreview .civr-stat.civr-red .civr-sval{color:#b03020;}
-#view-civisitreview .civr-stat.civr-blue .civr-sval, #view-eileenvisitreview .civr-stat.civr-blue .civr-sval, #view-highwayreview .civr-stat.civr-blue .civr-sval, #view-extravisitreview .civr-stat.civr-blue .civr-sval{color:#1a5fa0;}
-#view-civisitreview .civr-stat.civr-amber .civr-sval, #view-eileenvisitreview .civr-stat.civr-amber .civr-sval, #view-highwayreview .civr-stat.civr-amber .civr-sval, #view-extravisitreview .civr-stat.civr-amber .civr-sval{color:#8a5000;}
-#view-civisitreview .civr-filters, #view-eileenvisitreview .civr-filters, #view-highwayreview .civr-filters, #view-extravisitreview .civr-filters{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-#view-civisitreview .civr-filters label, #view-eileenvisitreview .civr-filters label, #view-highwayreview .civr-filters label, #view-extravisitreview .civr-filters label{font-size:12px;color:#666;font-weight:500;}
-#view-civisitreview .civr-select, #view-eileenvisitreview .civr-select, #view-highwayreview .civr-select, #view-extravisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
-#view-civisitreview .civr-reset, #view-eileenvisitreview .civr-reset, #view-highwayreview .civr-reset, #view-extravisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
-#view-civisitreview .civr-reset:hover, #view-eileenvisitreview .civr-reset:hover, #view-highwayreview .civr-reset:hover, #view-extravisitreview .civr-reset:hover{text-decoration:underline;}
-#view-civisitreview .civdate-filter-wrap, #view-eileenvisitreview .civdate-filter-wrap, #view-highwayreview .civdate-filter-wrap, #view-extravisitreview .civdate-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;}
-#view-civisitreview .civdate-display, #view-eileenvisitreview .civdate-display, #view-highwayreview .civdate-display, #view-extravisitreview .civdate-display{font-size:12px;color:#1a5fa0;font-weight:600;background:#e3f0ff;padding:3px 8px;border-radius:6px;white-space:nowrap;}
-#view-civisitreview .civdate-picker, #view-eileenvisitreview .civdate-picker, #view-highwayreview .civdate-picker, #view-extravisitreview .civdate-picker{position:absolute;top:calc(100% + 6px);left:0;z-index:50;background:#fff;border:1px solid #e0ddd6;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:12px;width:230px;}
-#view-civisitreview .civdate-picker-header, #view-eileenvisitreview .civdate-picker-header, #view-highwayreview .civdate-picker-header, #view-extravisitreview .civdate-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-#view-civisitreview .civdate-month-label, #view-eileenvisitreview .civdate-month-label, #view-highwayreview .civdate-month-label, #view-extravisitreview .civdate-month-label{font-size:13px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civdate-nav, #view-eileenvisitreview .civdate-nav, #view-highwayreview .civdate-nav, #view-extravisitreview .civdate-nav{cursor:pointer;font-size:15px;color:#1a5fa0;padding:2px 8px;border-radius:4px;user-select:none;}
-#view-civisitreview .civdate-nav:hover, #view-eileenvisitreview .civdate-nav:hover, #view-highwayreview .civdate-nav:hover, #view-extravisitreview .civdate-nav:hover{background:#f0f0ee;}
-#view-civisitreview .civdate-grid, #view-eileenvisitreview .civdate-grid, #view-highwayreview .civdate-grid, #view-extravisitreview .civdate-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;}
-#view-civisitreview .civdate-dow, #view-eileenvisitreview .civdate-dow, #view-highwayreview .civdate-dow, #view-extravisitreview .civdate-dow{font-size:10px;color:#999;text-transform:uppercase;font-weight:600;text-align:center;}
-#view-civisitreview .civdate-cell, #view-eileenvisitreview .civdate-cell, #view-highwayreview .civdate-cell, #view-extravisitreview .civdate-cell{font-size:12px;text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;color:#1a1a18;}
-#view-civisitreview .civdate-cell:hover, #view-eileenvisitreview .civdate-cell:hover, #view-highwayreview .civdate-cell:hover, #view-extravisitreview .civdate-cell:hover{background:#f0f0ee;}
-#view-civisitreview .civdate-cell.civdate-blank, #view-eileenvisitreview .civdate-cell.civdate-blank, #view-highwayreview .civdate-cell.civdate-blank, #view-extravisitreview .civdate-cell.civdate-blank{cursor:default;}
-#view-civisitreview .civdate-cell.civdate-blank:hover, #view-eileenvisitreview .civdate-cell.civdate-blank:hover, #view-highwayreview .civdate-cell.civdate-blank:hover, #view-extravisitreview .civdate-cell.civdate-blank:hover{background:none;}
-#view-civisitreview .civdate-cell.civdate-in-range, #view-eileenvisitreview .civdate-cell.civdate-in-range, #view-highwayreview .civdate-cell.civdate-in-range, #view-extravisitreview .civdate-cell.civdate-in-range{background:#e3f0ff;border-radius:0;}
-#view-civisitreview .civdate-cell.civdate-range-start, #view-eileenvisitreview .civdate-cell.civdate-range-start, #view-highwayreview .civdate-cell.civdate-range-start,
-#view-civisitreview .civdate-cell.civdate-range-end, #view-eileenvisitreview .civdate-cell.civdate-range-end, #view-highwayreview .civdate-cell.civdate-range-end, #view-extravisitreview .civdate-cell.civdate-range-end{background:#1a5fa0;color:#fff;font-weight:600;}
-#view-civisitreview .civdate-picker-footer, #view-eileenvisitreview .civdate-picker-footer, #view-highwayreview .civdate-picker-footer, #view-extravisitreview .civdate-picker-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
-#view-civisitreview .civdate-range-label, #view-eileenvisitreview .civdate-range-label, #view-highwayreview .civdate-range-label, #view-extravisitreview .civdate-range-label{font-size:11px;color:#666;}
-#view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar, #view-highwayreview .civr-bulk-bar, #view-extravisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-#view-civisitreview .civr-bulk-count, #view-eileenvisitreview .civr-bulk-count, #view-highwayreview .civr-bulk-count, #view-extravisitreview .civr-bulk-count{font-size:13px;color:#666;}
-#view-civisitreview .civr-bulk-btn, #view-eileenvisitreview .civr-bulk-btn, #view-highwayreview .civr-bulk-btn, #view-extravisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
-#view-civisitreview .civr-bulk-no, #view-eileenvisitreview .civr-bulk-no, #view-highwayreview .civr-bulk-no, #view-extravisitreview .civr-bulk-no{border-color:#c03020;background:#fdecea;color:#8a1010;}
-#view-civisitreview .civr-bulk-yes, #view-eileenvisitreview .civr-bulk-yes, #view-highwayreview .civr-bulk-yes, #view-extravisitreview .civr-bulk-yes{border-color:#2a7a2a;background:#e6f5e6;color:#1a5a1a;}
-#view-civisitreview .civr-bulk-submit, #view-eileenvisitreview .civr-bulk-submit, #view-highwayreview .civr-bulk-submit, #view-extravisitreview .civr-bulk-submit{border-color:#1a5fa0;background:#e3f0ff;color:#1a4a80;}
-#view-civisitreview .civr-bulk-msg, #view-eileenvisitreview .civr-bulk-msg, #view-highwayreview .civr-bulk-msg, #view-extravisitreview .civr-bulk-msg{font-size:12px;color:#2a7a2a;font-weight:600;}
-#view-civisitreview .civr-main, #view-eileenvisitreview .civr-main, #view-highwayreview .civr-main, #view-extravisitreview .civr-main{max-width:1000px;width:100%;margin:0 auto;padding:16px;}
+#view-civisitreview .civr-header, #view-eileenvisitreview .civr-header, #view-highwayreview .civr-header, #view-reviewersummary .civr-header, #view-extravisitreview .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+#view-civisitreview .civr-header h1, #view-eileenvisitreview .civr-header h1, #view-highwayreview .civr-header h1, #view-reviewersummary .civr-header h1, #view-extravisitreview .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-progress-wrap, #view-eileenvisitreview .civr-progress-wrap, #view-highwayreview .civr-progress-wrap, #view-reviewersummary .civr-progress-wrap, #view-extravisitreview .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
+#view-civisitreview .civr-progress-bar, #view-eileenvisitreview .civr-progress-bar, #view-highwayreview .civr-progress-bar, #view-reviewersummary .civr-progress-bar, #view-extravisitreview .civr-progress-bar{width:220px;height:4px;background:#e0ddd6;border-radius:2px;overflow:hidden;}
+#view-civisitreview .civr-progress-fill, #view-eileenvisitreview .civr-progress-fill, #view-highwayreview .civr-progress-fill, #view-reviewersummary .civr-progress-fill, #view-extravisitreview .civr-progress-fill{height:100%;background:#2a7a2a;border-radius:2px;transition:width 0.3s;}
+#view-civisitreview .civr-progress-text, #view-eileenvisitreview .civr-progress-text, #view-highwayreview .civr-progress-text, #view-reviewersummary .civr-progress-text, #view-extravisitreview .civr-progress-text{font-size:12px;color:#888;}
+#view-civisitreview .civr-export-btn, #view-eileenvisitreview .civr-export-btn, #view-highwayreview .civr-export-btn, #view-reviewersummary .civr-export-btn, #view-extravisitreview .civr-export-btn{font-size:12px;padding:6px 16px;border-radius:6px;border:1px solid #bbb;background:#fff;color:#1a1a18;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-export-btn:hover, #view-eileenvisitreview .civr-export-btn:hover, #view-highwayreview .civr-export-btn:hover, #view-reviewersummary .civr-export-btn:hover, #view-extravisitreview .civr-export-btn:hover{background:#f0efe8;}
+#view-civisitreview .civr-stats-bar, #view-eileenvisitreview .civr-stats-bar, #view-highwayreview .civr-stats-bar, #view-reviewersummary .civr-stats-bar, #view-extravisitreview .civr-stats-bar{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;}
+#view-civisitreview .civr-stat, #view-eileenvisitreview .civr-stat, #view-highwayreview .civr-stat, #view-reviewersummary .civr-stat, #view-extravisitreview .civr-stat{display:flex;flex-direction:column;gap:1px;}
+#view-civisitreview .civr-slabel, #view-eileenvisitreview .civr-slabel, #view-highwayreview .civr-slabel, #view-reviewersummary .civr-slabel, #view-extravisitreview .civr-slabel{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;}
+#view-civisitreview .civr-sval, #view-eileenvisitreview .civr-sval, #view-highwayreview .civr-sval, #view-reviewersummary .civr-sval, #view-extravisitreview .civr-sval{font-size:22px;font-weight:700;color:#1a1a18;}
+#view-civisitreview .civr-stat.civr-green .civr-sval, #view-eileenvisitreview .civr-stat.civr-green .civr-sval, #view-highwayreview .civr-stat.civr-green .civr-sval, #view-reviewersummary .civr-stat.civr-green .civr-sval, #view-extravisitreview .civr-stat.civr-green .civr-sval{color:#1a7a1a;}
+#view-civisitreview .civr-stat.civr-red .civr-sval, #view-eileenvisitreview .civr-stat.civr-red .civr-sval, #view-highwayreview .civr-stat.civr-red .civr-sval, #view-reviewersummary .civr-stat.civr-red .civr-sval, #view-extravisitreview .civr-stat.civr-red .civr-sval{color:#b03020;}
+#view-civisitreview .civr-stat.civr-blue .civr-sval, #view-eileenvisitreview .civr-stat.civr-blue .civr-sval, #view-highwayreview .civr-stat.civr-blue .civr-sval, #view-reviewersummary .civr-stat.civr-blue .civr-sval, #view-extravisitreview .civr-stat.civr-blue .civr-sval{color:#1a5fa0;}
+#view-civisitreview .civr-stat.civr-amber .civr-sval, #view-eileenvisitreview .civr-stat.civr-amber .civr-sval, #view-highwayreview .civr-stat.civr-amber .civr-sval, #view-reviewersummary .civr-stat.civr-amber .civr-sval, #view-extravisitreview .civr-stat.civr-amber .civr-sval{color:#8a5000;}
+#view-civisitreview .civr-filters, #view-eileenvisitreview .civr-filters, #view-highwayreview .civr-filters, #view-reviewersummary .civr-filters, #view-extravisitreview .civr-filters{background:#fff;border-bottom:1px solid #e0ddd6;padding:10px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+#view-civisitreview .civr-filters label, #view-eileenvisitreview .civr-filters label, #view-highwayreview .civr-filters label, #view-reviewersummary .civr-filters label, #view-extravisitreview .civr-filters label{font-size:12px;color:#666;font-weight:500;}
+#view-civisitreview .civr-select, #view-eileenvisitreview .civr-select, #view-highwayreview .civr-select, #view-reviewersummary .civr-select, #view-extravisitreview .civr-select{font-size:12px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
+#view-civisitreview .civr-reset, #view-eileenvisitreview .civr-reset, #view-highwayreview .civr-reset, #view-reviewersummary .civr-reset, #view-extravisitreview .civr-reset{font-size:12px;color:#1a5fa0;cursor:pointer;margin-left:4px;}
+#view-civisitreview .civr-reset:hover, #view-eileenvisitreview .civr-reset:hover, #view-highwayreview .civr-reset:hover, #view-reviewersummary .civr-reset:hover, #view-extravisitreview .civr-reset:hover{text-decoration:underline;}
+#view-civisitreview .civdate-filter-wrap, #view-eileenvisitreview .civdate-filter-wrap, #view-highwayreview .civdate-filter-wrap, #view-reviewersummary .civdate-filter-wrap, #view-extravisitreview .civdate-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:6px;}
+#view-civisitreview .civdate-display, #view-eileenvisitreview .civdate-display, #view-highwayreview .civdate-display, #view-reviewersummary .civdate-display, #view-extravisitreview .civdate-display{font-size:12px;color:#1a5fa0;font-weight:600;background:#e3f0ff;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+#view-civisitreview .civdate-picker, #view-eileenvisitreview .civdate-picker, #view-highwayreview .civdate-picker, #view-reviewersummary .civdate-picker, #view-extravisitreview .civdate-picker{position:absolute;top:calc(100% + 6px);left:0;z-index:50;background:#fff;border:1px solid #e0ddd6;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);padding:12px;width:230px;}
+#view-civisitreview .civdate-picker-header, #view-eileenvisitreview .civdate-picker-header, #view-highwayreview .civdate-picker-header, #view-reviewersummary .civdate-picker-header, #view-extravisitreview .civdate-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+#view-civisitreview .civdate-month-label, #view-eileenvisitreview .civdate-month-label, #view-highwayreview .civdate-month-label, #view-reviewersummary .civdate-month-label, #view-extravisitreview .civdate-month-label{font-size:13px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civdate-nav, #view-eileenvisitreview .civdate-nav, #view-highwayreview .civdate-nav, #view-reviewersummary .civdate-nav, #view-extravisitreview .civdate-nav{cursor:pointer;font-size:15px;color:#1a5fa0;padding:2px 8px;border-radius:4px;user-select:none;}
+#view-civisitreview .civdate-nav:hover, #view-eileenvisitreview .civdate-nav:hover, #view-highwayreview .civdate-nav:hover, #view-reviewersummary .civdate-nav:hover, #view-extravisitreview .civdate-nav:hover{background:#f0f0ee;}
+#view-civisitreview .civdate-grid, #view-eileenvisitreview .civdate-grid, #view-highwayreview .civdate-grid, #view-reviewersummary .civdate-grid, #view-extravisitreview .civdate-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px;}
+#view-civisitreview .civdate-dow, #view-eileenvisitreview .civdate-dow, #view-highwayreview .civdate-dow, #view-reviewersummary .civdate-dow, #view-extravisitreview .civdate-dow{font-size:10px;color:#999;text-transform:uppercase;font-weight:600;text-align:center;}
+#view-civisitreview .civdate-cell, #view-eileenvisitreview .civdate-cell, #view-highwayreview .civdate-cell, #view-reviewersummary .civdate-cell, #view-extravisitreview .civdate-cell{font-size:12px;text-align:center;padding:5px 0;border-radius:6px;cursor:pointer;color:#1a1a18;}
+#view-civisitreview .civdate-cell:hover, #view-eileenvisitreview .civdate-cell:hover, #view-highwayreview .civdate-cell:hover, #view-reviewersummary .civdate-cell:hover, #view-extravisitreview .civdate-cell:hover{background:#f0f0ee;}
+#view-civisitreview .civdate-cell.civdate-blank, #view-eileenvisitreview .civdate-cell.civdate-blank, #view-highwayreview .civdate-cell.civdate-blank, #view-reviewersummary .civdate-cell.civdate-blank, #view-extravisitreview .civdate-cell.civdate-blank{cursor:default;}
+#view-civisitreview .civdate-cell.civdate-blank:hover, #view-eileenvisitreview .civdate-cell.civdate-blank:hover, #view-highwayreview .civdate-cell.civdate-blank:hover, #view-reviewersummary .civdate-cell.civdate-blank:hover, #view-extravisitreview .civdate-cell.civdate-blank:hover{background:none;}
+#view-civisitreview .civdate-cell.civdate-in-range, #view-eileenvisitreview .civdate-cell.civdate-in-range, #view-highwayreview .civdate-cell.civdate-in-range, #view-reviewersummary .civdate-cell.civdate-in-range, #view-extravisitreview .civdate-cell.civdate-in-range{background:#e3f0ff;border-radius:0;}
+#view-civisitreview .civdate-cell.civdate-range-start, #view-eileenvisitreview .civdate-cell.civdate-range-start, #view-highwayreview .civdate-cell.civdate-range-start, #view-reviewersummary .civdate-cell.civdate-range-start,
+#view-civisitreview .civdate-cell.civdate-range-end, #view-eileenvisitreview .civdate-cell.civdate-range-end, #view-highwayreview .civdate-cell.civdate-range-end, #view-reviewersummary .civdate-cell.civdate-range-end, #view-extravisitreview .civdate-cell.civdate-range-end{background:#1a5fa0;color:#fff;font-weight:600;}
+#view-civisitreview .civdate-picker-footer, #view-eileenvisitreview .civdate-picker-footer, #view-highwayreview .civdate-picker-footer, #view-reviewersummary .civdate-picker-footer, #view-extravisitreview .civdate-picker-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+#view-civisitreview .civdate-range-label, #view-eileenvisitreview .civdate-range-label, #view-highwayreview .civdate-range-label, #view-reviewersummary .civdate-range-label, #view-extravisitreview .civdate-range-label{font-size:11px;color:#666;}
+#view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar, #view-highwayreview .civr-bulk-bar, #view-reviewersummary .civr-bulk-bar, #view-extravisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+#view-civisitreview .civr-bulk-count, #view-eileenvisitreview .civr-bulk-count, #view-highwayreview .civr-bulk-count, #view-reviewersummary .civr-bulk-count, #view-extravisitreview .civr-bulk-count{font-size:13px;color:#666;}
+#view-civisitreview .civr-bulk-btn, #view-eileenvisitreview .civr-bulk-btn, #view-highwayreview .civr-bulk-btn, #view-reviewersummary .civr-bulk-btn, #view-extravisitreview .civr-bulk-btn{font-size:12px;padding:6px 14px;border-radius:6px;border:1px solid;cursor:pointer;font-weight:600;}
+#view-civisitreview .civr-bulk-no, #view-eileenvisitreview .civr-bulk-no, #view-highwayreview .civr-bulk-no, #view-reviewersummary .civr-bulk-no, #view-extravisitreview .civr-bulk-no{border-color:#c03020;background:#fdecea;color:#8a1010;}
+#view-civisitreview .civr-bulk-yes, #view-eileenvisitreview .civr-bulk-yes, #view-highwayreview .civr-bulk-yes, #view-reviewersummary .civr-bulk-yes, #view-extravisitreview .civr-bulk-yes{border-color:#2a7a2a;background:#e6f5e6;color:#1a5a1a;}
+#view-civisitreview .civr-bulk-submit, #view-eileenvisitreview .civr-bulk-submit, #view-highwayreview .civr-bulk-submit, #view-reviewersummary .civr-bulk-submit, #view-extravisitreview .civr-bulk-submit{border-color:#1a5fa0;background:#e3f0ff;color:#1a4a80;}
+#view-civisitreview .civr-bulk-msg, #view-eileenvisitreview .civr-bulk-msg, #view-highwayreview .civr-bulk-msg, #view-reviewersummary .civr-bulk-msg, #view-extravisitreview .civr-bulk-msg{font-size:12px;color:#2a7a2a;font-weight:600;}
+#view-civisitreview .civr-main, #view-eileenvisitreview .civr-main, #view-highwayreview .civr-main, #view-reviewersummary .civr-main, #view-extravisitreview .civr-main{max-width:1000px;width:100%;margin:0 auto;padding:16px;}
 
-#view-civisitreview .civr-store-card, #view-eileenvisitreview .civr-store-card, #view-highwayreview .civr-store-card, #view-extravisitreview .civr-store-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;}
-#view-civisitreview .civr-store-card.civr-submitted, #view-eileenvisitreview .civr-store-card.civr-submitted, #view-highwayreview .civr-store-card.civr-submitted, #view-extravisitreview .civr-store-card.civr-submitted{border-left:4px solid #1a7a1a;}
-#view-civisitreview .civr-store-card.civr-submitted-flag, #view-eileenvisitreview .civr-store-card.civr-submitted-flag, #view-highwayreview .civr-store-card.civr-submitted-flag, #view-extravisitreview .civr-store-card.civr-submitted-flag{border-left:4px solid #e08020;}
-#view-civisitreview .civr-card-head, #view-eileenvisitreview .civr-card-head, #view-highwayreview .civr-card-head, #view-extravisitreview .civr-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0;}
-#view-civisitreview .civr-card-title, #view-eileenvisitreview .civr-card-title, #view-highwayreview .civr-card-title, #view-extravisitreview .civr-card-title{font-size:14px;font-weight:600;color:#1a1a18;}
-#view-civisitreview .civr-card-sub, #view-eileenvisitreview .civr-card-sub, #view-highwayreview .civr-card-sub, #view-extravisitreview .civr-card-sub{font-size:12px;color:#777;margin-top:2px;}
-#view-civisitreview .civr-badges, #view-eileenvisitreview .civr-badges, #view-highwayreview .civr-badges, #view-extravisitreview .civr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-bottom:10px;}
-#view-civisitreview .civr-badge, #view-eileenvisitreview .civr-badge, #view-highwayreview .civr-badge, #view-extravisitreview .civr-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
-#view-civisitreview .civr-b-strip-yes, #view-eileenvisitreview .civr-b-strip-yes, #view-highwayreview .civr-b-strip-yes, #view-extravisitreview .civr-b-strip-yes{background:#ddeeff;color:#1a5fa0;border:1px solid #aaccee;}
-#view-civisitreview .civr-b-strip-no, #view-eileenvisitreview .civr-b-strip-no, #view-highwayreview .civr-b-strip-no, #view-extravisitreview .civr-b-strip-no{background:#fff3e0;color:#a06010;border:1px solid #e8c060;}
-#view-civisitreview .civr-b-oos, #view-eileenvisitreview .civr-b-oos, #view-highwayreview .civr-b-oos, #view-extravisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
-#view-civisitreview .civr-b-ok, #view-eileenvisitreview .civr-b-ok, #view-highwayreview .civr-b-ok, #view-extravisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
-#view-civisitreview .civr-b-lock, #view-eileenvisitreview .civr-b-lock, #view-highwayreview .civr-b-lock, #view-extravisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
-#view-civisitreview .civr-b-source-ci, #view-eileenvisitreview .civr-b-source-ci, #view-highwayreview .civr-b-source-ci, #view-extravisitreview .civr-b-source-ci{background:#eef0fb;color:#39409a;border:1px solid #c0c6ee;}
-#view-civisitreview .civr-b-source-pop, #view-eileenvisitreview .civr-b-source-pop, #view-highwayreview .civr-b-source-pop, #view-extravisitreview .civr-b-source-pop{background:#f5eefb;color:#7a3aa0;border:1px solid #d8bce8;}
-#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen, #view-highwayreview .civr-b-source-eileen, #view-extravisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
-#view-highwayreview .civr-b-source-hwy{background:#e8f1fb;color:#1f5a99;border:1px solid #b3cdea;}
-#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen, #view-highwayreview .civr-b-source-eileen, #view-extravisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
-#view-civisitreview .civr-card-body, #view-eileenvisitreview .civr-card-body, #view-highwayreview .civr-card-body, #view-extravisitreview .civr-card-body{padding:0 16px 14px;}
+#view-civisitreview .civr-store-card, #view-eileenvisitreview .civr-store-card, #view-highwayreview .civr-store-card, #view-reviewersummary .civr-store-card, #view-extravisitreview .civr-store-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden;}
+#view-civisitreview .civr-store-card.civr-submitted, #view-eileenvisitreview .civr-store-card.civr-submitted, #view-highwayreview .civr-store-card.civr-submitted, #view-reviewersummary .civr-store-card.civr-submitted, #view-extravisitreview .civr-store-card.civr-submitted{border-left:4px solid #1a7a1a;}
+#view-civisitreview .civr-store-card.civr-submitted-flag, #view-eileenvisitreview .civr-store-card.civr-submitted-flag, #view-highwayreview .civr-store-card.civr-submitted-flag, #view-reviewersummary .civr-store-card.civr-submitted-flag, #view-extravisitreview .civr-store-card.civr-submitted-flag{border-left:4px solid #e08020;}
+#view-civisitreview .civr-card-head, #view-eileenvisitreview .civr-card-head, #view-highwayreview .civr-card-head, #view-reviewersummary .civr-card-head, #view-extravisitreview .civr-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0;}
+#view-civisitreview .civr-card-title, #view-eileenvisitreview .civr-card-title, #view-highwayreview .civr-card-title, #view-reviewersummary .civr-card-title, #view-extravisitreview .civr-card-title{font-size:14px;font-weight:600;color:#1a1a18;}
+#view-civisitreview .civr-card-sub, #view-eileenvisitreview .civr-card-sub, #view-highwayreview .civr-card-sub, #view-reviewersummary .civr-card-sub, #view-extravisitreview .civr-card-sub{font-size:12px;color:#777;margin-top:2px;}
+#view-civisitreview .civr-badges, #view-eileenvisitreview .civr-badges, #view-highwayreview .civr-badges, #view-reviewersummary .civr-badges, #view-extravisitreview .civr-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-bottom:10px;}
+#view-civisitreview .civr-badge, #view-eileenvisitreview .civr-badge, #view-highwayreview .civr-badge, #view-reviewersummary .civr-badge, #view-extravisitreview .civr-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+#view-civisitreview .civr-b-strip-yes, #view-eileenvisitreview .civr-b-strip-yes, #view-highwayreview .civr-b-strip-yes, #view-reviewersummary .civr-b-strip-yes, #view-extravisitreview .civr-b-strip-yes{background:#ddeeff;color:#1a5fa0;border:1px solid #aaccee;}
+#view-civisitreview .civr-b-strip-no, #view-eileenvisitreview .civr-b-strip-no, #view-highwayreview .civr-b-strip-no, #view-reviewersummary .civr-b-strip-no, #view-extravisitreview .civr-b-strip-no{background:#fff3e0;color:#a06010;border:1px solid #e8c060;}
+#view-civisitreview .civr-b-oos, #view-eileenvisitreview .civr-b-oos, #view-highwayreview .civr-b-oos, #view-reviewersummary .civr-b-oos, #view-extravisitreview .civr-b-oos{background:#fdecea;color:#a02020;border:1px solid #eeb0b0;}
+#view-civisitreview .civr-b-ok, #view-eileenvisitreview .civr-b-ok, #view-highwayreview .civr-b-ok, #view-reviewersummary .civr-b-ok, #view-extravisitreview .civr-b-ok{background:#e8f5e8;color:#1a7a1a;border:1px solid #88cc88;}
+#view-civisitreview .civr-b-lock, #view-eileenvisitreview .civr-b-lock, #view-highwayreview .civr-b-lock, #view-reviewersummary .civr-b-lock, #view-extravisitreview .civr-b-lock{background:#e8f0e8;color:#1a6a1a;border:1px solid #88bb88;font-weight:600;}
+#view-civisitreview .civr-b-source-ci, #view-eileenvisitreview .civr-b-source-ci, #view-highwayreview .civr-b-source-ci, #view-reviewersummary .civr-b-source-ci, #view-extravisitreview .civr-b-source-ci{background:#eef0fb;color:#39409a;border:1px solid #c0c6ee;}
+#view-civisitreview .civr-b-source-pop, #view-eileenvisitreview .civr-b-source-pop, #view-highwayreview .civr-b-source-pop, #view-reviewersummary .civr-b-source-pop, #view-extravisitreview .civr-b-source-pop{background:#f5eefb;color:#7a3aa0;border:1px solid #d8bce8;}
+#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen, #view-highwayreview .civr-b-source-eileen, #view-reviewersummary .civr-b-source-eileen, #view-extravisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
+#view-highwayreview .civr-b-source-hwy, #view-reviewersummary .civr-b-source-hwy{background:#e8f1fb;color:#1f5a99;border:1px solid #b3cdea;}
+/* REVIEWER'S SUMMARY -- reuses the civr-* header / stats bar / filters styling above (twin selectors), plus its own table + bar-chart panel */
+#view-reviewersummary{background:#f5f4f0;}
+.rs-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;padding:16px 24px;align-items:start;}
+@media (max-width:980px){.rs-grid{grid-template-columns:1fr;}}
+.rs-panel{background:#fff;border:1px solid #e0ddd6;border-radius:10px;overflow:hidden;}
+.rs-panel-head{padding:10px 14px;border-bottom:1px solid #e0ddd6;font-size:13px;font-weight:600;color:#1a1a18;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.rs-panel-head span{font-weight:400;font-size:11px;color:#888;}
+.rs-scroll{max-height:560px;overflow:auto;}
+.rs-table{width:100%;border-collapse:collapse;font-size:12px;}
+.rs-table th{position:sticky;top:0;background:#f0efe8;text-align:left;padding:8px 10px;font-weight:600;color:#444;border-bottom:1px solid #e0ddd6;cursor:pointer;white-space:nowrap;user-select:none;}
+.rs-table th:hover{background:#e8e7df;}
+.rs-table th.num,.rs-table td.num{text-align:right;}
+.rs-table td{padding:7px 10px;border-bottom:1px solid #eeede7;color:#1a1a18;}
+.rs-table tr.rs-row{cursor:pointer;}
+.rs-table tr.rs-row:hover{background:#faf9f4;}
+.rs-table tr.rs-sel{background:#e8f1fb !important;box-shadow:inset 3px 0 0 #1a5fa0;}
+.rs-table td.zero{color:#b5b3aa;}
+.rs-table td.total{font-weight:700;}
+.rs-flag{color:#a06000;font-size:11px;margin-left:4px;cursor:help;}
+.rs-bars{padding:10px 14px 80px;}
+.rs-bar-row{display:grid;grid-template-columns:150px 1fr 44px;gap:8px;align-items:center;padding:4px 0;cursor:pointer;position:relative;}
+.rs-bar-label{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rs-bar-track{background:#efeee8;border-radius:4px;height:16px;overflow:hidden;}
+.rs-bar-fill{height:100%;background:#1a5fa0;border-radius:4px;}
+.rs-bar-row:hover .rs-bar-fill,.rs-bar-row.rs-sel .rs-bar-fill{background:#0f4577;}
+.rs-bar-row.rs-sel .rs-bar-label{font-weight:700;color:#1a5fa0;}
+.rs-bar-val{font-size:12px;font-weight:600;}
+.rs-tip{display:none;position:absolute;left:158px;top:100%;z-index:20;background:#1a1a18;color:#fff;font-size:11px;line-height:1.55;padding:7px 10px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.25);white-space:nowrap;}
+.rs-bar-row:hover .rs-tip{display:block;}
+.rs-empty{padding:28px;text-align:center;color:#888;font-size:13px;}
+.rs-recon{padding:0 24px 28px;font-size:11.5px;color:#666;line-height:1.5;}
+.rs-recon table{border-collapse:collapse;margin:6px 0 8px;background:#fff;border:1px solid #e0ddd6;}
+.rs-recon th,.rs-recon td{padding:4px 14px;border-bottom:1px solid #eeede7;text-align:right;}
+.rs-recon th:first-child,.rs-recon td:first-child{text-align:left;}
+.rs-recon summary{cursor:pointer;color:#8a5000;font-weight:600;margin-top:4px;}
+#view-civisitreview .civr-b-source-eileen, #view-eileenvisitreview .civr-b-source-eileen, #view-highwayreview .civr-b-source-eileen, #view-reviewersummary .civr-b-source-eileen, #view-extravisitreview .civr-b-source-eileen{background:#e6f7f2;color:#1a7a63;border:1px solid #a8e0cf;}
+#view-civisitreview .civr-card-body, #view-eileenvisitreview .civr-card-body, #view-highwayreview .civr-card-body, #view-reviewersummary .civr-card-body, #view-extravisitreview .civr-card-body{padding:0 16px 14px;}
 
-#view-civisitreview .civr-rep-notes, #view-eileenvisitreview .civr-rep-notes, #view-highwayreview .civr-rep-notes, #view-extravisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
-#view-civisitreview .civr-rep-notes-title, #view-eileenvisitreview .civr-rep-notes-title, #view-highwayreview .civr-rep-notes-title, #view-extravisitreview .civr-rep-notes-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;}
-#view-civisitreview .civr-rep-grid, #view-eileenvisitreview .civr-rep-grid, #view-highwayreview .civr-rep-grid, #view-extravisitreview .civr-rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
-#view-civisitreview .civr-rep-row, #view-eileenvisitreview .civr-rep-row, #view-highwayreview .civr-rep-row, #view-extravisitreview .civr-rep-row{display:flex;gap:6px;padding:2px 0;align-items:baseline;}
-#view-civisitreview .civr-rep-key, #view-eileenvisitreview .civr-rep-key, #view-highwayreview .civr-rep-key, #view-extravisitreview .civr-rep-key{color:#999;flex-shrink:0;min-width:130px;font-size:11px;}
-#view-civisitreview .civr-rep-val, #view-eileenvisitreview .civr-rep-val, #view-highwayreview .civr-rep-val, #view-extravisitreview .civr-rep-val{color:#1a1a18;font-weight:500;font-size:12px;}
-#view-civisitreview .civr-rep-val.alert, #view-eileenvisitreview .civr-rep-val.alert, #view-highwayreview .civr-rep-val.alert, #view-extravisitreview .civr-rep-val.alert{color:#a02020;}
-#view-civisitreview .civr-rep-val.good, #view-eileenvisitreview .civr-rep-val.good, #view-highwayreview .civr-rep-val.good, #view-extravisitreview .civr-rep-val.good{color:#1a7a1a;}
-#view-civisitreview .civr-rep-note-long, #view-eileenvisitreview .civr-rep-note-long, #view-highwayreview .civr-rep-note-long, #view-extravisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
-#view-civisitreview .civr-refusal-banner, #view-eileenvisitreview .civr-refusal-banner, #view-highwayreview .civr-refusal-banner, #view-extravisitreview .civr-refusal-banner{background:#fdecea;border:1px solid #eeb0b0;border-radius:6px;padding:8px 10px;}
-#view-civisitreview .civr-refusal-title, #view-eileenvisitreview .civr-refusal-title, #view-highwayreview .civr-refusal-title, #view-extravisitreview .civr-refusal-title{display:block;color:#a02020;font-weight:700;font-size:12px;margin-bottom:5px;}
+#view-civisitreview .civr-rep-notes, #view-eileenvisitreview .civr-rep-notes, #view-highwayreview .civr-rep-notes, #view-reviewersummary .civr-rep-notes, #view-extravisitreview .civr-rep-notes{background:#fafaf8;border:1px solid #eae8df;border-radius:6px;padding:9px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-rep-notes-title, #view-eileenvisitreview .civr-rep-notes-title, #view-highwayreview .civr-rep-notes-title, #view-reviewersummary .civr-rep-notes-title, #view-extravisitreview .civr-rep-notes-title{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;}
+#view-civisitreview .civr-rep-grid, #view-eileenvisitreview .civr-rep-grid, #view-highwayreview .civr-rep-grid, #view-reviewersummary .civr-rep-grid, #view-extravisitreview .civr-rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;}
+#view-civisitreview .civr-rep-row, #view-eileenvisitreview .civr-rep-row, #view-highwayreview .civr-rep-row, #view-reviewersummary .civr-rep-row, #view-extravisitreview .civr-rep-row{display:flex;gap:6px;padding:2px 0;align-items:baseline;}
+#view-civisitreview .civr-rep-key, #view-eileenvisitreview .civr-rep-key, #view-highwayreview .civr-rep-key, #view-reviewersummary .civr-rep-key, #view-extravisitreview .civr-rep-key{color:#999;flex-shrink:0;min-width:130px;font-size:11px;}
+#view-civisitreview .civr-rep-val, #view-eileenvisitreview .civr-rep-val, #view-highwayreview .civr-rep-val, #view-reviewersummary .civr-rep-val, #view-extravisitreview .civr-rep-val{color:#1a1a18;font-weight:500;font-size:12px;}
+#view-civisitreview .civr-rep-val.alert, #view-eileenvisitreview .civr-rep-val.alert, #view-highwayreview .civr-rep-val.alert, #view-reviewersummary .civr-rep-val.alert, #view-extravisitreview .civr-rep-val.alert{color:#a02020;}
+#view-civisitreview .civr-rep-val.good, #view-eileenvisitreview .civr-rep-val.good, #view-highwayreview .civr-rep-val.good, #view-reviewersummary .civr-rep-val.good, #view-extravisitreview .civr-rep-val.good{color:#1a7a1a;}
+#view-civisitreview .civr-rep-note-long, #view-eileenvisitreview .civr-rep-note-long, #view-highwayreview .civr-rep-note-long, #view-reviewersummary .civr-rep-note-long, #view-extravisitreview .civr-rep-note-long{margin-top:7px;padding:6px 8px;background:#f0efe8;border-radius:4px;color:#444;font-style:italic;border-left:3px solid #ccc;font-size:12px;line-height:1.5;}
+#view-civisitreview .civr-refusal-banner, #view-eileenvisitreview .civr-refusal-banner, #view-highwayreview .civr-refusal-banner, #view-reviewersummary .civr-refusal-banner, #view-extravisitreview .civr-refusal-banner{background:#fdecea;border:1px solid #eeb0b0;border-radius:6px;padding:8px 10px;}
+#view-civisitreview .civr-refusal-title, #view-eileenvisitreview .civr-refusal-title, #view-highwayreview .civr-refusal-title, #view-reviewersummary .civr-refusal-title, #view-extravisitreview .civr-refusal-title{display:block;color:#a02020;font-weight:700;font-size:12px;margin-bottom:5px;}
 
-#view-civisitreview .civr-photos-row, #view-eileenvisitreview .civr-photos-row, #view-highwayreview .civr-photos-row, #view-extravisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
-#view-civisitreview .civr-plabel, #view-eileenvisitreview .civr-plabel, #view-highwayreview .civr-plabel, #view-extravisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
-#view-civisitreview .civr-photo-wrap, #view-eileenvisitreview .civr-photo-wrap, #view-highwayreview .civr-photo-wrap, #view-extravisitreview .civr-photo-wrap{position:relative;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid #e0ddd6;background:#f5f4f0;cursor:pointer;}
-#view-civisitreview .civr-photo-wrap img, #view-eileenvisitreview .civr-photo-wrap img, #view-highwayreview .civr-photo-wrap img, #view-extravisitreview .civr-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
-#view-civisitreview .civr-photo-wrap img:hover, #view-eileenvisitreview .civr-photo-wrap img:hover, #view-highwayreview .civr-photo-wrap img:hover, #view-extravisitreview .civr-photo-wrap img:hover{opacity:0.88;}
-#view-civisitreview .civr-photo-hint, #view-eileenvisitreview .civr-photo-hint, #view-highwayreview .civr-photo-hint, #view-extravisitreview .civr-photo-hint{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
-#view-civisitreview .civr-no-photo, #view-eileenvisitreview .civr-no-photo, #view-highwayreview .civr-no-photo, #view-extravisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
-#view-civisitreview .civr-view-all, #view-eileenvisitreview .civr-view-all, #view-highwayreview .civr-view-all, #view-extravisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
-#view-civisitreview .civr-view-all:hover, #view-eileenvisitreview .civr-view-all:hover, #view-highwayreview .civr-view-all:hover, #view-extravisitreview .civr-view-all:hover{text-decoration:underline;}
+#view-civisitreview .civr-photos-row, #view-eileenvisitreview .civr-photos-row, #view-highwayreview .civr-photos-row, #view-reviewersummary .civr-photos-row, #view-extravisitreview .civr-photos-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 8px;}
+#view-civisitreview .civr-plabel, #view-eileenvisitreview .civr-plabel, #view-highwayreview .civr-plabel, #view-reviewersummary .civr-plabel, #view-extravisitreview .civr-plabel{font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
+#view-civisitreview .civr-photo-wrap, #view-eileenvisitreview .civr-photo-wrap, #view-highwayreview .civr-photo-wrap, #view-reviewersummary .civr-photo-wrap, #view-extravisitreview .civr-photo-wrap{position:relative;aspect-ratio:4/3;border-radius:6px;overflow:hidden;border:1px solid #e0ddd6;background:#f5f4f0;cursor:pointer;}
+#view-civisitreview .civr-photo-wrap img, #view-eileenvisitreview .civr-photo-wrap img, #view-highwayreview .civr-photo-wrap img, #view-reviewersummary .civr-photo-wrap img, #view-extravisitreview .civr-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+#view-civisitreview .civr-photo-wrap img:hover, #view-eileenvisitreview .civr-photo-wrap img:hover, #view-highwayreview .civr-photo-wrap img:hover, #view-reviewersummary .civr-photo-wrap img:hover, #view-extravisitreview .civr-photo-wrap img:hover{opacity:0.88;}
+#view-civisitreview .civr-photo-hint, #view-eileenvisitreview .civr-photo-hint, #view-highwayreview .civr-photo-hint, #view-reviewersummary .civr-photo-hint, #view-extravisitreview .civr-photo-hint{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.45);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
+#view-civisitreview .civr-no-photo, #view-eileenvisitreview .civr-no-photo, #view-highwayreview .civr-no-photo, #view-reviewersummary .civr-no-photo, #view-extravisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
+#view-civisitreview .civr-view-all, #view-eileenvisitreview .civr-view-all, #view-highwayreview .civr-view-all, #view-reviewersummary .civr-view-all, #view-extravisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
+#view-civisitreview .civr-view-all:hover, #view-eileenvisitreview .civr-view-all:hover, #view-highwayreview .civr-view-all:hover, #view-reviewersummary .civr-view-all:hover, #view-extravisitreview .civr-view-all:hover{text-decoration:underline;}
 
-#view-civisitreview .civr-verdict-bar, #view-eileenvisitreview .civr-verdict-bar, #view-highwayreview .civr-verdict-bar, #view-extravisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
-#view-civisitreview .civr-vq, #view-eileenvisitreview .civr-vq, #view-highwayreview .civr-vq, #view-extravisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
-#view-civisitreview .civr-vq:last-of-type, #view-eileenvisitreview .civr-vq:last-of-type, #view-highwayreview .civr-vq:last-of-type, #view-extravisitreview .civr-vq:last-of-type{border-right:none;padding-right:0;padding-left:12px;}
-#view-civisitreview .civr-vq-label, #view-eileenvisitreview .civr-vq-label, #view-highwayreview .civr-vq-label, #view-extravisitreview .civr-vq-label{font-size:11px;font-weight:600;color:#666;margin-bottom:4px;}
-#view-civisitreview .civr-vq-pre, #view-eileenvisitreview .civr-vq-pre, #view-highwayreview .civr-vq-pre, #view-extravisitreview .civr-vq-pre{font-size:10px;color:#aaa;margin-bottom:2px;}
-#view-civisitreview .civr-tri-btn, #view-eileenvisitreview .civr-tri-btn, #view-highwayreview .civr-tri-btn, #view-extravisitreview .civr-tri-btn{display:flex;gap:3px;}
-#view-civisitreview .civr-tbtn, #view-eileenvisitreview .civr-tbtn, #view-highwayreview .civr-tbtn, #view-extravisitreview .civr-tbtn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;cursor:pointer;font-weight:500;transition:all 0.12s;white-space:nowrap;}
-#view-civisitreview .civr-tbtn:hover, #view-eileenvisitreview .civr-tbtn:hover, #view-highwayreview .civr-tbtn:hover, #view-extravisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
-#view-civisitreview .civr-tbtn.civr-on-yes, #view-eileenvisitreview .civr-tbtn.civr-on-yes, #view-highwayreview .civr-tbtn.civr-on-yes, #view-extravisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
-#view-civisitreview .civr-tbtn.civr-on-no, #view-eileenvisitreview .civr-tbtn.civr-on-no, #view-highwayreview .civr-tbtn.civr-on-no, #view-extravisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
-#view-civisitreview .civr-tbtn.civr-on-na, #view-eileenvisitreview .civr-tbtn.civr-on-na, #view-highwayreview .civr-tbtn.civr-on-na, #view-extravisitreview .civr-tbtn.civr-on-na{background:#eee;border-color:#888;color:#555;font-weight:700;}
-#view-civisitreview .civr-velocity-box, #view-eileenvisitreview .civr-velocity-box, #view-highwayreview .civr-velocity-box, #view-extravisitreview .civr-velocity-box{
+#view-civisitreview .civr-verdict-bar, #view-eileenvisitreview .civr-verdict-bar, #view-highwayreview .civr-verdict-bar, #view-reviewersummary .civr-verdict-bar, #view-extravisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+#view-civisitreview .civr-vq, #view-eileenvisitreview .civr-vq, #view-highwayreview .civr-vq, #view-reviewersummary .civr-vq, #view-extravisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
+#view-civisitreview .civr-vq:last-of-type, #view-eileenvisitreview .civr-vq:last-of-type, #view-highwayreview .civr-vq:last-of-type, #view-reviewersummary .civr-vq:last-of-type, #view-extravisitreview .civr-vq:last-of-type{border-right:none;padding-right:0;padding-left:12px;}
+#view-civisitreview .civr-vq-label, #view-eileenvisitreview .civr-vq-label, #view-highwayreview .civr-vq-label, #view-reviewersummary .civr-vq-label, #view-extravisitreview .civr-vq-label{font-size:11px;font-weight:600;color:#666;margin-bottom:4px;}
+#view-civisitreview .civr-vq-pre, #view-eileenvisitreview .civr-vq-pre, #view-highwayreview .civr-vq-pre, #view-reviewersummary .civr-vq-pre, #view-extravisitreview .civr-vq-pre{font-size:10px;color:#aaa;margin-bottom:2px;}
+#view-civisitreview .civr-tri-btn, #view-eileenvisitreview .civr-tri-btn, #view-highwayreview .civr-tri-btn, #view-reviewersummary .civr-tri-btn, #view-extravisitreview .civr-tri-btn{display:flex;gap:3px;}
+#view-civisitreview .civr-tbtn, #view-eileenvisitreview .civr-tbtn, #view-highwayreview .civr-tbtn, #view-reviewersummary .civr-tbtn, #view-extravisitreview .civr-tbtn{font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#555;cursor:pointer;font-weight:500;transition:all 0.12s;white-space:nowrap;}
+#view-civisitreview .civr-tbtn:hover, #view-eileenvisitreview .civr-tbtn:hover, #view-highwayreview .civr-tbtn:hover, #view-reviewersummary .civr-tbtn:hover, #view-extravisitreview .civr-tbtn:hover{background:#f0efe8;border-color:#bbb;}
+#view-civisitreview .civr-tbtn.civr-on-yes, #view-eileenvisitreview .civr-tbtn.civr-on-yes, #view-highwayreview .civr-tbtn.civr-on-yes, #view-reviewersummary .civr-tbtn.civr-on-yes, #view-extravisitreview .civr-tbtn.civr-on-yes{background:#e0f0e0;border-color:#2a7a2a;color:#1a5a1a;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-no, #view-eileenvisitreview .civr-tbtn.civr-on-no, #view-highwayreview .civr-tbtn.civr-on-no, #view-reviewersummary .civr-tbtn.civr-on-no, #view-extravisitreview .civr-tbtn.civr-on-no{background:#fdecea;border-color:#b03020;color:#801010;font-weight:700;}
+#view-civisitreview .civr-tbtn.civr-on-na, #view-eileenvisitreview .civr-tbtn.civr-on-na, #view-highwayreview .civr-tbtn.civr-on-na, #view-reviewersummary .civr-tbtn.civr-on-na, #view-extravisitreview .civr-tbtn.civr-on-na{background:#eee;border-color:#888;color:#555;font-weight:700;}
+#view-civisitreview .civr-velocity-box, #view-eileenvisitreview .civr-velocity-box, #view-highwayreview .civr-velocity-box, #view-reviewersummary .civr-velocity-box, #view-extravisitreview .civr-velocity-box{
   display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
   background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;
 }
-#view-civisitreview .civr-velocity-label, #view-eileenvisitreview .civr-velocity-label, #view-highwayreview .civr-velocity-label, #view-extravisitreview .civr-velocity-label{color:#666;font-weight:600;}
-#view-civisitreview .civr-velocity-period, #view-eileenvisitreview .civr-velocity-period, #view-highwayreview .civr-velocity-period, #view-extravisitreview .civr-velocity-period{font-weight:400;color:#999;}
-#view-civisitreview .civr-velocity-val, #view-eileenvisitreview .civr-velocity-val, #view-highwayreview .civr-velocity-val, #view-extravisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
-#view-civisitreview .civr-sku-box, #view-eileenvisitreview .civr-sku-box, #view-highwayreview .civr-sku-box, #view-extravisitreview .civr-sku-box{background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;}
-#view-civisitreview .civr-sku-title, #view-eileenvisitreview .civr-sku-title, #view-highwayreview .civr-sku-title, #view-extravisitreview .civr-sku-title{color:#666;font-weight:600;margin-bottom:6px;}
-#view-civisitreview .civr-sku-sub, #view-eileenvisitreview .civr-sku-sub, #view-highwayreview .civr-sku-sub, #view-extravisitreview .civr-sku-sub{font-weight:400;color:#999;}
-#view-civisitreview .civr-sku-empty, #view-eileenvisitreview .civr-sku-empty, #view-highwayreview .civr-sku-empty, #view-extravisitreview .civr-sku-empty{color:#999;font-style:italic;}
-#view-civisitreview .civr-sku-table, #view-eileenvisitreview .civr-sku-table, #view-highwayreview .civr-sku-table, #view-extravisitreview .civr-sku-table{width:100%;border-collapse:collapse;}
-#view-civisitreview .civr-sku-table th, #view-eileenvisitreview .civr-sku-table th, #view-highwayreview .civr-sku-table th, #view-extravisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
-#view-civisitreview .civr-sku-table td, #view-eileenvisitreview .civr-sku-table td, #view-highwayreview .civr-sku-table td, #view-extravisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
-#view-civisitreview .civr-sku-num, #view-eileenvisitreview .civr-sku-num, #view-highwayreview .civr-sku-num, #view-extravisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
-#view-eileenvisitreview .civr-present-count, #view-highwayreview .civr-present-count, #view-extravisitreview .civr-present-count{display:flex;align-items:center;gap:6px;}
-#view-eileenvisitreview .civr-sku-count-input, #view-highwayreview .civr-sku-count-input, #view-extravisitreview .civr-sku-count-input{max-width:70px;}
-#view-eileenvisitreview .civr-sku-others, #view-highwayreview .civr-sku-others, #view-extravisitreview .civr-sku-others{margin-top:8px;padding-top:8px;border-top:1px dashed #e0ddd6;}
-#view-eileenvisitreview .civr-sku-others-label, #view-highwayreview .civr-sku-others-label, #view-extravisitreview .civr-sku-others-label{color:#666;font-weight:600;margin-bottom:4px;font-size:11px;}
-#view-eileenvisitreview .civr-sku-others-detail, #view-highwayreview .civr-sku-others-detail, #view-extravisitreview .civr-sku-others-detail{width:100%;max-width:none;margin-top:4px;}
-#view-civisitreview .civr-sku-totals, #view-eileenvisitreview .civr-sku-totals, #view-highwayreview .civr-sku-totals, #view-extravisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
-#view-civisitreview .civr-submit-col, #view-eileenvisitreview .civr-submit-col, #view-highwayreview .civr-submit-col, #view-extravisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
-#view-civisitreview .civr-submit-btn, #view-eileenvisitreview .civr-submit-btn, #view-highwayreview .civr-submit-btn, #view-extravisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
-#view-civisitreview .civr-submit-btn:hover, #view-eileenvisitreview .civr-submit-btn:hover, #view-highwayreview .civr-submit-btn:hover, #view-extravisitreview .civr-submit-btn:hover{background:#144d88;}
-#view-civisitreview .civr-submit-btn.civr-submit-done, #view-eileenvisitreview .civr-submit-btn.civr-submit-done, #view-highwayreview .civr-submit-btn.civr-submit-done, #view-extravisitreview .civr-submit-btn.civr-submit-done{background:#2a7a2a;cursor:default;}
-#view-civisitreview .civr-flag-btn, #view-eileenvisitreview .civr-flag-btn, #view-highwayreview .civr-flag-btn, #view-extravisitreview .civr-flag-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;}
-#view-civisitreview .civr-flag-btn:hover, #view-eileenvisitreview .civr-flag-btn:hover, #view-highwayreview .civr-flag-btn:hover, #view-extravisitreview .civr-flag-btn:hover{background:#fff8e0;border-color:#e0a020;color:#8a5000;}
-#view-civisitreview .civr-flag-btn.civr-flagged, #view-eileenvisitreview .civr-flag-btn.civr-flagged, #view-highwayreview .civr-flag-btn.civr-flagged, #view-extravisitreview .civr-flag-btn.civr-flagged{background:#fff3e0;border-color:#e0a020;color:#8a5000;font-weight:600;}
+#view-civisitreview .civr-velocity-label, #view-eileenvisitreview .civr-velocity-label, #view-highwayreview .civr-velocity-label, #view-reviewersummary .civr-velocity-label, #view-extravisitreview .civr-velocity-label{color:#666;font-weight:600;}
+#view-civisitreview .civr-velocity-period, #view-eileenvisitreview .civr-velocity-period, #view-highwayreview .civr-velocity-period, #view-reviewersummary .civr-velocity-period, #view-extravisitreview .civr-velocity-period{font-weight:400;color:#999;}
+#view-civisitreview .civr-velocity-val, #view-eileenvisitreview .civr-velocity-val, #view-highwayreview .civr-velocity-val, #view-reviewersummary .civr-velocity-val, #view-extravisitreview .civr-velocity-val{font-family:'IBM Plex Mono',monospace;font-weight:700;color:#333;}
+#view-civisitreview .civr-sku-box, #view-eileenvisitreview .civr-sku-box, #view-highwayreview .civr-sku-box, #view-reviewersummary .civr-sku-box, #view-extravisitreview .civr-sku-box{background:#f5f3ee;border:1px solid #e0ddd6;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:12px;}
+#view-civisitreview .civr-sku-title, #view-eileenvisitreview .civr-sku-title, #view-highwayreview .civr-sku-title, #view-reviewersummary .civr-sku-title, #view-extravisitreview .civr-sku-title{color:#666;font-weight:600;margin-bottom:6px;}
+#view-civisitreview .civr-sku-sub, #view-eileenvisitreview .civr-sku-sub, #view-highwayreview .civr-sku-sub, #view-reviewersummary .civr-sku-sub, #view-extravisitreview .civr-sku-sub{font-weight:400;color:#999;}
+#view-civisitreview .civr-sku-empty, #view-eileenvisitreview .civr-sku-empty, #view-highwayreview .civr-sku-empty, #view-reviewersummary .civr-sku-empty, #view-extravisitreview .civr-sku-empty{color:#999;font-style:italic;}
+#view-civisitreview .civr-sku-table, #view-eileenvisitreview .civr-sku-table, #view-highwayreview .civr-sku-table, #view-reviewersummary .civr-sku-table, #view-extravisitreview .civr-sku-table{width:100%;border-collapse:collapse;}
+#view-civisitreview .civr-sku-table th, #view-eileenvisitreview .civr-sku-table th, #view-highwayreview .civr-sku-table th, #view-reviewersummary .civr-sku-table th, #view-extravisitreview .civr-sku-table th{text-align:left;font-size:10px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.05em;padding:3px 6px;border-bottom:1px solid #e0ddd6;}
+#view-civisitreview .civr-sku-table td, #view-eileenvisitreview .civr-sku-table td, #view-highwayreview .civr-sku-table td, #view-reviewersummary .civr-sku-table td, #view-extravisitreview .civr-sku-table td{padding:3px 6px;border-bottom:1px solid #ece9e0;color:#333;}
+#view-civisitreview .civr-sku-num, #view-eileenvisitreview .civr-sku-num, #view-highwayreview .civr-sku-num, #view-reviewersummary .civr-sku-num, #view-extravisitreview .civr-sku-num{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;}
+#view-eileenvisitreview .civr-present-count, #view-highwayreview .civr-present-count, #view-reviewersummary .civr-present-count, #view-extravisitreview .civr-present-count{display:flex;align-items:center;gap:6px;}
+#view-eileenvisitreview .civr-sku-count-input, #view-highwayreview .civr-sku-count-input, #view-reviewersummary .civr-sku-count-input, #view-extravisitreview .civr-sku-count-input{max-width:70px;}
+#view-eileenvisitreview .civr-sku-others, #view-highwayreview .civr-sku-others, #view-reviewersummary .civr-sku-others, #view-extravisitreview .civr-sku-others{margin-top:8px;padding-top:8px;border-top:1px dashed #e0ddd6;}
+#view-eileenvisitreview .civr-sku-others-label, #view-highwayreview .civr-sku-others-label, #view-reviewersummary .civr-sku-others-label, #view-extravisitreview .civr-sku-others-label{color:#666;font-weight:600;margin-bottom:4px;font-size:11px;}
+#view-eileenvisitreview .civr-sku-others-detail, #view-highwayreview .civr-sku-others-detail, #view-reviewersummary .civr-sku-others-detail, #view-extravisitreview .civr-sku-others-detail{width:100%;max-width:none;margin-top:4px;}
+#view-civisitreview .civr-sku-totals, #view-eileenvisitreview .civr-sku-totals, #view-highwayreview .civr-sku-totals, #view-reviewersummary .civr-sku-totals, #view-extravisitreview .civr-sku-totals{margin-top:6px;color:#666;font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+#view-civisitreview .civr-submit-col, #view-eileenvisitreview .civr-submit-col, #view-highwayreview .civr-submit-col, #view-reviewersummary .civr-submit-col, #view-extravisitreview .civr-submit-col{padding-left:14px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;}
+#view-civisitreview .civr-submit-btn, #view-eileenvisitreview .civr-submit-btn, #view-highwayreview .civr-submit-btn, #view-reviewersummary .civr-submit-btn, #view-extravisitreview .civr-submit-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:none;background:#1a5fa0;color:#fff;cursor:pointer;font-weight:600;white-space:nowrap;}
+#view-civisitreview .civr-submit-btn:hover, #view-eileenvisitreview .civr-submit-btn:hover, #view-highwayreview .civr-submit-btn:hover, #view-reviewersummary .civr-submit-btn:hover, #view-extravisitreview .civr-submit-btn:hover{background:#144d88;}
+#view-civisitreview .civr-submit-btn.civr-submit-done, #view-eileenvisitreview .civr-submit-btn.civr-submit-done, #view-highwayreview .civr-submit-btn.civr-submit-done, #view-reviewersummary .civr-submit-btn.civr-submit-done, #view-extravisitreview .civr-submit-btn.civr-submit-done{background:#2a7a2a;cursor:default;}
+#view-civisitreview .civr-flag-btn, #view-eileenvisitreview .civr-flag-btn, #view-highwayreview .civr-flag-btn, #view-reviewersummary .civr-flag-btn, #view-extravisitreview .civr-flag-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer;}
+#view-civisitreview .civr-flag-btn:hover, #view-eileenvisitreview .civr-flag-btn:hover, #view-highwayreview .civr-flag-btn:hover, #view-reviewersummary .civr-flag-btn:hover, #view-extravisitreview .civr-flag-btn:hover{background:#fff8e0;border-color:#e0a020;color:#8a5000;}
+#view-civisitreview .civr-flag-btn.civr-flagged, #view-eileenvisitreview .civr-flag-btn.civr-flagged, #view-highwayreview .civr-flag-btn.civr-flagged, #view-reviewersummary .civr-flag-btn.civr-flagged, #view-extravisitreview .civr-flag-btn.civr-flagged{background:#fff3e0;border-color:#e0a020;color:#8a5000;font-weight:600;}
 
-#view-civisitreview .civr-submitted-banner, #view-eileenvisitreview .civr-submitted-banner, #view-highwayreview .civr-submitted-banner, #view-extravisitreview .civr-submitted-banner{display:none;background:#e8f5e8;border-top:1px solid #b0d8b0;padding:8px 16px;font-size:12px;color:#1a6a1a;font-weight:600;align-items:center;justify-content:space-between;}
-#view-civisitreview .civr-submitted-banner.civr-show, #view-eileenvisitreview .civr-submitted-banner.civr-show, #view-highwayreview .civr-submitted-banner.civr-show, #view-extravisitreview .civr-submitted-banner.civr-show{display:flex;}
-#view-civisitreview .civr-undo-btn, #view-eileenvisitreview .civr-undo-btn, #view-highwayreview .civr-undo-btn, #view-extravisitreview .civr-undo-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #88bb88;background:#fff;color:#1a6a1a;cursor:pointer;}
-#view-civisitreview .civr-undo-btn:hover, #view-eileenvisitreview .civr-undo-btn:hover, #view-highwayreview .civr-undo-btn:hover, #view-extravisitreview .civr-undo-btn:hover{background:#d0ecd0;}
+#view-civisitreview .civr-submitted-banner, #view-eileenvisitreview .civr-submitted-banner, #view-highwayreview .civr-submitted-banner, #view-reviewersummary .civr-submitted-banner, #view-extravisitreview .civr-submitted-banner{display:none;background:#e8f5e8;border-top:1px solid #b0d8b0;padding:8px 16px;font-size:12px;color:#1a6a1a;font-weight:600;align-items:center;justify-content:space-between;}
+#view-civisitreview .civr-submitted-banner.civr-show, #view-eileenvisitreview .civr-submitted-banner.civr-show, #view-highwayreview .civr-submitted-banner.civr-show, #view-reviewersummary .civr-submitted-banner.civr-show, #view-extravisitreview .civr-submitted-banner.civr-show{display:flex;}
+#view-civisitreview .civr-undo-btn, #view-eileenvisitreview .civr-undo-btn, #view-highwayreview .civr-undo-btn, #view-reviewersummary .civr-undo-btn, #view-extravisitreview .civr-undo-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid #88bb88;background:#fff;color:#1a6a1a;cursor:pointer;}
+#view-civisitreview .civr-undo-btn:hover, #view-eileenvisitreview .civr-undo-btn:hover, #view-highwayreview .civr-undo-btn:hover, #view-reviewersummary .civr-undo-btn:hover, #view-extravisitreview .civr-undo-btn:hover{background:#d0ecd0;}
 
-#view-civisitreview .civr-notes-bar, #view-eileenvisitreview .civr-notes-bar, #view-highwayreview .civr-notes-bar, #view-extravisitreview .civr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:#fafaf8;border-top:1px solid #eae8df;}
-#view-civisitreview .civr-notes-label, #view-eileenvisitreview .civr-notes-label, #view-highwayreview .civr-notes-label, #view-extravisitreview .civr-notes-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;flex-shrink:0;}
-#view-civisitreview .civr-notes-input, #view-eileenvisitreview .civr-notes-input, #view-highwayreview .civr-notes-input, #view-extravisitreview .civr-notes-input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;font-family:inherit;}
-#view-civisitreview .civr-notes-input:focus, #view-eileenvisitreview .civr-notes-input:focus, #view-highwayreview .civr-notes-input:focus, #view-extravisitreview .civr-notes-input:focus{outline:2px solid #4a90d0;border-color:#4a90d0;}
+#view-civisitreview .civr-notes-bar, #view-eileenvisitreview .civr-notes-bar, #view-highwayreview .civr-notes-bar, #view-reviewersummary .civr-notes-bar, #view-extravisitreview .civr-notes-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 12px;background:#fafaf8;border-top:1px solid #eae8df;}
+#view-civisitreview .civr-notes-label, #view-eileenvisitreview .civr-notes-label, #view-highwayreview .civr-notes-label, #view-reviewersummary .civr-notes-label, #view-extravisitreview .civr-notes-label{font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;flex-shrink:0;}
+#view-civisitreview .civr-notes-input, #view-eileenvisitreview .civr-notes-input, #view-highwayreview .civr-notes-input, #view-reviewersummary .civr-notes-input, #view-extravisitreview .civr-notes-input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;font-family:inherit;}
+#view-civisitreview .civr-notes-input:focus, #view-eileenvisitreview .civr-notes-input:focus, #view-highwayreview .civr-notes-input:focus, #view-reviewersummary .civr-notes-input:focus, #view-extravisitreview .civr-notes-input:focus{outline:2px solid #4a90d0;border-color:#4a90d0;}
 
-#view-civisitreview .civr-pager, #view-eileenvisitreview .civr-pager, #view-highwayreview .civr-pager, #view-extravisitreview .civr-pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 0;}
-#view-civisitreview .civr-page-btn, #view-eileenvisitreview .civr-page-btn, #view-highwayreview .civr-page-btn, #view-extravisitreview .civr-page-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:500;}
-#view-civisitreview .civr-page-btn:hover:not(:disabled), #view-eileenvisitreview .civr-page-btn:hover:not(:disabled), #view-highwayreview .civr-page-btn:hover:not(:disabled), #view-extravisitreview .civr-page-btn:hover:not(:disabled){background:#f0efe8;}
-#view-civisitreview .civr-page-btn:disabled, #view-eileenvisitreview .civr-page-btn:disabled, #view-highwayreview .civr-page-btn:disabled, #view-extravisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
-#view-civisitreview .civr-page-info, #view-eileenvisitreview .civr-page-info, #view-highwayreview .civr-page-info, #view-extravisitreview .civr-page-info{font-size:13px;color:#666;}
-#view-civisitreview .civr-empty, #view-eileenvisitreview .civr-empty, #view-highwayreview .civr-empty, #view-extravisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
+#view-civisitreview .civr-pager, #view-eileenvisitreview .civr-pager, #view-highwayreview .civr-pager, #view-reviewersummary .civr-pager, #view-extravisitreview .civr-pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:20px 0;}
+#view-civisitreview .civr-page-btn, #view-eileenvisitreview .civr-page-btn, #view-highwayreview .civr-page-btn, #view-reviewersummary .civr-page-btn, #view-extravisitreview .civr-page-btn{font-size:13px;padding:8px 20px;border-radius:7px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:500;}
+#view-civisitreview .civr-page-btn:hover:not(:disabled), #view-eileenvisitreview .civr-page-btn:hover:not(:disabled), #view-highwayreview .civr-page-btn:hover:not(:disabled), #view-reviewersummary .civr-page-btn:hover:not(:disabled), #view-extravisitreview .civr-page-btn:hover:not(:disabled){background:#f0efe8;}
+#view-civisitreview .civr-page-btn:disabled, #view-eileenvisitreview .civr-page-btn:disabled, #view-highwayreview .civr-page-btn:disabled, #view-reviewersummary .civr-page-btn:disabled, #view-extravisitreview .civr-page-btn:disabled{opacity:0.4;cursor:default;}
+#view-civisitreview .civr-page-info, #view-eileenvisitreview .civr-page-info, #view-highwayreview .civr-page-info, #view-reviewersummary .civr-page-info, #view-extravisitreview .civr-page-info{font-size:13px;color:#666;}
+#view-civisitreview .civr-empty, #view-eileenvisitreview .civr-empty, #view-highwayreview .civr-empty, #view-reviewersummary .civr-empty, #view-extravisitreview .civr-empty{text-align:center;padding:40px;color:#888;}
 
 /* CI VISIT REVIEW -- AUTH / ACCESS CONTROL / AUDIT / VERSION HISTORY -- scoped entirely under
    #view-civisitreview like the rest of the civr-* rules, so none of this affects any other tab. */
@@ -1617,6 +1658,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div class="tab" onclick="switchTab(&#39;eileenvisitreview&#39;)" id="tab-eileenvisitreview"><span class="tab-icon">🛍</span> Eileen Visit Review</div>
     <div class="tab" onclick="switchTab(&#39;extravisitreview&#39;)" id="tab-extravisitreview"><span class="tab-icon">📝</span> Extra Visit Reviews</div>
     <div class="tab" onclick="switchTab(&#39;highwayreview&#39;)" id="tab-highwayreview"><span class="tab-icon">🛣</span> Highway Partners Reviews</div>
+    <div class="tab" onclick="switchTab(&#39;reviewersummary&#39;)" id="tab-reviewersummary"><span class="tab-icon">📊</span> Reviewer&#39;s Summary</div>
   </div>
   <div class="topbar-right">
     <div class="recency-filter">
@@ -2406,6 +2448,11 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
       <div id="hwr-main"></div>
     </div>
 
+    <!-- REVIEWER'S SUMMARY VIEW -->
+    <div id="view-reviewersummary" style="display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:0;">
+      <div id="rs-main"></div>
+    </div>
+
 
     <!-- Shared across every tab (not nested inside any single view's display:none toggle) --
          civr-scroll-fab is scoped to CI Visit Review + Eileen Visit Review specifically via
@@ -3020,13 +3067,15 @@ function switchTab(tab) {
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  const views = ['overview','map','chains','stores','civisitreview','eileenvisitreview','extravisitreview','highwayreview'];
+  document.getElementById('tab-'+tab).scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  const views = ['overview','map','chains','stores','civisitreview','eileenvisitreview','extravisitreview','highwayreview','reviewersummary'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
   if (tab === 'civisitreview') renderCiVisitReview();
   if (tab === 'eileenvisitreview') renderEileenVisitReview();
   if (tab === 'extravisitreview') renderExtraVisitReview();
   if (tab === 'highwayreview') renderHighwayReview();
+  if (tab === 'reviewersummary') { renderReviewerSummary(); rsLoad(); }
   if (tab === 'map' && !leafletMap) initMap();
   if (tab === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
   if (tab === 'overview') renderOverview();
@@ -4736,6 +4785,7 @@ function civRerenderActive() {
   else if (currentTab === 'eileenvisitreview') renderEileenVisitReview();
   else if (currentTab === 'extravisitreview') renderExtraVisitReview();
   else if (currentTab === 'highwayreview') renderHighwayReview();
+  else if (currentTab === 'reviewersummary') { renderReviewerSummary(); if (rsVersions === null && civCurrentUser()) rsLoad(); }
 }
 
 function civSetVerdictAnswer(src, id, field, value) {
@@ -6497,6 +6547,316 @@ function renderHighwayReview() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// REVIEWER'S SUMMARY -- one consolidated view of completed audits per reviewer across the four review
+// modules. Live and database-connected, nothing hardcoded:
+//  * A "completed audit" = a report currently in 'Reviewed' status that still exists in its module's own
+//    list (so every count reconciles with that tab's own "N of M submitted"). Drafts / Pending / Undone
+//    reports are excluded, and each report counts exactly once no matter how many times it was re-saved.
+//  * CI (CI + POP Marketing Check), Eileen and Highway Partners reviews: attributed by USER ID to whoever
+//    last submitted the report, read from civ_report_versions (every submit writes a version row stamped with
+//    the real logged-in user's id/name/time; reverts and restores are ignored unless they are all that exists).
+//    The submission timestamp is that version's created_at.
+//  * Extra Visit Reviews only record the reviewer's NAME (extra_report_verdicts.reviewed_by), never an id: it
+//    is matched to a user account only on an exact, unique normalized full-name match. Anything else stays a
+//    separate reviewer flagged "name only" -- never auto-merged into someone else.
+//  * A reviewed report with no recorded submitter is counted in the totals but listed as UNATTRIBUTED (flagged)
+//    and is never given to a reviewer, ranked, or shown as the top reviewer.
+// ══════════════════════════════════════════════════════════════════════════
+const RS_MODULES = [
+  { key:'ci',      label:'CI Visit Review' },
+  { key:'eileen',  label:'Eileen Visit Review' },
+  { key:'extra',   label:'Extra Visit Review' },
+  { key:'highway', label:'Highway Partners Reviews' }
+];
+let rsVersions = null;      // slim civ_report_versions rows; null until the first successful load
+let rsProfiles = [];        // user_profiles rows (id, full_name, email)
+let rsLoadedAt = null, rsLoading = false, rsLoadError = '';
+let rsFilters = { range:'all', from:'', to:'', module:'', reviewer:'' };
+let rsSearch = '';
+let rsSort = { key:'total', dir:'desc' };
+let rsSelected = null;
+
+async function rsLoad() {
+  if (usingEmbeddedSnapshot || rsLoading || !civCurrentUser()) return;
+  rsLoading = true; rsLoadError = '';
+  renderReviewerSummary();
+  try {
+    // Fresh review statuses first: REPORT_STATUS_CACHE was read once at page load, and other people keep submitting.
+    try {
+      (await sbFetchAll('report_status', 'updated_at')).forEach(rs => { REPORT_STATUS_CACHE[rs.src + '|' + rs.report_id] = { status: rs.status, updatedAt: rs.updated_at }; });
+      (await sbFetchAll('extra_report_status', 'visit_id')).forEach(s => { EXTRA_STATUS_CACHE[s.visit_id] = { status: s.status, updatedAt: s.updated_at }; });
+      (await sbFetchAll('extra_report_verdicts', 'visit_id')).forEach(v => {
+        EXTRA_VERDICT_CACHE[v.visit_id] = Object.assign(stdReviewFromDb(v), { recommendation: v.recommendation, reviewerNotes: v.reviewer_notes, flag: !!v.flag, reviewedBy: v.reviewed_by, reviewedAt: v.reviewed_at, updatedAt: v.updated_at });
+      });
+    } catch (e) { console.error('Reviewer summary: status refresh failed (using page-load data)', e); }
+    const rows = []; const page = 1000; let from = 0;
+    while (true) {
+      const { data, error } = await sb.from('civ_report_versions')
+        .select('id,report_id,user_id,user_name,created_at,is_revert,is_restore,src:snapshot->>src')
+        .order('id').range(from, from + page - 1);
+      if (error) throw new Error('civ_report_versions: ' + error.message);
+      rows.push(...data);
+      if (data.length < page) break;
+      from += page;
+    }
+    const pr = await sb.from('user_profiles').select('id,full_name,email');
+    if (pr.error) throw new Error('user_profiles: ' + pr.error.message);
+    rsVersions = rows; rsProfiles = pr.data || []; rsLoadedAt = new Date();
+  } catch (e) { rsLoadError = e.message || String(e); console.error('Reviewer summary load failed', e); }
+  rsLoading = false;
+  renderReviewerSummary();
+}
+
+function rsNorm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+function rsModuleOfSrc(src) { return src === 'eileen' ? 'eileen' : src === 'highway' ? 'highway' : 'ci'; } // 'ci' + 'poppromo' both belong to CI Visit Review
+function rsLocalYmd(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+function rsBuildEvents() {
+  const profById = {}, profByName = {}, nameCount = {};
+  rsProfiles.forEach(p => {
+    profById[p.id] = p;
+    const n = rsNorm(p.full_name);
+    if (n) { nameCount[n] = (nameCount[n] || 0) + 1; profByName[n] = p; }
+  });
+  // Latest SUBMIT version per report (src|report_id); a revert/restore only wins if no plain submit exists.
+  const best = {};
+  (rsVersions || []).forEach(v => {
+    const k = (v.src || 'ci') + '|' + v.report_id;
+    const rank = (v.is_revert || v.is_restore) ? 0 : 1;
+    const cur = best[k];
+    if (!cur || rank > cur.rank || (rank === cur.rank && (v.created_at > cur.v.created_at || (v.created_at === cur.v.created_at && v.id > cur.v.id)))) best[k] = { v, rank };
+  });
+  const recs = {};
+  CIV_ALL_REPORTS.concat(EIV_ALL_REPORTS, HIGHWAY_ALL_REPORTS).forEach(r => { recs[reportKey(r)] = r; });
+  const events = [];
+  const recon = {};
+  RS_MODULES.forEach(m => { recon[m.key] = { reviewed: 0, attributed: 0, unattributed: 0, nameOnly: 0 }; });
+  Object.keys(REPORT_STATUS_CACHE).forEach(k => {
+    const st = REPORT_STATUS_CACHE[k];
+    if (!st || st.status !== 'Reviewed' || !recs[k]) return;
+    const mod = rsModuleOfSrc(k.split('|')[0]);
+    const r = recs[k];
+    const ref = (r.ch || '') + ' — ' + (r.a || '');
+    recon[mod].reviewed++;
+    const b = best[k];
+    if (b && b.v.user_id) {
+      const p = profById[b.v.user_id];
+      events.push({ mod, id: b.v.user_id, label: (p && p.full_name) || b.v.user_name || 'Unknown user', ts: new Date(b.v.created_at), ref, flagged: false });
+      recon[mod].attributed++;
+    } else {
+      events.push({ mod, id: null, label: null, ts: new Date(st.updatedAt || 0), ref, flagged: true });
+      recon[mod].unattributed++;
+    }
+  });
+  EXTRA_VISITS.forEach(x => {
+    if (getExtraStatus(x.id) !== 'Reviewed') return;
+    recon.extra.reviewed++;
+    const vd = EXTRA_VERDICT_CACHE[x.id] || {};
+    const ts = new Date(vd.reviewedAt || (EXTRA_STATUS_CACHE[x.id] || {}).updatedAt || 0);
+    const ref = (x.chain || '') + ' — ' + (x.address || x.storeId || '');
+    const n = rsNorm(vd.reviewedBy);
+    if (!n) { events.push({ mod: 'extra', id: null, label: null, ts, ref, flagged: true }); recon.extra.unattributed++; return; }
+    const p = nameCount[n] === 1 ? profByName[n] : null;
+    if (p) { events.push({ mod: 'extra', id: p.id, label: p.full_name, ts, ref, flagged: false }); recon.extra.attributed++; }
+    else { events.push({ mod: 'extra', id: 'name:' + n, label: vd.reviewedBy, ts, ref, flagged: true, nameOnly: true }); recon.extra.attributed++; recon.extra.nameOnly++; }
+  });
+  return { events, recon };
+}
+
+function rsDateOk(ts) {
+  const f = rsFilters;
+  if (f.range === 'all') return true;
+  if (!ts || isNaN(ts) || ts.getTime() === 0) return false;
+  const d = rsLocalYmd(ts), today = civTodayDateOnly();
+  if (f.range === 'today') return d === today;
+  if (f.range === 'last7') return d >= civDateNDaysAgo(6) && d <= today;       // same windows as the Visit Review date filters
+  if (f.range === 'last30') return d >= civDateNDaysAgo(29) && d <= today;
+  if (f.range === 'month') return d.slice(0, 7) === today.slice(0, 7);
+  if (f.range === 'lastmonth') { const x = new Date(); x.setDate(1); x.setMonth(x.getMonth() - 1); return d.slice(0, 7) === rsLocalYmd(x).slice(0, 7); }
+  if (f.range === 'custom') { if (!f.from && !f.to) return true; return (!f.from || d >= f.from) && (!f.to || d <= f.to); }
+  return true;
+}
+
+function rsCompute() {
+  const { events, recon } = rsBuildEvents();
+  const everyone = {};
+  events.forEach(e => { if (e.id) { const c = everyone[e.id] || (everyone[e.id] = { id: e.id, label: e.label }); if (!c.label) c.label = e.label; } });
+  const options = Object.values(everyone).sort((a, b) => a.label.localeCompare(b.label));
+  const nameOnlyIds = new Set(events.filter(e => e.nameOnly).map(e => e.id));
+  const f = rsFilters;
+  const sel = events.filter(e => (!f.module || e.mod === f.module) && rsDateOk(e.ts) && (!f.reviewer || e.id === f.reviewer));
+  const byId = {}; const unattributed = [];
+  sel.forEach(e => {
+    if (!e.id) { unattributed.push(e); return; }
+    const r = byId[e.id] || (byId[e.id] = { id: e.id, label: e.label, flagged: nameOnlyIds.has(e.id), counts: { ci: 0, eileen: 0, extra: 0, highway: 0 }, total: 0 });
+    r.counts[e.mod]++; r.total++;
+  });
+  const rows = Object.values(byId).sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
+  let rank = 0, prev = null;                       // competition ranking: ties share a rank
+  rows.forEach((r, i) => { if (r.total !== prev) { rank = i + 1; prev = r.total; } r.rank = rank; });
+  return { rows, options, unattributed, recon, total: sel.length, top: rows[0] || null };
+}
+
+function rsSortBy(key) {
+  if (rsSort.key === key) rsSort.dir = rsSort.dir === 'desc' ? 'asc' : 'desc';
+  else rsSort = { key, dir: key === 'label' ? 'asc' : 'desc' };
+  renderReviewerSummary();
+}
+function rsSetFilter(k, v) {
+  rsFilters[k] = v;
+  if (k === 'range' && v !== 'custom') { rsFilters.from = ''; rsFilters.to = ''; }
+  renderReviewerSummary();
+}
+function rsResetFilters() { rsFilters = { range: 'all', from: '', to: '', module: '', reviewer: '' }; rsSearch = ''; rsSelected = null; renderReviewerSummary(); }
+const rsSearchDebounced = civDebounce(() => renderReviewerSummary(), 250);
+function rsSetSearch(v) { rsSearch = v; rsSearchDebounced(); }
+function rsSelect(id) {
+  rsSelected = rsSelected === id ? null : id;
+  renderReviewerSummary();
+  const row = document.querySelector('#rs-main tr.rs-sel');
+  if (row) row.scrollIntoView({ block: 'nearest' });
+}
+function rsExportCSV() {
+  const d = rsCompute();
+  downloadCSV('reviewer_summary.csv', d.rows.map(r => ({
+    Rank: r.rank, Reviewer: r.label, 'CI Visit Review': r.counts.ci, 'Eileen Visit Review': r.counts.eileen,
+    'Extra Visit Review': r.counts.extra, 'Highway Partners Reviews': r.counts.highway, 'Total Audits': r.total,
+    Note: r.flagged ? 'name only - not matched to an account' : ''
+  })).concat(d.unattributed.length ? [{ Rank: '', Reviewer: 'UNATTRIBUTED (flagged)', 'CI Visit Review': d.unattributed.filter(e => e.mod === 'ci').length, 'Eileen Visit Review': d.unattributed.filter(e => e.mod === 'eileen').length, 'Extra Visit Review': d.unattributed.filter(e => e.mod === 'extra').length, 'Highway Partners Reviews': d.unattributed.filter(e => e.mod === 'highway').length, 'Total Audits': d.unattributed.length, Note: 'reviewed with no recorded submitter' }] : []));
+}
+
+function renderReviewerSummary() {
+  const el = document.getElementById('rs-main');
+  if (!el) return;
+  const hadFocus = document.activeElement && document.activeElement.id === 'rs-search';
+
+  if (usingEmbeddedSnapshot) {
+    el.innerHTML = `${renderCivReadOnlyBanner()}
+      <div class="civr-header"><div><h1>Reviewer's Summary</h1></div></div>
+      <div class="rs-empty">Reviewer attribution comes from the live audit history (who submitted each review), which this read-only Artifact preview can't reach.<br>Open the live dashboard on GitHub Pages and log in to see the Reviewer's Summary.</div>`;
+    return;
+  }
+  const gate = civAuthGateHtml("Reviewer's Summary", 'rsauth');
+  if (gate) { el.innerHTML = gate; return; }
+  if (rsVersions === null) {
+    el.innerHTML = `<div class="civr-header"><div><h1>Reviewer's Summary</h1></div></div>
+      <div class="rs-empty">${rsLoadError
+        ? `Couldn't load the audit history: ${escHtml(rsLoadError)}<br><br><button class="civr-export-btn" onclick="rsLoad()">Try again</button>`
+        : 'Loading reviewer activity…'}</div>`;
+    return;
+  }
+
+  const d = rsCompute();
+  const q = rsNorm(rsSearch);
+  const shown = d.rows.filter(r => !q || rsNorm(r.label).includes(q));
+  const tableRows = shown.slice().sort((a, b) => {
+    const k = rsSort.key, dir = rsSort.dir === 'desc' ? -1 : 1;
+    let c = 0;
+    if (k === 'label') c = a.label.localeCompare(b.label);
+    else if (k === 'rank') c = a.rank - b.rank;
+    else if (k === 'total') c = a.total - b.total;
+    else c = a.counts[k] - b.counts[k];
+    return c * dir || b.total - a.total || a.label.localeCompare(b.label);
+  });
+  const maxTotal = Math.max(1, ...shown.map(r => r.total));
+  const arrow = k => rsSort.key === k ? (rsSort.dir === 'desc' ? ' ▾' : ' ▴') : '';
+  const th = (k, label, cls) => `<th class="${cls || ''}" onclick="rsSortBy('${k}')">${label}${arrow(k)}</th>`;
+  const cell = n => `<td class="num${n ? '' : ' zero'}">${fmtNum(n)}</td>`;
+
+  const tbody = tableRows.length ? tableRows.map(r => `<tr class="rs-row${rsSelected === r.id ? ' rs-sel' : ''}" onclick="rsSelect('${esc(r.id)}')">
+      <td class="num">${r.rank}</td>
+      <td>${escHtml(r.label)}${r.flagged ? '<span class="rs-flag" title="Recorded by name only (Extra Visit Review) and not matched to a user account — flagged, not merged.">⚑ name only</span>' : ''}</td>
+      ${cell(r.counts.ci)}${cell(r.counts.eileen)}${cell(r.counts.extra)}${cell(r.counts.highway)}
+      <td class="num total">${fmtNum(r.total)}</td></tr>`).join('')
+    : `<tr><td colspan="7" class="rs-empty">No reviewers match the current filters.</td></tr>`;
+
+  const bars = shown.length ? shown.map(r => `<div class="rs-bar-row${rsSelected === r.id ? ' rs-sel' : ''}" onclick="rsSelect('${esc(r.id)}')">
+      <div class="rs-bar-label" title="${escHtml(r.label)}">${escHtml(r.label)}</div>
+      <div class="rs-bar-track"><div class="rs-bar-fill" style="width:${Math.max(2, Math.round(r.total / maxTotal * 100))}%"></div></div>
+      <div class="rs-bar-val">${fmtNum(r.total)}</div>
+      <div class="rs-tip"><strong>${escHtml(r.label)}</strong> &middot; ${fmtNum(r.total)} audits<br>${RS_MODULES.map(m => `${m.label}: ${fmtNum(r.counts[m.key])}`).join('<br>')}</div>
+    </div>`).join('') : `<div class="rs-empty">Nothing to chart for the current filters.</div>`;
+
+  const topTxt = d.top ? `${escHtml(d.top.label)} <span style="font-size:13px;font-weight:500;color:#666;">&middot; ${fmtNum(d.top.total)}</span>` : '—';
+  const unatt = d.unattributed.length;
+  const u = civCurrentUser();
+  const identityHtml = u ? `<div class="civauth-identity">Logged in as: <strong>${escHtml(u.fullName)}</strong> (${escHtml(u.role)}) <span class="civauth-signout" onclick="civSignOut()">Log out</span></div>` : '';
+
+  const reconRows = RS_MODULES.map(m => { const c = d.recon[m.key]; return `<tr><td>${m.label}</td><td>${fmtNum(c.reviewed)}</td><td>${fmtNum(c.attributed)}</td><td>${fmtNum(c.unattributed)}</td></tr>`; }).join('');
+  const reconTot = RS_MODULES.reduce((s, m) => { const c = d.recon[m.key]; s.r += c.reviewed; s.a += c.attributed; s.u += c.unattributed; return s; }, { r: 0, a: 0, u: 0 });
+  const nameOnlyTot = RS_MODULES.reduce((s, m) => s + d.recon[m.key].nameOnly, 0);
+  const unattList = d.unattributed.slice(0, 100).map(e => `<li>${escHtml(RS_MODULES.find(m => m.key === e.mod).label)}: ${escHtml(e.ref)}</li>`).join('');
+
+  el.innerHTML = `
+  <div class="civr-header">
+    <div>
+      <h1>Reviewer's Summary</h1>
+      <div class="civr-progress-wrap"><span class="civr-progress-text">Completed audits per reviewer across CI, Eileen, Extra and Highway Partners reviews${rsLoadedAt ? ' &middot; updated ' + rsLoadedAt.toLocaleTimeString() : ''}${rsLoading ? ' &middot; refreshing…' : ''}</span></div>
+      ${identityHtml}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="civr-export-btn" onclick="rsLoad()">↻ Refresh</button>
+      <button class="civr-export-btn" onclick="rsExportCSV()">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="civr-stats-bar">
+    <div class="civr-stat civr-blue"><span class="civr-slabel">Total completed audits</span><span class="civr-sval">${fmtNum(d.total)}</span></div>
+    <div class="civr-stat civr-green"><span class="civr-slabel">Active reviewers</span><span class="civr-sval">${fmtNum(d.rows.length)}</span></div>
+    <div class="civr-stat"><span class="civr-slabel">Top reviewer</span><span class="civr-sval" style="font-size:18px;">${topTxt}</span></div>
+    ${unatt ? `<div class="civr-stat civr-amber"><span class="civr-slabel">Unattributed (flagged)</span><span class="civr-sval">${fmtNum(unatt)}</span></div>` : ''}
+  </div>
+
+  <div class="civr-filters">
+    <label>Date range:</label>
+    <select class="civr-select" onchange="rsSetFilter('range', this.value)">
+      ${[['all','All Time'],['today','Today'],['last7','Last 7 Days'],['last30','Last 30 Days'],['month','This Month'],['lastmonth','Last Month'],['custom','Custom Date Range']].map(o => `<option value="${o[0]}" ${rsFilters.range === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}
+    </select>
+    ${rsFilters.range === 'custom' ? `<input type="date" class="civr-select" value="${esc(rsFilters.from)}" onchange="rsSetFilter('from', this.value)"> <span style="color:#888;font-size:12px;">to</span> <input type="date" class="civr-select" value="${esc(rsFilters.to)}" onchange="rsSetFilter('to', this.value)">` : ''}
+    <label>Review module:</label>
+    <select class="civr-select" onchange="rsSetFilter('module', this.value)">
+      <option value="">All Modules</option>
+      ${RS_MODULES.map(m => `<option value="${m.key}" ${rsFilters.module === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
+    </select>
+    <label>Reviewer:</label>
+    <select class="civr-select" onchange="rsSetFilter('reviewer', this.value)">
+      <option value="">All Reviewers</option>
+      ${d.options.map(o => `<option value="${esc(o.id)}" ${rsFilters.reviewer === o.id ? 'selected' : ''}>${escHtml(o.label)}</option>`).join('')}
+    </select>
+    <input type="text" id="rs-search" class="search-box" placeholder="🔍 Search reviewer…" value="${esc(rsSearch)}" oninput="rsSetSearch(this.value)" style="min-width:200px;">
+    <span class="civr-reset" onclick="rsResetFilters()">Reset filters</span>
+  </div>
+
+  <div class="rs-grid">
+    <div class="rs-panel">
+      <div class="rs-panel-head">Reviewer ranking <span>${fmtNum(shown.length)} reviewer${shown.length === 1 ? '' : 's'} &middot; click a header to sort, a row to highlight</span></div>
+      <div class="rs-scroll">
+        <table class="rs-table">
+          <thead><tr>${th('rank', 'Rank', 'num')}${th('label', 'Reviewer Name')}${th('ci', 'CI Visit Review', 'num')}${th('eileen', 'Eileen Visit Review', 'num')}${th('extra', 'Extra Visit Review', 'num')}${th('highway', 'Highway Partners Reviews', 'num')}${th('total', 'Total Audits', 'num')}</tr></thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rs-panel">
+      <div class="rs-panel-head">Completed audits by reviewer <span>hover for the module breakdown</span></div>
+      <div class="rs-scroll"><div class="rs-bars">${bars}</div></div>
+    </div>
+  </div>
+
+  <div class="rs-recon">
+    <strong>Reconciliation (all time, all modules)</strong> &mdash; every count above ties back to the 'Reviewed' records in each module:
+    <table>
+      <thead><tr><th>Module</th><th>Reviewed records</th><th>Attributed to a reviewer</th><th>Unattributed (flagged)</th></tr></thead>
+      <tbody>${reconRows}<tr><td><strong>Total</strong></td><td><strong>${fmtNum(reconTot.r)}</strong></td><td><strong>${fmtNum(reconTot.a)}</strong></td><td><strong>${fmtNum(reconTot.u)}</strong></td></tr></tbody>
+    </table>
+    A completed audit is a report currently in 'Reviewed' status; it counts once and is credited to the account that last submitted it (version history). Extra Visit Reviews store only a reviewer name, matched to an account on an exact unique full-name match${nameOnlyTot ? ` &mdash; ${fmtNum(nameOnlyTot)} such audit${nameOnlyTot === 1 ? '' : 's'} could not be matched and show as "⚑ name only"` : ''}. Date filters use the submission time.
+    ${unatt ? `<details><summary>${fmtNum(unatt)} unattributed audit${unatt === 1 ? '' : 's'} in this view &mdash; flagged for review</summary><ul>${unattList}${unatt > 100 ? `<li>&hellip; and ${fmtNum(unatt - 100)} more</li>` : ''}</ul></details>` : ''}
+  </div>
+  `;
+  if (hadFocus) { const i = document.getElementById('rs-search'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // ACTION CENTER + REVIEW WORKFLOW (localStorage-backed)
 // ══════════════════════════════════════════════════════════════════════════
 const ACTION_TYPES = ['Ship new shelf strip','Force out product','Schedule merchandising visit','Increase inventory','Replace display','Meet with store manager','Promotional follow-up','Customer impact visit','POP compliance issue','Follow up on missing data','Other'];
@@ -6928,7 +7288,7 @@ function printCurrentView() { window.print(); }
   style.textContent = `
     .topbar, .detail-panel, .ac-toolbar, .breadcrumb .bc-link, select, .ac-btn { display:none !important; }
     .body, .content { display:block !important; overflow:visible !important; height:auto !important; }
-    #view-overview, #view-civisitreview, #view-eileenvisitreview, #view-highwayreview, #view-extravisitreview { display:block !important; overflow:visible !important; padding:0 !important; }
+    #view-overview, #view-civisitreview, #view-eileenvisitreview, #view-highwayreview, #view-reviewersummary, #view-extravisitreview { display:block !important; overflow:visible !important; padding:0 !important; }
     .chart-card, .kpi-card, .drill-card { break-inside:avoid; }
     body { background:#fff !important; overflow:visible !important; height:auto !important; }
     /* When a report detail is open, print only the report: show .detail-panel in normal flow
