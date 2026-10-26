@@ -5374,13 +5374,20 @@ function exportRecentFilename(base, range) {
   const stamp = range === '24h' ? d => `${ymd(d)}_${pad(d.getHours())}${pad(d.getMinutes())}` : ymd;
   return `${base}_submitted_${stamp(RECENT_SUBMIT_RANGES[range].cutoff())}_to_${stamp(new Date())}.csv`;
 }
+// "Export Filtered Evaluations": only the SUBMITTED evaluations (status Reviewed) among the reports that match the
+// tab's current filters/search. Shared by CI / Eileen / Extra / Highway Partners so all four behave identically.
+function exportFilteredFilename(base) {
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  return `${base}_filtered_evaluations_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
+}
 function downloadRecentCSV(filename, rows, range) {
   if (range && !rows.length) { alert(`No evaluations were submitted in the ${RECENT_SUBMIT_RANGES[range].label}.`); return; }
   downloadCSV(filename, rows);
 }
 
-function civrExportCSV(range) {
-  const src = range ? CIV_ALL_REPORTS.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : CIV_ALL_REPORTS;
+function civrExportCSV(range, scope) {
+  const pool = scope === 'filtered' ? civrFilteredReports().filter(rec => getReportStatus(rec) === 'Reviewed') : CIV_ALL_REPORTS;
+  const src = range ? pool.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : pool;
   const rows = src.map(rec => {
     const draft = civDraftVerdict(rec);
     return {
@@ -5394,7 +5401,7 @@ function civrExportCSV(range) {
       WeeklyVelocity: (() => { const s = civrVelocitySnapshot(rec); return s ? s.value.toFixed(1)+' u/wk ('+(civFmtMonthLabel(s.period)||'unknown month')+')' : ''; })()
     };
   });
-  downloadRecentCSV(exportRecentFilename('ci_visit_review', range), rows, range);
+  downloadRecentCSV(scope === 'filtered' ? exportFilteredFilename('ci_visit_review') : exportRecentFilename('ci_visit_review', range), rows, range);
 }
 
 function renderCiVisitReview() {
@@ -5410,6 +5417,7 @@ function renderCiVisitReview() {
 
   const filtered = civrFilteredReports();
   const stats = civrStats();
+  const evalCount = filtered.filter(r => getReportStatus(r) === 'Reviewed').length; // submitted evaluations within the current filters
   const chains = [...new Set(CIV_ALL_REPORTS.map(r=>r.ch).filter(Boolean))].sort();
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / CIVR_PAGE_SIZE));
@@ -5456,6 +5464,7 @@ function renderCiVisitReview() {
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="civr-export-btn" onclick="civrExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="civrExportCSV(null, 'filtered')" ${evalCount ? '' : 'disabled'} title="${evalCount ? 'Only the submitted evaluations among the reports matching the current filters' : 'No submitted evaluations match the current filters'}">Export Filtered Evaluations (${fmtNum(evalCount)})</button>
       <button class="civr-export-btn" onclick="civrExportCSV('24h')" title="Only evaluations submitted in the past 24 hours">Export Last 24 Hrs</button>
       <button class="civr-export-btn" onclick="civrExportCSV('7d')" title="Only evaluations submitted today and the previous 7 days">Export Last 7 Days</button>
       <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
@@ -5766,8 +5775,9 @@ function eivrCardHtml(rec) {
   ${civrSubmittedBannerHtml(rec, draft, status)}`;
 }
 
-function eivrExportCSV(range) {
-  const src = range ? EIV_ALL_REPORTS.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : EIV_ALL_REPORTS;
+function eivrExportCSV(range, scope) {
+  const pool = scope === 'filtered' ? eivrFilteredReports().filter(rec => getReportStatus(rec) === 'Reviewed') : EIV_ALL_REPORTS;
+  const src = range ? pool.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : pool;
   const rows = src.map(rec => {
     const draft = civDraftVerdict(rec);
     const dec = eivComputeSystemRecommendation(rec, draft);
@@ -5782,7 +5792,7 @@ function eivrExportCSV(range) {
       SubmittedAt: getReportStatus(rec)==='Reviewed' ? fmtSubmittedAt(getReportStatusUpdatedAt(rec)) : ''
     };
   });
-  downloadRecentCSV(exportRecentFilename('eileen_visit_review', range), rows, range);
+  downloadRecentCSV(scope === 'filtered' ? exportFilteredFilename('eileen_visit_review') : exportRecentFilename('eileen_visit_review', range), rows, range);
 }
 
 function renderEileenVisitReview() {
@@ -5795,6 +5805,7 @@ function renderEileenVisitReview() {
 
   const filtered = eivrFilteredReports();
   const stats = eivrStats();
+  const evalCount = filtered.filter(r => getReportStatus(r) === 'Reviewed').length; // submitted evaluations within the current filters
   const eivrChainMap = eivrChainCanonicalMap();
   const eivrEffectiveChains = EIV_ALL_REPORTS.map(r => eivrEffectiveChain(r, eivrChainMap));
   const chains = [...new Set(eivrEffectiveChains.filter(c => c !== EIVR_OTHERS))].sort();
@@ -5842,6 +5853,7 @@ function renderEileenVisitReview() {
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="civr-export-btn" onclick="eivrExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="eivrExportCSV(null, 'filtered')" ${evalCount ? '' : 'disabled'} title="${evalCount ? 'Only the submitted evaluations among the reports matching the current filters' : 'No submitted evaluations match the current filters'}">Export Filtered Evaluations (${fmtNum(evalCount)})</button>
       <button class="civr-export-btn" onclick="eivrExportCSV('24h')" title="Only evaluations submitted in the past 24 hours">Export Last 24 Hrs</button>
       <button class="civr-export-btn" onclick="eivrExportCSV('7d')" title="Only evaluations submitted today and the previous 7 days">Export Last 7 Days</button>
       <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
@@ -6054,9 +6066,11 @@ function extraCardHtml(v) {
   </div>`;
 }
 
-function extraExportCSV(range) {
+function extraExportCSV(range, scope) {
   const extraStatusAt = id => (EXTRA_STATUS_CACHE[id] || {}).updatedAt;
-  const base = extraFilteredVisits();
+  // Note: unlike the other tabs, the plain/recent exports here were ALREADY scoped to the current filters (every row, not just
+  // submitted ones) -- left exactly as they were; only scope==='filtered' narrows to submitted evaluations.
+  const base = scope === 'filtered' ? extraFilteredVisits().filter(v => getExtraStatus(v.id) === 'Reviewed') : extraFilteredVisits();
   const src = range ? base.filter(v => isRecentSubmission(range, getExtraStatus(v.id), extraStatusAt(v.id))) : base;
   const rows = src.map(v => {
     const draft = getExtraVerdict(v.id);
@@ -6069,7 +6083,7 @@ function extraExportCSV(range) {
       ReviewedBy: draft.reviewedBy||'', ReviewedAt: draft.reviewedAt||''
     };
   });
-  downloadRecentCSV(exportRecentFilename('extra_visit_reviews', range), rows, range);
+  downloadRecentCSV(scope === 'filtered' ? exportFilteredFilename('extra_visit_reviews') : exportRecentFilename('extra_visit_reviews', range), rows, range);
 }
 
 function renderExtraVisitReview() {
@@ -6083,6 +6097,7 @@ function renderExtraVisitReview() {
 
   const filtered = extraFilteredVisits();
   const stats = extraStats();
+  const evalCount = filtered.filter(v => getExtraStatus(v.id) === 'Reviewed').length; // submitted evaluations within the current filters
   const canonMap = extraChainCanonicalMap();
   const effectiveChains = EXTRA_VISITS.map(v => extraEffectiveChain(v, canonMap));
   const chains = [...new Set(effectiveChains.filter(c => c !== EXTRA_OTHERS))].sort();
@@ -6116,6 +6131,7 @@ function renderExtraVisitReview() {
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="civr-export-btn" onclick="extraExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="extraExportCSV(null, 'filtered')" ${evalCount ? '' : 'disabled'} title="${evalCount ? 'Only the submitted evaluations among the reports matching the current filters' : 'No submitted evaluations match the current filters'}">Export Filtered Evaluations (${fmtNum(evalCount)})</button>
       <button class="civr-export-btn" onclick="extraExportCSV('24h')" title="Only evaluations submitted in the past 24 hours">Export Last 24 Hrs</button>
       <button class="civr-export-btn" onclick="extraExportCSV('7d')" title="Only evaluations submitted today and the previous 7 days">Export Last 7 Days</button>
       <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
@@ -6391,8 +6407,9 @@ function hwrCardHtml(rec) {
   ${civrSubmittedBannerHtml(rec, draft, status)}`;
 }
 
-function hwrExportCSV(range) {
-  const src = range ? HIGHWAY_ALL_REPORTS.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : HIGHWAY_ALL_REPORTS;
+function hwrExportCSV(range, scope) {
+  const pool = scope === 'filtered' ? hwrFilteredReports().filter(rec => getReportStatus(rec) === 'Reviewed') : HIGHWAY_ALL_REPORTS;
+  const src = range ? pool.filter(rec => isRecentSubmission(range, getReportStatus(rec), getReportStatusUpdatedAt(rec))) : pool;
   const rows = src.map(rec => {
     const draft = civDraftVerdict(rec);
     const dec = eivComputeSystemRecommendation(rec, draft);
@@ -6411,7 +6428,7 @@ function hwrExportCSV(range) {
       WeeklyVelocity: (() => { const s = civrVelocitySnapshot(rec); return s ? s.value.toFixed(1)+' u/wk ('+(civFmtMonthLabel(s.period)||'unknown month')+')' : ''; })()
     };
   });
-  downloadRecentCSV(exportRecentFilename('highway_partners_reviews', range), rows, range);
+  downloadRecentCSV(scope === 'filtered' ? exportFilteredFilename('highway_partners_reviews') : exportRecentFilename('highway_partners_reviews', range), rows, range);
 }
 
 function renderHighwayReview() {
@@ -6426,6 +6443,7 @@ function renderHighwayReview() {
 
   const filtered = hwrFilteredReports();
   const stats = hwrStats();
+  const evalCount = filtered.filter(r => getReportStatus(r) === 'Reviewed').length; // submitted evaluations within the current filters
   const chains = [...new Set(HIGHWAY_ALL_REPORTS.map(r => r.ch).filter(Boolean))].sort();
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / HWR_PAGE_SIZE));
@@ -6470,6 +6488,7 @@ function renderHighwayReview() {
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="civr-export-btn" onclick="hwrExportCSV()">Export CSV</button>
+      <button class="civr-export-btn" onclick="hwrExportCSV(null, 'filtered')" ${evalCount ? '' : 'disabled'} title="${evalCount ? 'Only the submitted evaluations among the reports matching the current filters' : 'No submitted evaluations match the current filters'}">Export Filtered Evaluations (${fmtNum(evalCount)})</button>
       <button class="civr-export-btn" onclick="hwrExportCSV('24h')" title="Only evaluations submitted in the past 24 hours">Export Last 24 Hrs</button>
       <button class="civr-export-btn" onclick="hwrExportCSV('7d')" title="Only evaluations submitted today and the previous 7 days">Export Last 7 Days</button>
       <button class="civr-export-btn" onclick="printCurrentView()">🖨 Print / Save as PDF</button>
