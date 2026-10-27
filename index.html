@@ -1314,6 +1314,10 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civr-no-photo, #view-eileenvisitreview .civr-no-photo, #view-highwayreview .civr-no-photo, #view-reviewersummary .civr-no-photo, #view-extravisitreview .civr-no-photo{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:11px;color:#bbb;}
 #view-civisitreview .civr-view-all, #view-eileenvisitreview .civr-view-all, #view-highwayreview .civr-view-all, #view-reviewersummary .civr-view-all, #view-extravisitreview .civr-view-all{font-size:11px;color:#4a90d0;cursor:pointer;display:inline-block;margin-bottom:8px;}
 #view-civisitreview .civr-view-all:hover, #view-eileenvisitreview .civr-view-all:hover, #view-highwayreview .civr-view-all:hover, #view-reviewersummary .civr-view-all:hover, #view-extravisitreview .civr-view-all:hover{text-decoration:underline;}
+/* Before / After photo labels (CI Visit Review cards whose visit has photo categories) */
+#view-civisitreview .civr-plabel.civr-pl-b, #view-reviewersummary .civr-plabel.civr-pl-b{color:#b7791f;}
+#view-civisitreview .civr-plabel.civr-pl-a, #view-reviewersummary .civr-plabel.civr-pl-a{color:#2f855a;}
+#view-civisitreview .civr-pcount, #view-reviewersummary .civr-pcount{font-weight:600;color:#4a90d0;text-transform:none;letter-spacing:0;margin-left:6px;}
 
 #view-civisitreview .civr-verdict-bar, #view-eileenvisitreview .civr-verdict-bar, #view-highwayreview .civr-verdict-bar, #view-reviewersummary .civr-verdict-bar, #view-extravisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
 #view-civisitreview .civr-vq, #view-eileenvisitreview .civr-vq, #view-highwayreview .civr-vq, #view-reviewersummary .civr-vq, #view-extravisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
@@ -3112,9 +3116,11 @@ function civResolveLeaveWarning(action) {
 
 // ── LIGHTBOX ──────────────────────────────────────────────────────────────────
 let lbPhotoUrls = [];
+let lbPhotoLabels = null;   // optional per-photo caption ("Before", "After", ...), parallel to lbPhotoUrls
 let lbPhotoIndex = 0;
-function openLightbox(url, urls, index) {
+function openLightbox(url, urls, index, labels) {
   lbPhotoUrls = Array.isArray(urls) && urls.length ? urls : [url];
+  lbPhotoLabels = Array.isArray(labels) && labels.length === lbPhotoUrls.length ? labels : null;
   lbPhotoIndex = Number.isInteger(index) ? index : Math.max(0, lbPhotoUrls.indexOf(url));
   if (lbPhotoIndex < 0) lbPhotoIndex = 0;
   const lbImg = document.getElementById('lb-img');
@@ -3142,8 +3148,10 @@ function renderLightboxNav() {
   if (prev) prev.style.display = multi ? 'flex' : 'none';
   if (next) next.style.display = multi ? 'flex' : 'none';
   if (counter) {
-    counter.style.display = multi ? 'block' : 'none';
-    counter.textContent = multi ? `${lbPhotoIndex + 1} / ${lbPhotoUrls.length}` : '';
+    const label = lbPhotoLabels ? lbPhotoLabels[lbPhotoIndex] : '';
+    const pos = `${lbPhotoIndex + 1} / ${lbPhotoUrls.length}`;
+    counter.style.display = (multi || label) ? 'block' : 'none';
+    counter.textContent = label ? (multi ? `${label} · ${pos}` : label) : (multi ? pos : '');
   }
 }
 function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); hideMagLens(); civrUpdateScrollFab(); }
@@ -3941,7 +3949,7 @@ function buildDerivedIndexes() {
     if (v.src !== 'poppromo') return;
     POPPROMO_REPORTS.push({
       id: v.ciId, ch: d.chain, a: d.address, ci: d.city, st: d.state,
-      sc: v.sc, vd: v.vd, month: v.month, rep: v.rep, src: 'poppromo', ph: v.photos || [],
+      sc: v.sc, vd: v.vd, month: v.month, rep: v.rep, src: 'poppromo', ph: v.photos || [], phc: v.photoCats || [],
       kit: v.kit, outcome: v.outcome, refusalManager: v.refusalManager, refusalReason: v.refusalReason,
       promoRunning: v.promoRunning, promoCorrect: v.promoCorrect,
       shelfStripPresent: v.shelfStripPresent, shelfStripMatchesPromo: v.shelfStripMatchesPromo,
@@ -4729,7 +4737,12 @@ function civRepHint(rec) {
       productPresent: facingsCount > 0 ? true : null,
       shelfStripPresent: rec.shelfStripPresent === true ? true : rec.shelfStripPresent === false ? false : null,
       shelfStripCorrect: rec.shelfStripMatchesPromo === true ? true : rec.shelfStripMatchesPromo === false ? false : (rec.promoCorrect === true ? true : rec.promoCorrect === false ? false : null),
-      needsProduct: rec.orderingIssue ? true : null
+      // NOT pre-filled from the free-text ordering-issue answer (fixed 2026-10-26). That answer is overwhelmingly "No issues" /
+      // "None" / "manager not available" (~79% of 2,595 notes are plain negatives; the rest mix real problems with non-answers),
+      // and the old rule `orderingIssue ? true : null` turned ANY text into "Needs product = Yes" -- 339 of 340 answered
+      // evaluations in the Oct-2026 export were Yes for that reason alone. A rep's note about ordering is not a stock-need
+      // signal, so the reviewer decides this one from the photo; the note itself still shows in "Rep field notes" on the card.
+      needsProduct: null
     };
   }
   return {
@@ -5171,7 +5184,7 @@ function civrRepNotesHtml(rec) {
       civrNoteRow('Promo correct', correctLabel, correctLabel==='No'?'alert':''),
       civrNoteRow('Strip present', stripLabel, stripLabel==='Yes'?'good':stripLabel==='No'?'alert':''),
       civrNoteRow('Strip matches promo', matchLabel, matchLabel==='No'?'alert':''),
-      rec.orderingIssue ? civrNoteRow('Ordering issue', rec.orderingIssue, 'alert') : ''
+      rec.orderingIssue ? civrNoteRow('Ordering note', rec.orderingIssue, '') : ''   // neutral: the text is usually "No issues", so red would flag nearly every card
     ].join('');
     let html = `<div class="civr-rep-notes"><div class="civr-rep-notes-title">Rep field notes</div><div class="civr-rep-grid">${gridRows}</div>`;
     if (rec.observedPrice) html += `<div class="civr-rep-note-long">Observed price: ${escHtml(String(rec.observedPrice))}</div>`;
@@ -5212,8 +5225,44 @@ function civrBadgesHtml(rec, hint, status) {
 // CI's photo model is a flexible array (not the reference prototype's 3 fixed Before/After/Strip
 // slots -- CI never captured named slots), so labels are generic "Photo N" -- same generalization
 // this project's very first build already made when adapting the reference file for CI/Eileen.
+// Photo categories (door_visits.photo_cats, parallel to photos; build_photo_cats.ps1 reads them from the source form's own column names):
+// B Before, A After, S Site check, W Wall, T Stickers, O Other. A record without aligned categories keeps the generic "Photo N" layout below.
+const PHOTO_CAT_LABEL = { B: 'Before', A: 'After', S: 'Site check', W: 'Wall', T: 'Stickers', O: 'Other' };
+const PHOTO_CAT_ORDER = ['B', 'A', 'S', 'W', 'T', 'O'];
+function photoCatGroups(urls, cats) {
+  if (!Array.isArray(urls) || !urls.length || !Array.isArray(cats) || cats.length !== urls.length) return null;
+  const by = {}; PHOTO_CAT_ORDER.forEach(c => { by[c] = []; });
+  urls.forEach((u, i) => { by[by[cats[i]] ? cats[i] : 'O'].push(u); });
+  const ordered = [], labels = [];
+  PHOTO_CAT_ORDER.forEach(c => by[c].forEach(u => { ordered.push(u); labels.push(PHOTO_CAT_LABEL[c]); }));
+  return { by, ordered, labels };
+}
+// Three labeled slots: Before, After, then the first other category present (Site check / Wall / Stickers / Other). A visit with no Before or
+// After photo shows "No photo" under that label, so a missing shot is visible to the reviewer. Everything else sits behind "View all", and the
+// lightbox opens on the full set ordered Before, After, then the rest, captioned with each photo's category.
+function civrPhotosCatHtml(g) {
+  const lit = jsArrayLiteral(g.ordered), labLit = jsArrayLiteral(g.labels);
+  const other = PHOTO_CAT_ORDER.slice(2).find(c => g.by[c].length) || 'S';
+  let shown = 0;
+  const cols = ['B', 'A', other].map(c => {
+    const list = g.by[c], url = list[0];
+    const cls = c === 'B' ? ' civr-pl-b' : c === 'A' ? ' civr-pl-a' : '';
+    const more = list.length > 1 ? `<span class="civr-pcount">+${list.length - 1} more</span>` : '';
+    const label = `<div class="civr-plabel${cls}">${PHOTO_CAT_LABEL[c]}${more}</div>`;
+    if (!url) return `<div class="civr-photo-col">${label}<div class="civr-photo-wrap"><div class="civr-no-photo">No photo</div></div></div>`;
+    shown++;
+    const idx = g.ordered.indexOf(url);
+    return `<div class="civr-photo-col">${label}<div class="civr-photo-wrap" onclick="openLightbox('${esc(url)}', ${lit}, ${idx}, ${labLit})"><img src="${esc(url)}" loading="lazy"><span class="civr-photo-hint">expand</span></div></div>`;
+  }).join('');
+  const total = g.ordered.length;
+  const parts = PHOTO_CAT_ORDER.filter(c => g.by[c].length).map(c => `${g.by[c].length} ${PHOTO_CAT_LABEL[c].toLowerCase()}`);
+  const viewAll = total > shown ? `<div class="civr-view-all" onclick="openLightbox('${esc(g.ordered[0])}', ${lit}, 0, ${labLit})">View all ${total} photos (${parts.join(' · ')}) →</div>` : '';
+  return `<div class="civr-photos-row">${cols}</div>${viewAll}`;
+}
 function civrPhotosHtml(rec) {
   const urls = Array.isArray(rec.ph) ? rec.ph : [];
+  const grouped = photoCatGroups(urls, rec.phc);
+  if (grouped) return civrPhotosCatHtml(grouped);
   const lit = jsArrayLiteral(urls);
   const cols = [0,1,2].map(i => {
     const url = urls[i];
@@ -8771,7 +8820,9 @@ function applyLoadedData(chainsRows, salesRows, salesMonthlyRows, visitsRows, do
       shelfStripPresent: v.shelf_strip_present, shelfStripMatchesPromo: v.shelf_strip_matches_promo,
       shelfStripSizes: v.shelf_strip_sizes, skuFacings: v.sku_facings,
       observedPrice: v.observed_price, orderingIssue: v.ordering_issue, weekendRestricted: v.weekend_restricted,
-      photos: v.photos || []
+      photos: v.photos || [],
+      // photo_cats: per-photo category codes parallel to photos (migrate_photo_cats_schema.sql); absent/null until the backfill has run
+      photoCats: Array.isArray(v.photo_cats) ? v.photo_cats : []
     });
   });
   const doorSalesByKey = {};
