@@ -1318,6 +1318,11 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civr-plabel.civr-pl-b, #view-reviewersummary .civr-plabel.civr-pl-b{color:#b7791f;}
 #view-civisitreview .civr-plabel.civr-pl-a, #view-reviewersummary .civr-plabel.civr-pl-a{color:#2f855a;}
 #view-civisitreview .civr-pcount, #view-reviewersummary .civr-pcount{font-weight:600;color:#4a90d0;text-transform:none;letter-spacing:0;margin-left:6px;}
+/* Before / After answer blocks on POP Marketing Check cards */
+#view-civisitreview .civr-bf-title, #view-reviewersummary .civr-bf-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;padding:8px 16px 0;border-top:1px solid #eae8df;background:#fafaf8;}
+#view-civisitreview .civr-bf-b, #view-reviewersummary .civr-bf-b{color:#b7791f;}
+#view-civisitreview .civr-bf-a, #view-reviewersummary .civr-bf-a{color:#2f855a;border-top:none;padding-top:10px;}
+#view-civisitreview .civr-before-bar, #view-reviewersummary .civr-before-bar{border-top:none;padding-top:6px;padding-bottom:4px;}
 
 #view-civisitreview .civr-verdict-bar, #view-eileenvisitreview .civr-verdict-bar, #view-highwayreview .civr-verdict-bar, #view-reviewersummary .civr-verdict-bar, #view-extravisitreview .civr-verdict-bar{border-top:1px solid #eae8df;background:#fafaf8;padding:12px 16px;display:flex;align-items:center;gap:0;flex-wrap:wrap;}
 #view-civisitreview .civr-vq, #view-eileenvisitreview .civr-vq, #view-highwayreview .civr-vq, #view-reviewersummary .civr-vq, #view-extravisitreview .civr-vq{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;padding-right:12px;border-right:1px solid #e0ddd6;}
@@ -4022,7 +4027,8 @@ function setReportVerdict(rec, verdict) {
     return;
   }
   // CI, poppromo and Eileen all write the same 8 Standard Fields for Review columns.
-  const row = Object.assign({ src: rec.src, report_id: rec.id }, stdReviewToDb(verdict), { notes: verdict.notes, flag: verdict.flag, updated_at: updatedAt });
+  // POP Marketing Check (poppromo) also writes its 4 Before answers (migrate_before_review_fields.sql); every other src leaves those columns untouched.
+  const row = Object.assign({ src: rec.src, report_id: rec.id }, stdReviewToDb(verdict), rec.src === 'poppromo' ? stdBeforeToDb(verdict) : {}, { notes: verdict.notes, flag: verdict.flag, updated_at: updatedAt });
   if (rec.src === 'eileen' || rec.src === 'highway') {
     // Decision fields are recomputed fresh here (not just copied off the draft) so a save always
     // reflects the CURRENT door velocity + CURRENT Correct shelf strip? answer, even if something
@@ -4142,26 +4148,45 @@ const STD_REVIEW_DB_COLS = {
   shelfStripPresent:'shelf_strip_present', shelfStripCorrect:'shelf_strip_correct',
   facingsWithProduct:'facings_with_product', facingsEmptyCount:'facings_empty_count', needsProduct:'needs_product'
 };
+// BEFORE answers (POP Marketing Check visits, src 'poppromo', only): the strip and facings questions answered from the visit's Before photos
+// (photo_cats = 'B'), so the Field Visit Summary can show PRE next to POST. The 7 standard fields above stay as the AFTER answers. These save to
+// report_verdicts only (migrate_before_review_fields.sql) -- extra_report_verdicts has no such columns -- so they are deliberately NOT part of
+// stdReviewToDb/stdReviewFromDb, which every tab shares.
+const STD_BEFORE_FIELDS = [
+  { key:'beforeStripPresent',       label:'Shelf strip present?',     type:'yn' },
+  { key:'beforeStripCorrect',       label:'Correct shelf strip?',     type:'ynna' },
+  { key:'beforeFacingsWithProduct', label:'# of facings w/ product?', type:'count' },
+  { key:'beforeFacingsEmptyCount',  label:'# of facings empty',       type:'count' },
+];
+const STD_BEFORE_DB_COLS = {
+  beforeStripPresent:'before_shelf_strip_present', beforeStripCorrect:'before_shelf_strip_correct',
+  beforeFacingsWithProduct:'before_facings_with_product', beforeFacingsEmptyCount:'before_facings_empty_count'
+};
+function stdBeforeBlank() { const o = {}; STD_BEFORE_FIELDS.forEach(f => { o[f.key] = null; }); return o; }
 function stdReviewBlank() { const o = {}; STD_REVIEW_FIELDS.forEach(f => { o[f.key] = null; }); return o; }
 // Client value -> DB column value. shelf_strip_correct is a text column ('true'/'false'/'na') since
 // it allows N/A; the rest are boolean / integer / text and pass through as-is.
-function stdReviewToDb(verdict) {
+function stdFieldsToDb(fields, cols, verdict) {
   const row = {};
-  STD_REVIEW_FIELDS.forEach(f => {
+  fields.forEach(f => {
     const v = verdict[f.key] === undefined ? null : verdict[f.key];
-    row[STD_REVIEW_DB_COLS[f.key]] = f.type === 'ynna' ? (v === true ? 'true' : v === false ? 'false' : v === 'na' ? 'na' : null) : v;
+    row[cols[f.key]] = f.type === 'ynna' ? (v === true ? 'true' : v === false ? 'false' : v === 'na' ? 'na' : null) : v;
   });
   return row;
 }
-function stdReviewFromDb(row) {
+function stdFieldsFromDb(fields, cols, row) {
   const o = {};
-  STD_REVIEW_FIELDS.forEach(f => {
-    const v = row[STD_REVIEW_DB_COLS[f.key]];
+  fields.forEach(f => {
+    const v = row[cols[f.key]];
     o[f.key] = f.type === 'ynna' ? (v === 'true' ? true : v === 'false' ? false : v === 'na' ? 'na' : null)
              : (v === undefined ? null : v);
   });
   return o;
 }
+function stdReviewToDb(verdict) { return stdFieldsToDb(STD_REVIEW_FIELDS, STD_REVIEW_DB_COLS, verdict); }
+function stdReviewFromDb(row) { return stdFieldsFromDb(STD_REVIEW_FIELDS, STD_REVIEW_DB_COLS, row); }
+function stdBeforeToDb(verdict) { return stdFieldsToDb(STD_BEFORE_FIELDS, STD_BEFORE_DB_COLS, verdict); }
+function stdBeforeFromDb(row) { return stdFieldsFromDb(STD_BEFORE_FIELDS, STD_BEFORE_DB_COLS, row); }
 function stdReviewParseCount(value) {
   const digits = String(value === null || value === undefined ? '' : value).replace(/[^0-9]/g, '');
   return digits === '' ? null : parseInt(digits, 10);
@@ -4179,11 +4204,19 @@ function stdReviewCsvCols(draft) {
   STD_REVIEW_FIELDS.forEach(f => { out[names[f.key]] = stdReviewDisplay(f, draft[f.key]); });
   return out;
 }
+// CI export only: the Before answers (blank for every record that has none), so a filtered export feeds the PRE columns of the Field Visit Summary.
+function stdBeforeCsvCols(draft) {
+  const names = { beforeStripPresent:'BeforeShelfStripPresent', beforeStripCorrect:'BeforeCorrectShelfStrip',
+    beforeFacingsWithProduct:'BeforeFacingsWithProduct', beforeFacingsEmptyCount:'BeforeFacingsEmpty' };
+  const out = {};
+  STD_BEFORE_FIELDS.forEach(f => { out[names[f.key]] = stdReviewDisplay(f, draft[f.key]); });
+  return out;
+}
 // Renders the standard fields. `call.answer(key, jsLiteral)` / `call.value(key)` return the onclick /
 // onchange JS for this tab's own setters; `hint` (optional) shows a "Rep said:" line per field.
-function stdReviewFieldsHtml(draft, dis, call, hint) {
+function stdReviewFieldsHtml(draft, dis, call, hint, fields) {
   hint = hint || {};
-  return STD_REVIEW_FIELDS.map(f => {
+  return (fields || STD_REVIEW_FIELDS).map(f => {
     const val = draft[f.key];
     const h = hint[f.key];
     const hintHtml = h === undefined || h === null ? `<div class="civr-vq-pre">&nbsp;</div>` : `<div class="civr-vq-pre">Rep said: ${rrHintLabel(h)}</div>`;
@@ -4499,17 +4532,20 @@ function civPrevVersionFor(reportId, beforeVersionId) {
   return versions[0] || null;
 }
 function civBlankVerdictSnapshot(src) {
-  return Object.assign(stdReviewBlank(), (src === 'eileen' || src === 'highway') ? { decisionOverride: null } : {}, { notes: '', flag: false });
+  return Object.assign(stdReviewBlank(), (src === 'eileen' || src === 'highway') ? { decisionOverride: null } : {}, src === 'poppromo' ? stdBeforeBlank() : {}, { notes: '', flag: false });
 }
 
 const STD_DIFF_FIELDS = STD_REVIEW_FIELDS.map(f => [f.key, f.label]);
 const EIV_DIFF_FIELDS = STD_DIFF_FIELDS.concat([['decisionOverride','Decision Override'],['notes','Notes'],['flag','Flagged']]);
 const CIV_DIFF_FIELDS = STD_DIFF_FIELDS.concat([['notes','Notes'],['flag','Flagged']]);
+// POP Marketing Check versions also carry the 4 Before answers; the existing standard fields are its After answers.
+const POP_DIFF_FIELDS = STD_REVIEW_FIELDS.map(f => [f.key, 'After — ' + f.label])
+  .concat(STD_BEFORE_FIELDS.map(f => [f.key, 'Before — ' + f.label]), [['notes','Notes'],['flag','Flagged']]);
 function civDiffHtml(current, target) {
   const src = current.src || target.src;
-  const fields = (src === 'eileen' || src === 'highway') ? EIV_DIFF_FIELDS : CIV_DIFF_FIELDS;
+  const fields = (src === 'eileen' || src === 'highway') ? EIV_DIFF_FIELDS : src === 'poppromo' ? POP_DIFF_FIELDS : CIV_DIFF_FIELDS;
   const fmt = (f, v) => {
-    const std = STD_REVIEW_FIELDS.find(x => x.key === f);
+    const std = STD_REVIEW_FIELDS.find(x => x.key === f) || STD_BEFORE_FIELDS.find(x => x.key === f);
     if (std) { const s = stdReviewDisplay(std, v); return s === '' ? '—' : s; }
     return typeof v === 'boolean' ? (v ? 'Yes' : 'No') : v === 'na' ? 'N/A' : (v || v === 0 ? v : '—');
   };
@@ -4817,7 +4853,7 @@ function civSetVerdictValue(src, id, field, value) {
   const rec = { src, id };
   const draft = civDraftVerdict(rec);
   const prev = draft[field];
-  const f = STD_REVIEW_FIELDS.find(x => x.key === field);
+  const f = STD_REVIEW_FIELDS.find(x => x.key === field) || STD_BEFORE_FIELDS.find(x => x.key === field);
   draft[field] = f && f.type === 'count' ? stdReviewParseCount(value) : (value === '' ? null : value);
   civDirtySet.add(reportKey(rec));
   civLogAudit('edit', { chain: civReportChain(src, id), door_key: civReportDoorKey(src, id), report_id: id, field, previous_value: prev===null||prev===undefined?null:String(prev), new_value: draft[field]===null?null:String(draft[field]) });
@@ -5282,7 +5318,14 @@ function civrVerdictBarHtml(rec, draft, hint, status) {
   const dis = canEdit ? '' : 'disabled';
   const qHtml = stdReviewFieldsHtml(draft, dis, civStdCall(rec.src, rec.id), hint);
   const isDirty = civDirtySet.has(reportKey(rec));
-  return `<div class="civr-verdict-bar">
+  // POP Marketing Check visits: a BEFORE block (answered from the Before photos) above the standard fields, which become the AFTER block.
+  const isPop = rec.src === 'poppromo';
+  const beforeHtml = isPop
+    ? `<div class="civr-bf-title civr-bf-b">Before &mdash; answer from the Before photos</div>
+       <div class="civr-verdict-bar civr-before-bar">${stdReviewFieldsHtml(draft, dis, civStdCall(rec.src, rec.id), null, STD_BEFORE_FIELDS)}</div>
+       <div class="civr-bf-title civr-bf-a">After &mdash; answer from the After photos</div>`
+    : '';
+  return `${beforeHtml}<div class="civr-verdict-bar">
     ${qHtml}
     <div class="civr-submit-col">
       <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict('${rec.src}', ${JSON.stringify(rec.id)})">${locked?'Submitted ✓':'Submit ✓'}</button>
@@ -5444,6 +5487,7 @@ function civrExportCSV(range, scope) {
       RepStripPresent: rec.sp===1?'yes':rec.sp===0?'no':'',
       RepOOS: Array.isArray(rec.oo)&&rec.oo.length?'yes':'no', RepOOSItems: Array.isArray(rec.oo)?rec.oo.join('; '):'',
       ...stdReviewCsvCols(draft),
+      ...stdBeforeCsvCols(draft),
       Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
       Submitted: getReportStatus(rec)==='Reviewed'?'Yes':'No',
       SubmittedAt: getReportStatus(rec)==='Reviewed' ? fmtSubmittedAt(getReportStatusUpdatedAt(rec)) : '',
@@ -8946,6 +8990,7 @@ async function loadAllData() {
     // override -- only when the last save was actually a manual override, so an 'automatic' save
     // keeps live-following the system recommendation on future loads.
     REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = Object.assign(stdReviewFromDb(rv),
+      rv.src === 'poppromo' ? stdBeforeFromDb(rv) : {},
       (rv.src === 'eileen' || rv.src === 'highway') ? { decisionOverride: rv.decision_status === 'manual_override' ? rv.decision : null } : {},
       { notes: rv.notes || '', flag: !!rv.flag, updatedAt: rv.updated_at });
   });
