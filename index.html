@@ -9685,7 +9685,7 @@ CM.render = function () {
   try {
     ensure();
     const C = ctxOf(), M = C.M;
-    el.innerHTML = `<div class="cm-wrap"><div class="cm-head"><h1>Category Manager Command Center</h1><div><button class="cm-btn" onclick="CM.refresh()">Refresh data</button></div></div>
+    el.innerHTML = `<div class="cm-wrap"><div class="cm-head"><h1>Command Center</h1><div><button class="cm-btn" onclick="CM.refresh()">Refresh data</button></div></div>
       <div class="cm-sub">Latest velocity, store photographs, evaluation findings, missing SKUs and recommended actions for every door, from the dashboard's live data · model built in ${M.builtMs} ms${M.extraUnmatched ? ' · ' + M.extraUnmatched + ' Extra evaluations could not be matched to a door' : ''}${rsVersions ? '' : ' · reviewer names load after sign-in'}${usingEmbeddedSnapshot ? ' · <b>read-only copy: it holds Eileen visits from ' + ymd(Math.min(...M.evals.filter(e => e.src === 'eileen' && e.ts).map(e => e.ts).concat([Date.now()]))) + ' onward only (size limit), so issue counts are lower than on the live dashboard</b>' : ''}</div>
       ${kpiHtml(C)}${filterHtml(M)}
       <div class="cm-nav"><a onclick="CM.jump('cm-velocity')">Velocity</a><a onclick="CM.jump('cm-photos')">Photos</a><a onclick="CM.jump('cm-evals')">Evaluations</a><a onclick="CM.jump('cm-issues')">Issues</a><a onclick="CM.jump('cm-actions')">Action Center</a><a onclick="CM.jump('cm-reports')">Reports</a></div>
