@@ -1660,6 +1660,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   <div class="logo">LUCY<em>/</em>goods</div>
   <div class="nav-tabs">
     <div class="tab active" onclick="switchTab(&#39;overview&#39;)" id="tab-overview"><span class="tab-icon">🏠</span> Overview</div>
+    <div class="tab" onclick="switchTab(&#39;cmcc&#39;)" id="tab-cmcc"><span class="tab-icon">🎯</span> Command Center</div>
     <div class="tab" onclick="switchTab(&#39;map&#39;)" id="tab-map"><span class="tab-icon">🗺</span> Map</div>
     <div class="tab" onclick="switchTab(&#39;chains&#39;)" id="tab-chains"><span class="tab-icon">⬡</span> Chains</div>
     <div class="tab" onclick="switchTab(&#39;stores&#39;)" id="tab-stores"><span class="tab-icon">⊞</span> Stores</div>
@@ -1690,6 +1691,8 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 
     <!-- MAP VIEW -->
     <div id="view-overview" style="display:flex;flex-direction:column;"></div>
+    <!-- CATEGORY MANAGER COMMAND CENTER (module injected at the end of this file by inject_cmcc.ps1) -->
+    <div id="view-cmcc" style="display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:0;"><div id="cm-main"></div></div>
     <div id="view-map" style="display: none; flex-direction: column;">
       <div id="map" style="flex: 1 1 0%; position: relative;"></div>
       <div class="map-source-toggle">
@@ -3077,9 +3080,10 @@ function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  const views = ['overview','map','chains','stores','civisitreview','eileenvisitreview','extravisitreview','highwayreview','reviewersummary'];
+  const views = ['overview','cmcc','map','chains','stores','civisitreview','eileenvisitreview','extravisitreview','highwayreview','reviewersummary'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
+  if (tab === 'cmcc') renderCmcc();
   if (tab === 'civisitreview') renderCiVisitReview();
   if (tab === 'eileenvisitreview') renderEileenVisitReview();
   if (tab === 'extravisitreview') renderExtraVisitReview();
@@ -8977,7 +8981,9 @@ async function loadAllData() {
 
   ACTIONS_CACHE = actionsRows.map(a => ({
     id: a.id, doorKey: a.door_key, chain: a.chain, type: a.type, priority: a.priority,
-    dueDate: a.due_date, assignedRep: a.assigned_rep, notes: a.notes, status: a.status, createdAt: a.created_at
+    dueDate: a.due_date, assignedRep: a.assigned_rep, notes: a.notes, status: a.status, createdAt: a.created_at,
+    // Command Center columns (migrate_cmcc_actions.sql); undefined until that migration has run
+    issueKey: a.issue_key, recommended: a.recommended_action, source: a.source, comments: a.comments, history: a.history
   }));
   REPORT_STATUS_CACHE = {};
   reportStatusRows.forEach(rs => {
@@ -9033,4 +9039,809 @@ async function init() {
 init();
 </script>
 
+<!-- CMCC:BEGIN -->
+<style id="cmcc-style">
+/* Category Manager Command Center -- scoped to #view-cmcc and #cm-op */
+#view-cmcc{background:#f5f3ee;}
+#view-cmcc .cm-wrap{padding:18px 22px 60px;max-width:1500px;width:100%;margin:0 auto;box-sizing:border-box;}
+#view-cmcc .cm-head{background:#203864;color:#fff;border-radius:10px 10px 0 0;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+#view-cmcc .cm-head h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px;}
+#view-cmcc .cm-sub{background:#d9e1f2;color:#44546a;font-style:italic;font-size:12px;padding:6px 18px;border-radius:0 0 10px 10px;margin-bottom:14px;}
+#view-cmcc .cm-btn{background:#fff;color:#203864;border:1px solid #c5cfe3;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;}
+#view-cmcc .cm-btn:hover{background:#eef2fa;}
+#view-cmcc .cm-btn.pri{background:#203864;color:#fff;border-color:#203864;}
+#view-cmcc .cm-btn.sm{padding:2px 8px;font-size:11px;}
+#view-cmcc .cm-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px;}
+@media (max-width:1100px){#view-cmcc .cm-kpis{grid-template-columns:repeat(2,1fr);}}
+#view-cmcc .cm-kpi{background:#fff;border:1px solid #e0ddd6;border-left:4px solid #4472c4;border-radius:8px;padding:10px 12px;cursor:pointer;transition:box-shadow .12s;}
+#view-cmcc .cm-kpi:hover{box-shadow:0 2px 8px rgba(0,0,0,.12);}
+#view-cmcc .cm-kpi.on{outline:2px solid #203864;}
+#view-cmcc .cm-kpi .n{font-size:24px;font-weight:700;color:#141413;line-height:1.1;}
+#view-cmcc .cm-kpi .l{font-size:11px;color:#666;margin-top:2px;text-transform:uppercase;letter-spacing:.05em;}
+#view-cmcc .cm-kpi.red{border-left-color:#c00000;} #view-cmcc .cm-kpi.org{border-left-color:#c55a11;} #view-cmcc .cm-kpi.grn{border-left-color:#375623;}
+#view-cmcc .cm-filters{background:#fff;border:1px solid #e0ddd6;border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:12px;}
+#view-cmcc .cm-filters label{display:flex;flex-direction:column;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;gap:2px;}
+#view-cmcc .cm-filters select,#view-cmcc .cm-filters input{font-size:12px;padding:4px 6px;border:1px solid #cfd3da;border-radius:5px;background:#fff;min-width:110px;max-width:170px;}
+#view-cmcc .cm-nav{position:sticky;top:0;z-index:5;background:#f5f3ee;padding:6px 0 8px;display:flex;gap:6px;flex-wrap:wrap;}
+#view-cmcc .cm-nav a{font-size:12px;font-weight:600;color:#203864;background:#fff;border:1px solid #c5cfe3;border-radius:14px;padding:3px 11px;text-decoration:none;cursor:pointer;}
+#view-cmcc .cm-nav a:hover{background:#eef2fa;}
+#view-cmcc .cm-sec{background:#fff;border:1px solid #e0ddd6;border-radius:10px;margin-bottom:16px;overflow:hidden;}
+#view-cmcc .cm-sec>h2{margin:0;background:#203864;color:#fff;font-size:13px;letter-spacing:.06em;padding:7px 14px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+#view-cmcc .cm-sec>h2 small{font-weight:400;text-transform:none;letter-spacing:0;opacity:.85;font-size:11px;}
+#view-cmcc .cm-body{padding:12px 14px;}
+#view-cmcc .cm-note{font-size:11px;color:#6b6b6b;line-height:1.4;margin:6px 0;}
+#view-cmcc table.cm-t{width:100%;border-collapse:collapse;font-size:12px;}
+#view-cmcc table.cm-t th{background:#f0efe9;color:#444;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:5px 7px;border-bottom:2px solid #d9d6cc;white-space:nowrap;}
+#view-cmcc table.cm-t td{padding:5px 7px;border-bottom:1px solid #eeece5;vertical-align:top;}
+#view-cmcc table.cm-t tr.cm-click{cursor:pointer;}
+#view-cmcc table.cm-t tr.cm-click:hover td{background:#f6f8fc;}
+#view-cmcc .cm-chip{display:inline-block;font-size:10.5px;font-weight:700;border-radius:10px;padding:1px 8px;color:#fff;white-space:nowrap;}
+#view-cmcc .cm-tag{display:inline-block;font-size:10.5px;font-weight:600;border-radius:4px;padding:1px 6px;background:#eef0f4;color:#444;white-space:nowrap;}
+#view-cmcc .cm-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+#view-cmcc .cm-up{color:#2f855a;font-weight:700;} #view-cmcc .cm-dn{color:#b3261e;font-weight:700;} #view-cmcc .cm-mon{color:#a37f00;font-weight:700;} #view-cmcc .cm-gr{color:#999;}
+#view-cmcc .cm-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media (max-width:1000px){#view-cmcc .cm-grid2{grid-template-columns:1fr;}}
+#view-cmcc .cm-rank{font-size:12px;} #view-cmcc .cm-rank div{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #e3e0d8;cursor:pointer;}
+#view-cmcc .cm-rank div:hover{background:#f6f8fc;}
+#view-cmcc .cm-sub2{font-size:11px;font-weight:700;color:#203864;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px;}
+#view-cmcc .cm-pager{display:flex;gap:6px;align-items:center;justify-content:flex-end;font-size:12px;color:#555;margin-top:8px;}
+#view-cmcc .cm-pcard{border:1px solid #dcd9d0;border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fff;}
+#view-cmcc .cm-pcard-h{background:#f0efe9;padding:7px 12px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;}
+#view-cmcc .cm-pcard-h b{font-size:13px;color:#141413;}
+#view-cmcc .cm-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px;}
+@media (max-width:800px){#view-cmcc .cm-pair{grid-template-columns:1fr;}}
+#view-cmcc .cm-ph{position:relative;background:#eceae3;border-radius:6px;overflow:hidden;min-height:260px;display:flex;align-items:center;justify-content:center;}
+#view-cmcc .cm-ph img{width:100%;height:340px;object-fit:cover;cursor:zoom-in;display:block;}
+#view-cmcc .cm-ph .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(20,20,19,.72);color:#fff;font-size:11px;padding:4px 8px;}
+#view-cmcc .cm-ph .tag{position:absolute;top:8px;left:8px;color:#fff;font-size:11px;font-weight:700;border-radius:4px;padding:2px 8px;letter-spacing:.06em;text-transform:uppercase;}
+#view-cmcc .cm-ph.empty{color:#888;font-size:12px;}
+#view-cmcc .cm-more{font-size:11px;color:#4a90d0;cursor:pointer;margin-left:8px;}
+#view-cmcc .cm-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:2px 12px 10px;font-size:12px;}
+#view-cmcc .cm-two ul{margin:2px 0 0;padding-left:16px;}
+#view-cmcc .cm-act-in{font-size:11px;padding:2px 4px;border:1px solid #cfd3da;border-radius:4px;max-width:130px;}
+#view-cmcc .cm-banner{background:#fff4d6;border:1px solid #ecd48a;color:#6b5500;border-radius:6px;padding:6px 10px;font-size:12px;margin-bottom:10px;}
+#view-cmcc .cm-hist{background:#f7f6f1;border:1px solid #e3e0d8;border-radius:6px;padding:6px 10px;font-size:11px;margin:4px 0;}
+#view-cmcc .cm-empty{color:#888;font-size:12px;padding:14px;text-align:center;}
+#view-cmcc .cm-sev-Critical{background:#b3261e;} #view-cmcc .cm-sev-High{background:#d9730d;} #view-cmcc .cm-sev-Medium{background:#c9a100;} #view-cmcc .cm-sev-Low{background:#6b7280;}
+#view-cmcc .cm-st-New{background:#2563eb;} #view-cmcc .cm-st-Recurring{background:#7c3aed;} #view-cmcc .cm-st-Outstanding{background:#b45309;} #view-cmcc .cm-st-Resolved{background:#2f855a;} #view-cmcc .cm-st-Historical{background:#9ca3af;}
+
+/* ---------- OnePager overlay (preview + print) ---------- */
+#cm-op{position:fixed;inset:0;z-index:100000;background:rgba(20,20,19,.72);overflow:auto;display:none;padding:18px 0 40px;}
+#cm-op .op-bar{position:sticky;top:0;z-index:2;max-width:1100px;margin:0 auto 10px;background:#fff;border-radius:8px;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+#cm-op .op-bar b{margin-right:auto;font-size:13px;color:#203864;}
+#cm-op .op-bar button{background:#fff;color:#203864;border:1px solid #c5cfe3;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;}
+#cm-op .op-bar button.pri{background:#203864;color:#fff;border-color:#203864;}
+#cm-op .op-page{width:1056px;max-width:96vw;margin:0 auto 14px;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.35);padding:0 0 8px;font-family:'Segoe UI',Arial,sans-serif;color:#141413;font-size:10px;box-sizing:border-box;}
+#cm-op .op-title{background:#203864;color:#fff;font-size:17px;font-weight:700;padding:8px 12px;}
+#cm-op .op-subb{background:#d9e1f2;color:#44546a;font-style:italic;font-size:9.5px;padding:4px 12px;}
+#cm-op .op-body{padding:6px 12px 0;}
+#cm-op .op-row{display:grid;gap:10px;margin-bottom:6px;}
+#cm-op .op-r3{grid-template-columns:1.05fr 1.3fr 1fr;} #cm-op .op-r2{grid-template-columns:1fr 1fr;} #cm-op .op-r1{grid-template-columns:1fr;} #cm-op .op-rp{grid-template-columns:1fr 1fr .75fr;}
+#cm-op h3{margin:0 0 4px;background:#203864;color:#fff;font-size:10.5px;letter-spacing:.06em;padding:3px 8px;text-transform:uppercase;}
+#cm-op table{width:100%;border-collapse:collapse;font-size:9.2px;}
+#cm-op th{background:#f0efe9;text-align:left;font-size:8.4px;text-transform:uppercase;padding:2.5px 4px;border-bottom:1.5px solid #cfcbbf;}
+#cm-op td{padding:2.2px 4px;border-bottom:1px solid #eeece5;vertical-align:top;}
+#cm-op .op-kv{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:9.6px;} #cm-op .op-kv span:nth-child(odd){color:#666;}
+#cm-op .op-big{font-size:26px;font-weight:700;line-height:1;} #cm-op .op-chip{display:inline-block;color:#fff;font-weight:700;border-radius:9px;padding:1px 8px;font-size:9px;}
+#cm-op .op-ph{position:relative;background:#eceae3;height:158px;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#888;font-size:10px;}
+#cm-op .op-ph img{width:100%;height:100%;object-fit:cover;} #cm-op .op-ph .tg{position:absolute;top:5px;left:5px;color:#fff;font-weight:700;font-size:9px;padding:1px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em;}
+#cm-op .op-ph .cp{position:absolute;left:0;right:0;bottom:0;background:rgba(20,20,19,.72);color:#fff;font-size:8.6px;padding:2px 6px;}
+#cm-op .op-sum{background:#eef2fa;border-left:4px solid #203864;padding:4px 9px;font-size:9.2px;line-height:1.3;} #cm-op .op-sum li{margin:0 0 2px;}
+#cm-op .op-foot{margin:4px 12px 0;font-size:7.8px;color:#999;border-top:1px solid #e0ddd6;padding-top:3px;line-height:1.3;}
+#cm-op .na{color:#999;} #cm-op ul{margin:0;padding-left:14px;}
+@media print{
+  @page{size:letter landscape;margin:.28in .3in;}
+  body.cm-printing>*:not(#cm-op){display:none !important;}
+  body.cm-printing #cm-op{position:static !important;display:block !important;background:#fff !important;padding:0 !important;overflow:visible !important;}
+  body.cm-printing #cm-op .op-bar{display:none !important;}
+  body.cm-printing #cm-op .op-page{box-shadow:none !important;width:100% !important;max-width:none !important;margin:0 !important;page-break-after:always;zoom:.88;}
+  body.cm-printing #cm-op .op-page:last-child{page-break-after:auto;}
+}
+
+</style>
+<script id="cmcc-script">
+/* ══════════════════════════════════════════════════════════════════════════
+   CATEGORY MANAGER COMMAND CENTER  (injected into dashboard.html by inject_cmcc.ps1 -- edit cmcc_module.js, not the copy in the page)
+   One door-level workspace over data the dashboard already holds. Nothing here has its own store of evaluations, photos or velocity:
+     * velocity  = door.salesByMonth (units) / 4.33 per week; the latest month equals door.realVelocity exactly
+     * evaluations = POPPROMO_REPORTS (CI Visit Review), CI, EILEEN, HIGHWAY_ALL_REPORTS, EXTRA_VISITS + the shared verdict caches
+     * photos = the visits' own photo lists (CI/POP photo categories B/A, Highway Before/After labels, Eileen/CI plain visit photos)
+     * issues = DERIVED on every build from those records (stable key per door + problem); only an action's status/assignee/target/comments are
+       persisted, in the existing `actions` table (row id 'cm|' + issue key; migrate_cmcc_actions.sql adds the extra columns)
+   ══════════════════════════════════════════════════════════════════════════ */
+(function () {
+'use strict';
+const CM = window.CM = {};
+const $ = id => document.getElementById(id);
+
+// ---- thresholds (all in one place; the on-page "How issues are rated" panel prints them) ---------------------------------------------------------
+const T = { lowFacings: 4, emptyHigh: 3, improve: 10, decline: -10, declineIssue: -15, drop: -40, dropCrit: -70, minPrevForDrop: 2,
+  lowVsMedian: 0.25, staleMonths: 3, outstandingDays: 30, currentDays: 120, assortMin: 3, assortShare: 0.4, coreShare: 0.6, coreMinKit: 8 };
+const SEV = ['Critical', 'High', 'Medium', 'Low'];
+const SEVN = { Critical: 4, High: 3, Medium: 2, Low: 1 };
+const SEV_CLR = { Critical: '#b3261e', High: '#d9730d', Medium: '#c9a100', Low: '#6b7280' };
+const ST_CLR = { New: '#2563eb', Recurring: '#7c3aed', Outstanding: '#b45309', Resolved: '#2f855a', Historical: '#9ca3af' };
+const ACT_STATUS = ['Open', 'In Progress', 'Pending', 'Completed', 'Verified / Resolved'];
+const OPEN_STATUS = ['Open', 'In Progress', 'Pending'];
+const CATS = ['Missing SKU', 'Product visibility', 'Shelf strip', 'POP', 'Velocity'];
+const SRC_LABEL = { poppromo: 'CI Visit Review', ci: 'CI Visit Review (earlier)', eileen: 'Eileen Visit Review', highway: 'Highway Partners Review', extra: 'Extra Visit Review' };
+const SRC_FILTER = { poppromo: 'ci', ci: 'ci', eileen: 'eileen', highway: 'highway', extra: 'extra' };
+const SRC_FILTER_LABEL = { ci: 'CI Visit Review', eileen: 'Eileen Visit Review', extra: 'Extra Visit Reviews', highway: 'Highway Partners Reviews' };
+
+// code -> category, label, severity, recommended action, why it matters
+const ISSUE = {
+  P_ABSENT:  { cat: 'Product visibility', label: 'Product not present', sev: 'Critical', act: 'Coordinate product placement at this store', why: 'Lucy product was not found on the shelf, so no sales are possible.' },
+  P_HIDDEN:  { cat: 'Product visibility', label: 'Product present but not visible', sev: 'High', act: 'Correct product placement so it is visible', why: 'Product that cannot be seen is unlikely to be bought.' },
+  FACINGS_LOW: { cat: 'Product visibility', label: 'Insufficient product facings', sev: 'Medium', act: 'Increase facings to the planogram level', why: 'Few facings limit visibility and sell-through.' },
+  FACINGS_EMPTY: { cat: 'Product visibility', label: 'Empty product facings', sev: 'Medium', act: 'Replenish the empty facings', why: 'Empty facings are out-of-stock positions on the shelf.' },
+  STRIP_MISSING: { cat: 'Shelf strip', label: 'Shelf strip missing', sev: 'High', act: 'Arrange shelf strip installation', why: 'Without the strip the product is not identified or priced at the shelf.' },
+  STRIP_INCORRECT: { cat: 'Shelf strip', label: 'Incorrect shelf strip', sev: 'Medium', act: 'Arrange shelf strip replacement', why: 'The strip on the shelf does not match the current program.' },
+  STRIP_DAMAGED: { cat: 'Shelf strip', label: 'Shelf strip damaged / worn (from comments)', sev: 'Medium', act: 'Replace or refill the shelf strip', why: 'An evaluator comment describes the strip as damaged or worn.' },
+  POP_INCORRECT: { cat: 'POP', label: 'Promo / POP incorrect', sev: 'Medium', act: 'Correct the POP to the current promotion', why: 'The rep reported the displayed promo does not match the program.' },
+  POP_PRICERS: { cat: 'POP', label: 'Pricers missing', sev: 'Medium', act: 'Coordinate pricer installation', why: 'Highway reset checklist shows pricers not in place.' },
+  POP_SIGN: { cat: 'POP', label: 'Sign plate missing', sev: 'Medium', act: 'Coordinate sign plate installation', why: 'Highway reset checklist shows the sign plate not in place.' },
+  SKU_MISS: { cat: 'Missing SKU', label: 'Missing SKU', sev: 'Medium', act: 'Coordinate replenishment of the missing SKU', why: 'A SKU the store should carry has no facings.' },
+  ASSORT: { cat: 'Missing SKU', label: 'Incomplete assortment', sev: 'High', act: 'Review the assortment and reorder the missing SKUs', why: 'Several expected SKUs are missing at the same store.' },
+  VEL_DROP: { cat: 'Velocity', label: 'Significant velocity drop', sev: 'High', act: 'Investigate sales performance (stock, placement, store changes)', why: 'Weekly velocity fell sharply versus the previous month.' },
+  VEL_DECL: { cat: 'Velocity', label: 'Declining velocity', sev: 'Medium', act: 'Review the store\'s sales trend and shelf condition', why: 'Weekly velocity is lower than the previous month.' },
+  VEL_LOW: { cat: 'Velocity', label: 'Consistently low velocity', sev: 'Medium', act: 'Investigate sales performance against the chain norm', why: 'Velocity is far below the chain median in the last two months.' },
+  VEL_NONE: { cat: 'Velocity', label: 'No recent velocity data', sev: 'Low', act: 'Confirm sales reporting for this store', why: 'The store was visited recently but has no recent sales data.' }
+};
+
+CM.f = { chain: '', state: '', q: '', src: '', cat: '', sev: '', vel: '', astatus: '', from: '', to: '', kpi: '', istatus: '' };
+CM.ui = { openChains: {}, openStates: {}, pEval: 0, pIssue: 0, pAct: 0, pPhoto: 0, showLow: false, showClosed: false, cmp: {}, hist: {}, histOpen: {}, op: null, err: '', stateMore: {} };
+CM.model = null; CM.sig = ''; CM.overlay = {};
+
+// ---- small helpers ------------------------------------------------------------------------------------------------------------------------------
+const H = escHtml;
+const norm = s => String(s == null ? '' : s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+const fmt1 = n => (n == null || isNaN(n)) ? '—' : (Math.round(n * 10) / 10).toFixed(1);
+const fmtD = ts => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+const fmtM = ts => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—';   // monthly sales records carry no day
+const fmtI = (ts, origin) => origin === 'sales' || origin === 'Monthly sales data' ? fmtM(ts) : fmtD(ts);
+const monthLabel = mk => /^\d{4}-\d{2}$/.test(mk || '') ? new Date(+mk.slice(0, 4), +mk.slice(5, 7) - 1, 1).toLocaleString('en-US', { month: 'short', year: 'numeric' }) : (mk || '—');
+const yn = v => v === true ? 'Yes' : v === false ? 'No' : v === 'na' ? 'N/A' : '—';
+const ymd = ts => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const med = a => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
+const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+const encK = k => encodeURIComponent(k).replace(/'/g, '%27');
+const decK = k => decodeURIComponent(k);
+function skuParts(s) { const p = String(s).split(' - '); return { line: p[0] || '', strength: p[1] || '', flavor: p.slice(2).join(' - ') }; }
+function skuLabel(s) { const x = skuParts(s); return (x.flavor ? x.flavor + ' ' : '') + '(' + x.line + (x.strength ? ' ' + x.strength : '') + ')'; }
+const sevChip = s => `<span class="cm-chip cm-sev-${s}">${s}</span>`;
+const stChip = s => `<span class="cm-chip cm-st-${s}">${s}</span>`;
+const canEdit = () => typeof civCanEdit === 'function' && civCanEdit() && !usingEmbeddedSnapshot;
+
+// ═══ BUILD: one pass over everything the dashboard holds ═══════════════════════════════════════════════════════════════════════════════════════
+function signature() {
+  return [DOORS.length, POPPROMO_REPORTS.length, CI.length, EILEEN.length, (HIGHWAY_ALL_REPORTS || []).length, EXTRA_VISITS.length,
+    Object.keys(REPORT_VERDICT_CACHE).length, Object.keys(REPORT_STATUS_CACHE).length, Object.keys(EXTRA_VERDICT_CACHE).length,
+    Object.keys(EXTRA_STATUS_CACHE).length, rsVersions ? rsVersions.length : -1, ACTIONS_CACHE.length].join('|');
+}
+function reviewerMap() {
+  const m = {};
+  (rsVersions || []).slice().sort((a, b) => a.id - b.id).forEach(v => { if (!v.src || v.is_revert || v.is_restore) return; m[v.src + '|' + v.report_id] = v.user_name; });
+  return m;
+}
+function coreSkus() {
+  // A kit's "core" assortment = SKUs recorded at >= 60% of that kit's recent visits (only when the kit has >= 8 visits with SKU data).
+  const months = [...new Set(POPPROMO_REPORTS.filter(r => r.skuFacings && Object.keys(r.skuFacings).length).map(r => r.month))].sort().slice(-2);
+  const by = {};
+  POPPROMO_REPORTS.forEach(r => { if (!months.includes(r.month) || !r.skuFacings || !Object.keys(r.skuFacings).length) return; const k = r.kit || '?'; (by[k] = by[k] || { n: 0, c: {} }).n++; Object.keys(r.skuFacings).forEach(s => { by[k].c[s] = (by[k].c[s] || 0) + 1; }); });
+  const core = {};
+  Object.keys(by).forEach(k => { core[k] = new Set(by[k].n >= T.coreMinKit ? Object.keys(by[k].c).filter(s => by[k].c[s] / by[k].n >= T.coreShare) : []); });
+  return core;
+}
+function tsOf(rec) { return parseVisitTimestamp({ vd: rec.vd, month: rec.month }); }
+function photosOf(rec) {
+  const out = [], ph = Array.isArray(rec.ph) ? rec.ph : [];
+  if (rec.src === 'highway') { ph.forEach(p => { if (p && p.url) out.push({ url: p.url, type: /^before/i.test(p.label || '') ? 'Before' : /^after/i.test(p.label || '') ? 'After' : 'Visit', label: p.label || 'Photo' }); }); return out; }
+  const cats = Array.isArray(rec.phc) && rec.phc.length === ph.length ? rec.phc : null;
+  ph.forEach((u, i) => { if (!u || typeof u !== 'string') return; const c = cats ? cats[i] : null; out.push({ url: u, type: c === 'B' ? 'Before' : c === 'A' ? 'After' : c ? (PHOTO_CAT_LABEL[c] || 'Other') : 'Visit', label: c ? (PHOTO_CAT_LABEL[c] || 'Other') : 'Visit photo' }); });
+  return out;
+}
+function evalOf(rec, doorKey, ctx) {
+  const src = rec.src, key = src + '|' + rec.id;
+  const vd = REPORT_VERDICT_CACHE[key] || null;
+  const submitted = getReportStatus(rec) === 'Reviewed' && !!vd;
+  const e = { uid: key, src, srcLabel: SRC_LABEL[src], id: rec.id, doorKey, ts: tsOf(rec), submitted, status: submitted ? 'Submitted' : 'Pending',
+    reviewer: submitted ? (ctx.rev[key] || '—') : '', v: null, before: null, notes: '', flag: false, recommendation: '', rep: {}, photos: photosOf(rec), skuSummary: '', popSummary: '', inventory: '' };
+  if (submitted) {
+    e.v = { present: vd.productPresent, visible: vd.productVisible, strip: vd.shelfStripPresent, stripOk: vd.shelfStripCorrect, facings: vd.facingsWithProduct, empty: vd.facingsEmptyCount, needs: vd.needsProduct };
+    e.notes = vd.notes || ''; e.flag = !!vd.flag;
+    if (src === 'poppromo') e.before = { strip: vd.beforeStripPresent, stripOk: vd.beforeStripCorrect, facings: vd.beforeFacingsWithProduct, empty: vd.beforeFacingsEmptyCount };
+    if (src === 'eileen') { try { e.recommendation = eivComputeSystemRecommendation(rec, vd).recommendation || ''; if (vd.decisionOverride) e.recommendation = vd.decisionOverride + ' (override)'; } catch (x) { /* decision needs door velocity; absent -> blank */ } }
+  }
+  if (src === 'poppromo') {
+    e.rep = { sku: rec.skuFacings || null, kit: rec.kit, promoCorrect: rec.promoCorrect, promoRunning: rec.promoRunning, ordering: rec.orderingIssue || '', refused: rec.outcome === 'refused' };
+    e.popSummary = rec.promoCorrect === true ? 'Promo correct' : rec.promoCorrect === false ? 'Promo incorrect' : (rec.promoRunning || '');
+    if (e.v && e.v.needs === true) e.inventory = 'Needs product'; else if (rec.orderingIssue) e.inventory = 'Rep note: ' + String(rec.orderingIssue).slice(0, 90);
+  } else if (src === 'ci') {
+    e.rep = { si: rec.si, sp: rec.sp, oo: Array.isArray(rec.oo) ? rec.oo : null };
+    if (Array.isArray(rec.oo) && rec.oo.length) e.inventory = 'Out of stock: ' + rec.oo.join(', ');
+  } else if (src === 'highway') {
+    e.rep = { pricers: rec.pricersInPlace, sign: rec.signPlateInPlace, reset: rec.tobaccoReset };
+    e.notes = e.notes || rec.notes || ''; e.storeName = rec.storeName; e.storeNo = rec.storeNo;
+    const bits = []; if (rec.pricersInPlace != null) bits.push('Pricers ' + (rec.pricersInPlace ? 'in place' : 'missing')); if (rec.signPlateInPlace != null) bits.push('Sign plate ' + (rec.signPlateInPlace ? 'in place' : 'missing')); e.popSummary = bits.join(' · ');
+  }
+  return e;
+}
+function observe(e, core) {
+  const m = new Map(), put = (code, found, origin, sku, detail) => {
+    const k = code + '|' + (sku || ''), x = m.get(k);
+    if (!x) m.set(k, { code, sku: sku || null, found, origin, detail: detail || '' });
+    else { if (found && !x.found) { x.found = true; x.origin = origin; x.detail = detail || x.detail; } }
+  };
+  const v = e.v;
+  if (v) {
+    if (v.present != null) put('P_ABSENT', v.present === false, 'review');
+    if (v.visible != null) put('P_HIDDEN', v.visible === false, 'review');
+    if (v.facings != null && v.present !== false) { put('FACINGS_LOW', v.facings <= T.lowFacings, 'review', null, v.facings + ' facings'); put('FACINGS_EMPTY', (v.empty || 0) > 0, 'review', null, (v.empty || 0) + ' empty'); }
+    if (v.strip != null) put('STRIP_MISSING', v.strip === false, 'review');
+    if (v.strip === true && (v.stripOk === true || v.stripOk === false)) put('STRIP_INCORRECT', v.stripOk === false, 'review');
+  }
+  const r = e.rep || {};
+  if (e.src === 'poppromo') {
+    if (r.promoCorrect === true || r.promoCorrect === false) put('POP_INCORRECT', r.promoCorrect === false, 'report');
+    if (r.sku && Object.keys(r.sku).length) {
+      const cs = core[r.kit] || new Set(); let missing = 0;
+      let oos = 0, nf = 0;
+      Object.keys(r.sku).forEach(k => { if (Number(r.sku[k]) === 0) { put('SKU_MISS', true, 'report', k, 'Out of stock (0 facings)'); missing++; oos++; } else put('SKU_MISS', false, 'report', k); });
+      cs.forEach(k => { if (!(k in r.sku)) { put('SKU_MISS', true, 'report', k, 'Core SKU not recorded on shelf'); missing++; nf++; } });
+      const tot = Math.max(cs.size, 1);
+      put('ASSORT', missing >= T.assortMin || (cs.size > 0 && missing / tot >= T.assortShare), 'report', null, (oos ? oos + ' SKU' + (oos === 1 ? '' : 's') + ' with 0 facings' : '') + (oos && nf ? ', ' : '') + (nf ? nf + ' core SKU' + (nf === 1 ? '' : 's') + ' not recorded' : ''));
+      const present = Object.keys(r.sku).filter(k => Number(r.sku[k]) > 0).length;
+      e.skuSummary = present + ' SKUs with facings' + (cs.size ? ', ' + missing + ' of ' + cs.size + ' core missing' : '');
+    }
+  } else if (e.src === 'ci') {
+    if (r.si === 0 || r.si === 1) put('P_ABSENT', r.si === 0, 'report');
+    if (r.sp === 0 || r.sp === 1) put('STRIP_MISSING', r.sp === 0, 'report');
+    if (r.oo) r.oo.forEach(s => put('SKU_MISS', true, 'report', 'CI: ' + s, 'Reported out of stock'));
+    if (r.oo) e.skuSummary = r.oo.length ? r.oo.length + ' out of stock' : 'None reported out of stock';
+  } else if (e.src === 'highway') {
+    if (r.pricers === true || r.pricers === false) put('POP_PRICERS', r.pricers === false, 'report');
+    if (r.sign === true || r.sign === false) put('POP_SIGN', r.sign === false, 'report');
+  }
+  if (e.notes && /strip[^.]{0,40}(damaged|torn|faded|ripped|peeling|broken|worn)|(damaged|torn|faded|ripped|peeling|broken|worn)[^.]{0,40}strip/i.test(e.notes)) put('STRIP_DAMAGED', true, 'comment', null, e.notes.slice(0, 120));
+  return [...m.values()];
+}
+
+function build() {
+  const t0 = performance.now();
+  const rev = reviewerMap(), core = coreSkus(), ctx = { rev };
+  const doors = new Map(); let latestMk = '';
+  DOORS.forEach(d => {
+    const series = (d.salesByMonth || []).filter(x => x && x.month && x.units != null).map(x => ({ month: x.month, mk: String(x.month).slice(0, 7), v: Number(x.units) / 4.33, units: Number(x.units) }))
+      .sort((a, b) => a.mk < b.mk ? -1 : a.mk > b.mk ? 1 : (a.month < b.month ? -1 : 1));
+    if (series.length && series[series.length - 1].mk > latestMk) latestMk = series[series.length - 1].mk;
+    doors.set(d.key, { key: d.key, chain: d.chain || '—', state: d.state || '—', city: d.city || '', address: d.address || '', visited: !!d.visited, door: d, series, evals: [], issues: [], items: [], srcs: new Set(), storeId: '', storeName: '', lastTs: 0, photoGroups: [] });
+  });
+  const mkGap = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
+  // velocity per door
+  const chainVals = {}, stateVals = {}, chainMonth = {}, stateMonth = {};
+  doors.forEach(m => {
+    const s = m.series; if (!s.length) { m.vel = { cls: 'none', label: 'No velocity data' }; return; }
+    const L = s[s.length - 1], P = s.length > 1 ? s[s.length - 2] : null;
+    const stale = mkGap(L.mk, latestMk) >= T.staleMonths;
+    const diff = P ? L.v - P.v : null, pct = P && P.v > 0 ? (L.v - P.v) / P.v * 100 : null;
+    let cls = stale ? 'none' : (!P ? 'monitor' : pct == null ? (L.v > 0 ? 'up' : 'monitor') : pct >= T.improve ? 'up' : pct <= T.decline ? 'down' : 'monitor');
+    m.vel = { cls, stale, latest: L.v, latestMonth: L.month, prev: P ? P.v : null, prevMonth: P ? P.month : null, diff, pct };
+    if (!stale) { (chainVals[m.chain] = chainVals[m.chain] || []).push(L.v); (stateVals[m.state] = stateVals[m.state] || []).push(L.v); }
+    s.forEach(x => { const a = (chainMonth[m.chain] = chainMonth[m.chain] || {}); (a[x.mk] = a[x.mk] || []).push(x.v); const b = (stateMonth[m.state] = stateMonth[m.state] || {}); (b[x.mk] = b[x.mk] || []).push(x.v); });
+  });
+  const chainAvg = {}, chainMed = {}, stateAvg = {};
+  Object.keys(chainVals).forEach(c => { chainAvg[c] = avg(chainVals[c]); chainMed[c] = chainVals[c].length >= 20 ? med(chainVals[c]) : null; });
+  Object.keys(stateVals).forEach(s => { stateAvg[s] = avg(stateVals[s]); });
+  const monthAvg = o => { const r = {}; Object.keys(o).forEach(k => { r[k] = {}; Object.keys(o[k]).forEach(mk => { r[k][mk] = avg(o[k][mk]); }); }); return r; };
+  // evaluations
+  const attach = (rec, key) => { const m = key && doors.get(key); if (!m) return false; const e = evalOf(rec, key, ctx); m.evals.push(e); m.srcs.add(SRC_FILTER[rec.src]); return e; };
+  POPPROMO_REPORTS.forEach(r => { const d = reportDoor(r); if (d) attach(r, d.key); });
+  CI.forEach(r => { const d = reportDoor(r); if (d) attach(r, d.key); });
+  EILEEN.forEach(r => { const d = reportDoor(r); if (d) attach(r, d.key); });
+  (HIGHWAY_ALL_REPORTS || []).forEach(r => { const k = r.doorKey || (reportDoor(r) || {}).key; if (k) attach(r, k); });
+  let extraUnmatched = 0;
+  EXTRA_VISITS.forEach(v => {
+    const chain = (() => { try { const c = extraEffectiveChain(v); return c === EXTRA_OTHERS ? v.chain : c; } catch (x) { return v.chain; } })();
+    const key = norm(chain) + '|' + norm(v.address), m = doors.get(key);
+    if (!m) { extraUnmatched++; return; }
+    const vd = EXTRA_VERDICT_CACHE[v.id] || null, st = EXTRA_STATUS_CACHE[v.id], submitted = !!vd && !!st && st.status === 'Reviewed';
+    const e = { uid: 'extra|' + v.id, src: 'extra', srcLabel: SRC_LABEL.extra, id: v.id, doorKey: key, ts: parseVisitTimestamp({ vd: v.visitDate, month: null }), submitted, status: submitted ? 'Submitted' : 'Pending',
+      reviewer: submitted ? (vd.reviewedBy || v.evaluator || '—') : (v.evaluator || ''), v: null, before: null, notes: (submitted ? (vd.reviewerNotes || '') : '') || v.notes || '', flag: submitted && !!vd.flag,
+      recommendation: submitted ? (vd.recommendation || '') : '', rep: {}, photos: [], skuSummary: '', popSummary: '', inventory: '', storeNo: v.storeId };
+    if (submitted) e.v = { present: vd.productPresent, visible: vd.productVisible, strip: vd.shelfStripPresent, stripOk: vd.shelfStripCorrect, facings: vd.facingsWithProduct, empty: vd.facingsEmptyCount, needs: vd.needsProduct };
+    m.evals.push(e); m.srcs.add('extra');
+  });
+  // per-door: sort, ids, photos, issues
+  const now = Date.now(), DAY = 86400000, allIssues = [], allEvals = [];
+  doors.forEach(m => {
+    m.evals.sort((a, b) => a.ts - b.ts);
+    m.evals.forEach(e => { if (e.ts > m.lastTs) m.lastTs = e.ts; allEvals.push(e); if (!m.storeId && e.storeNo) m.storeId = String(e.storeNo); if (!m.storeName && e.storeName) m.storeName = e.storeName; });
+    if (!m.lastTs && m.door.lastVisitDate) m.lastTs = parseVisitTimestamp({ vd: m.door.lastVisitDate, month: m.door.lastVisitMonth });
+    m.photoGroups = m.evals.filter(e => e.photos.length).map(e => ({ uid: e.uid, ts: e.ts, srcLabel: e.srcLabel, src: e.src, items: e.photos })).sort((a, b) => b.ts - a.ts);
+    // evaluation-derived issues: group observations by code|sku and read the latest assessment
+    // A SKU finding only stays open if it belongs to the store's LATEST SKU-bearing assessment. A kit's core assortment can change between visits, so a SKU
+    // flagged in an older visit that the newest visit never assessed is superseded (Historical), not still missing.
+    let latestSkuTs = 0;
+    m.evals.forEach(e => { if ((e.rep && e.rep.sku && Object.keys(e.rep.sku).length) || (e.src === 'ci' && e.rep && e.rep.oo)) latestSkuTs = Math.max(latestSkuTs, e.ts); });
+    const g = new Map();
+    m.evals.forEach(e => observe(e, core).forEach(o => { const k = o.code + '|' + (o.sku || ''); (g.get(k) || g.set(k, []).get(k)).push({ ts: e.ts, uid: e.uid, src: e.src, srcLabel: e.srcLabel, o }); }));
+    g.forEach((obs, k) => {
+      const found = obs.filter(x => x.o.found); if (!found.length) return;
+      const latest = obs[obs.length - 1], def = ISSUE[latest.o.code] || ISSUE[found[0].o.code], code = found[found.length - 1].o.code;
+      const manual = code === 'STRIP_DAMAGED';
+      const active = manual ? true : latest.o.found;
+      const first = found[0].ts, last = found[found.length - 1].ts, lastAssess = latest.ts;
+      let status;
+      if (!active) status = 'Resolved'; else if ((code === 'SKU_MISS' || code === 'ASSORT') && lastAssess < latestSkuTs) status = 'Historical'; else if ((now - lastAssess) / DAY > T.currentDays) status = 'Historical'; else if (found.length >= 2) status = 'Recurring'; else if ((now - first) / DAY >= T.outstandingDays) status = 'Outstanding'; else status = 'New';
+      let sev = ISSUE[code].sev; const lf = found[found.length - 1].o;
+      if (code === 'FACINGS_EMPTY' && /^(\d+)/.test(lf.detail) && +RegExp.$1 >= T.emptyHigh) sev = 'High';
+      if (code === 'SKU_MISS' && /not recorded/i.test(lf.detail)) sev = 'Low';
+      // an assortment gap is High only when it rests on confirmed zero-facing SKUs; "not recorded" alone is a lower-confidence signal
+      if (code === 'ASSORT' && !(/^(\d+) SKUs? with 0 facings/.test(lf.detail) && +RegExp.$1 >= 2)) sev = 'Medium';
+      m.issues.push({ key: m.key + '|' + k, doorKey: m.key, code, cat: ISSUE[code].cat, label: ISSUE[code].label, sku: found[0].o.sku, skuLabel: found[0].o.sku ? skuLabel(found[0].o.sku.replace(/^CI: /, '')) : '', detail: lf.detail, severity: sev, status, active: active && status !== 'Historical', historical: status === 'Historical',
+        first, last, lastAssess, count: found.length, origin: lf.origin, evidence: found.map(x => ({ uid: x.uid, ts: x.ts, srcLabel: x.srcLabel, origin: x.o.origin, detail: x.o.detail })), recommended: ISSUE[code].act, why: ISSUE[code].why, src: found[found.length - 1].srcLabel });
+    });
+    // velocity issues
+    const s = m.series, V = m.vel;
+    if (s.length >= 2 && V && !V.stale) {
+      const pair = i => { const a = s[i - 1], b = s[i]; return a.v > 0 ? { pct: (b.v - a.v) / a.v * 100, a, b } : null; };
+      const p0 = pair(s.length - 1), p1 = s.length > 2 ? pair(s.length - 2) : null;
+      let code = null, status = 'New';
+      // a month-over-month fall only becomes an issue when it ALSO shows against the average of the previous (up to 3) months, which screens out one-month blips
+      const prior = s.slice(Math.max(0, s.length - 4), s.length - 1), baseV = avg(prior.map(x => x.v)), pctBase = baseV > 0 ? (V.latest - baseV) / baseV * 100 : null;
+      if (p0 && p0.pct <= T.drop && p0.a.v >= T.minPrevForDrop && pctBase != null && pctBase <= T.drop / 2) code = 'VEL_DROP'; else if (p0 && p0.pct <= T.declineIssue && pctBase != null && pctBase <= T.declineIssue / 2) code = 'VEL_DECL';
+      if (code) { if (p1 && p1.pct <= T.decline) status = 'Recurring'; else if ((now - tsOfMonth(V.latestMonth)) / DAY >= T.outstandingDays + 30) status = 'Outstanding'; }
+      const sevV = code === 'VEL_DROP' && p0.pct <= T.dropCrit ? 'Critical' : code ? ISSUE[code].sev : null;
+      if (code) m.issues.push(velIssue(m, code, status, sevV, true, V.latestMonth, p0));
+      else if (p1 && p1.pct <= T.declineIssue && p0 && p0.pct >= 0) m.issues.push(velIssue(m, p1.pct <= T.drop && p1.a.v >= T.minPrevForDrop ? 'VEL_DROP' : 'VEL_DECL', 'Resolved', ISSUE.VEL_DECL.sev, false, V.latestMonth, p1));
+      const cm = chainMed[m.chain];
+      if (cm && cm >= 1 && V.latest < T.lowVsMedian * cm && s[s.length - 2].v < T.lowVsMedian * cm) m.issues.push(velIssue(m, 'VEL_LOW', (now - tsOfMonth(V.latestMonth)) / DAY >= 60 ? 'Outstanding' : 'New', 'Medium', true, V.latestMonth, null, 'Latest ' + fmt1(V.latest) + ' and previous ' + fmt1(s[s.length - 2].v) + ' u/wk vs chain median ' + fmt1(cm)));
+    }
+    if ((!V || V.cls === 'none') && m.lastTs && (now - m.lastTs) / DAY <= T.currentDays) m.issues.push(velIssue(m, 'VEL_NONE', 'New', 'Low', true, '', null, V && V.stale ? 'Latest sales month ' + monthLabel(V.latestMonth) : 'No sales data on file'));
+    m.issues.sort((a, b) => SEVN[b.severity] - SEVN[a.severity] || b.last - a.last);
+    m.active = m.issues.filter(i => i.active); m.resolved = m.issues.filter(i => i.status === 'Resolved');
+    m.issues.forEach(i => allIssues.push(i));
+  });
+  function tsOfMonth(mo) { return mo && /^\d{4}-\d{2}/.test(mo) ? new Date(+mo.slice(0, 4), +mo.slice(5, 7) - 1, 28).getTime() : 0; }
+  function velIssue(m, code, status, sev, active, month, p, detail) {
+    const d = detail || (p ? fmt1(p.a.v) + ' → ' + fmt1(p.b.v) + ' u/wk (' + (p.pct >= 0 ? '+' : '') + Math.round(p.pct) + '%)' : '');
+    return { key: m.key + '|' + code + '|', doorKey: m.key, code, cat: 'Velocity', label: ISSUE[code].label, sku: null, skuLabel: '', detail: d, severity: sev || ISSUE[code].sev, status, active, historical: false, first: tsOfMonth(month), last: tsOfMonth(month), lastAssess: tsOfMonth(month), count: 1, origin: 'sales', evidence: [{ uid: '', ts: tsOfMonth(month), srcLabel: 'Monthly sales data', origin: 'sales', detail: d }], recommended: ISSUE[code].act, why: ISSUE[code].why, src: 'Monthly sales data' };
+  }
+  // action items: every issue + any persisted action whose issue no longer exists
+  applyOverlay();
+  const items = [];
+  allIssues.forEach(i => items.push(itemOf(i, doors.get(i.doorKey))));
+  const have = new Set(items.map(x => x.key));
+  Object.keys(CM.overlay).forEach(k => { if (have.has(k)) return; const o = CM.overlay[k], m = doors.get(o.doorKey); if (!m) return; items.push({ key: k, doorKey: o.doorKey, chain: m.chain, state: m.state, store: storeLabel(m), label: o.label || 'Previously identified issue', cat: o.cat || '', severity: o.severity || 'Medium', recommended: o.recommended || '', why: '', source: o.source || '', identified: o.identified || 0, active: false, issueStatus: 'Resolved', status: o.status, assigned: o.assigned, target: o.target, comments: o.comments, history: o.history, detail: '' }); });
+  items.sort((a, b) => SEVN[b.severity] - SEVN[a.severity] || b.identified - a.identified);
+  const byDoorItems = {}; items.forEach(x => { (byDoorItems[x.doorKey] = byDoorItems[x.doorKey] || []).push(x); });
+  doors.forEach(m => { m.items = byDoorItems[m.key] || []; m.openItems = m.items.filter(x => x.active && x.severity !== 'Low' && OPEN_STATUS.includes(x.status)); });
+  CM.model = { doors: [...doors.values()], byKey: doors, issues: allIssues, evals: allEvals, items, latestMk, chainAvg, stateAvg, chainMed, chainMonth: monthAvg(chainMonth), stateMonth: monthAvg(stateMonth), core, extraUnmatched, builtMs: Math.round(performance.now() - t0) };
+  CM.sig = signature();
+}
+function storeLabel(m) { return (m.storeName ? m.storeName + ' · ' : '') + m.address + (m.city ? ', ' + m.city : ''); }
+function applyOverlay() {
+  CM.overlay = {};
+  ACTIONS_CACHE.forEach(a => {
+    if (!a.id || String(a.id).indexOf('cm|') !== 0) return;
+    const k = a.issueKey || String(a.id).slice(3);
+    CM.overlay[k] = { doorKey: a.doorKey, status: a.status === 'Done' ? 'Completed' : (a.status || 'Open'), assigned: a.assignedRep || '', target: a.dueDate || '', comments: Array.isArray(a.comments) ? a.comments : [], history: Array.isArray(a.history) ? a.history : [],
+      label: a.type, severity: a.priority, recommended: a.recommended || '', source: a.source || '', identified: a.createdAt ? Date.parse(a.createdAt) : 0, cat: '' };
+  });
+}
+function itemOf(i, m) {
+  const o = CM.overlay[i.key] || null;
+  return { key: i.key, doorKey: i.doorKey, chain: m.chain, state: m.state, store: storeLabel(m), label: i.label + (i.skuLabel ? ': ' + i.skuLabel : ''), cat: i.cat, severity: i.severity, recommended: i.recommended, why: i.why, detail: i.detail,
+    source: i.src, identified: i.first, active: i.active, issueStatus: i.status, status: o ? o.status : (i.active ? 'Open' : 'Resolved (auto)'), assigned: o ? o.assigned : '', target: o ? o.target : '', comments: o ? o.comments : [], history: o ? o.history : [], issue: i };
+}
+function ensure() { if (!CM.model || CM.sig !== signature()) build(); }
+
+// ═══ FILTERING ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+function doorPass(m, f) {
+  if (f.chain && m.chain !== f.chain) return false;
+  if (f.state && m.state !== f.state) return false;
+  if (f.q) { const q = f.q.toLowerCase(); if (!(m.chain + ' ' + m.address + ' ' + m.city + ' ' + m.key + ' ' + m.storeName + ' ' + m.storeId).toLowerCase().includes(q)) return false; }
+  if (f.src && !m.srcs.has(f.src)) return false;
+  if (f.cat && !m.active.some(i => i.cat === f.cat)) return false;
+  if (f.sev && !m.active.some(i => i.severity === f.sev)) return false;
+  if (f.vel && (m.vel ? m.vel.cls : 'none') !== f.vel) return false;
+  if (f.astatus && !m.items.some(x => x.status === f.astatus)) return false;
+  if (f.from && (!m.lastTs || ymd(m.lastTs) < f.from)) return false;
+  if (f.to && (!m.lastTs || ymd(m.lastTs) > f.to)) return false;
+  switch (f.kpi) { case 'visited': return m.visited; case 'issues': return m.active.some(i => i.severity !== 'Low'); case 'missingSku': return m.active.some(i => i.code === 'SKU_MISS' && i.severity !== 'Low');
+    case 'declining': return m.vel && m.vel.cls === 'down'; case 'actionDoors': case 'outstanding': return m.openItems.length > 0; case 'resolved': return m.resolved.length > 0; }
+  return true;
+}
+function ctxOf() {
+  ensure();
+  const f = CM.f, M = CM.model, doors = M.doors.filter(m => doorPass(m, f)), set = new Set(doors.map(m => m.key));
+  const fNoKpi = Object.assign({}, f, { kpi: '' }), baseDoors = M.doors.filter(m => doorPass(m, fNoKpi));
+  const showRes = f.istatus === 'Resolved' || f.kpi === 'resolved';
+  const issues = M.issues.filter(i => set.has(i.doorKey) && (f.cat ? i.cat === f.cat : true) && (f.sev ? i.severity === f.sev : true)
+    && (f.istatus ? i.status === f.istatus : (f.kpi === 'resolved' ? i.status === 'Resolved' : i.active)) && (f.kpi === 'missingSku' ? (i.code === 'SKU_MISS' && i.severity !== 'Low') : true) && (f.kpi === 'issues' ? i.severity !== 'Low' : true));
+  const evals = M.evals.filter(e => set.has(e.doorKey) && (!f.src || SRC_FILTER[e.src] === f.src) && (!f.from || ymd(e.ts) >= f.from) && (!f.to || ymd(e.ts) <= f.to)).sort((a, b) => b.ts - a.ts);
+  const items = M.items.filter(x => set.has(x.doorKey) && (f.cat ? x.cat === f.cat : true) && (f.sev ? x.severity === f.sev : true) && (f.astatus ? x.status === f.astatus : true)
+    && (CM.ui.showClosed || f.astatus ? true : (x.active && OPEN_STATUS.includes(x.status))) && (CM.ui.showLow || f.sev === 'Low' ? true : x.severity !== 'Low'));
+  return { f, M, doors, set, issues, evals, items, showRes, baseDoors };
+}
+function kpis(C) {
+  const M = C.M, doors = C.baseDoors, act = doors.flatMap(m => m.active), keys = new Set(doors.map(m => m.key));
+  const openItems = M.items.filter(x => keys.has(x.doorKey) && x.active && x.severity !== 'Low' && OPEN_STATUS.includes(x.status));
+  const inChains = (typeof CHAINS !== 'undefined' && CHAINS.length) ? new Set(CHAINS.map(c => c.chain)) : null, dc = new Set(doors.map(m => m.chain));
+  return {
+    chains: inChains ? [...dc].filter(c => inChains.has(c)).length : dc.size, states: new Set(doors.map(m => m.state)).size, doors: doors.length, visited: doors.filter(m => m.visited).length,
+    issues: doors.filter(m => m.active.some(i => i.severity !== 'Low')).length, missingSku: act.filter(i => i.code === 'SKU_MISS' && i.severity !== 'Low').length,
+    declining: doors.filter(m => m.vel && m.vel.cls === 'down').length, actionDoors: doors.filter(m => m.openItems.length).length, outstanding: openItems.length,
+    resolved: M.issues.filter(i => keys.has(i.doorKey) && i.status === 'Resolved').length + M.items.filter(x => keys.has(x.doorKey) && x.status === 'Verified / Resolved').length
+  };
+}
+// ═══ RENDER ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+const PAGE = 20;
+function pager(total, page, fn) {
+  const pages = Math.max(1, Math.ceil(total / PAGE)); if (pages <= 1) return '';
+  return `<div class="cm-pager"><button class="cm-btn sm" ${page <= 0 ? 'disabled' : ''} onclick="CM.pg('${fn}',-1)">‹ Prev</button> Page ${page + 1} of ${pages} · ${fmtNum(total)} rows <button class="cm-btn sm" ${page >= pages - 1 ? 'disabled' : ''} onclick="CM.pg('${fn}',1)">Next ›</button></div>`;
+}
+CM.pg = (fn, d) => { CM.ui[fn] = Math.max(0, (CM.ui[fn] || 0) + d); CM.render(); };
+CM.set = (k, v) => { CM.f[k] = v; CM.ui.pEval = CM.ui.pIssue = CM.ui.pAct = CM.ui.pPhoto = 0; CM.render(); };
+CM.reset = () => { CM.f = { chain: '', state: '', q: '', src: '', cat: '', sev: '', vel: '', astatus: '', from: '', to: '', kpi: '', istatus: '' }; CM.ui.pEval = CM.ui.pIssue = CM.ui.pAct = CM.ui.pPhoto = 0; CM.render(); };
+CM.kpi = k => { const was = CM.f.kpi === k; CM.f.kpi = was ? '' : k; if (k === 'resolved') CM.f.istatus = was ? '' : 'Resolved'; else if (CM.f.istatus === 'Resolved') CM.f.istatus = ''; CM.ui.pEval = CM.ui.pIssue = CM.ui.pAct = CM.ui.pPhoto = 0;
+  CM.render(); const target = { missingSku: 'cm-issues', issues: 'cm-issues', declining: 'cm-velocity', actionDoors: 'cm-actions', outstanding: 'cm-actions', resolved: 'cm-issues', visited: 'cm-velocity' }[k]; if (target && !was) setTimeout(() => CM.jump(target), 30); };
+CM.jump = id => { const el = $(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+
+function kpiHtml(C) {
+  const K = kpis(C), f = CM.f.kpi;
+  const c = (id, n, l, cls) => `<div class="cm-kpi ${cls || ''} ${f === id ? 'on' : ''}" onclick="CM.kpi('${id}')" title="Click to filter the sections below"><div class="n">${fmtNum(n)}</div><div class="l">${l}</div></div>`;
+  return `<div class="cm-kpis">${c('chains', K.chains, 'Chains with doors')}${c('states', K.states, 'States')}${c('doors', K.doors, 'Doors / stores')}${c('visited', K.visited, 'Doors visited')}${c('issues', K.issues, 'Doors with issues (Medium+)', 'red')}
+    ${c('missingSku', K.missingSku, 'Missing SKU findings', 'red')}${c('declining', K.declining, 'Doors, declining velocity', 'org')}${c('actionDoors', K.actionDoors, 'Doors requiring action', 'org')}${c('outstanding', K.outstanding, 'Outstanding actions', 'org')}${c('resolved', K.resolved, 'Resolved issues', 'grn')}</div>`;
+}
+function filterHtml(M) {
+  const f = CM.f, chains = [...new Set(M.doors.map(m => m.chain))].sort(), states = [...new Set(M.doors.map(m => m.state))].sort();
+  const sel = (k, label, opts) => `<label>${label}<select onchange="CM.set('${k}',this.value)"><option value="">All</option>${opts.map(o => { const v = Array.isArray(o) ? o[0] : o, t = Array.isArray(o) ? o[1] : o; return `<option value="${H(v)}" ${f[k] === v ? 'selected' : ''}>${H(t)}</option>`; }).join('')}</select></label>`;
+  return `<div class="cm-filters">${sel('chain', 'Chain', chains)}${sel('state', 'State', states)}
+    <label>Store / door<input type="text" value="${H(f.q)}" placeholder="address, city, store #" onchange="CM.set('q',this.value.trim())"></label>
+    ${sel('src', 'Evaluation source', Object.keys(SRC_FILTER_LABEL).map(k => [k, SRC_FILTER_LABEL[k]]))}${sel('cat', 'Issue category', CATS)}${sel('sev', 'Severity / priority', SEV)}
+    ${sel('vel', 'Velocity', [['up', 'Improving'], ['monitor', 'Monitor'], ['down', 'Declining'], ['none', 'No recent data']])}${sel('astatus', 'Action status', ACT_STATUS)}
+    ${sel('istatus', 'Issue status', ['New', 'Recurring', 'Outstanding', 'Resolved', 'Historical'])}
+    <label>Visit from<input type="date" value="${H(f.from)}" onchange="CM.set('from',this.value)"></label><label>Visit to<input type="date" value="${H(f.to)}" onchange="CM.set('to',this.value)"></label>
+    <button class="cm-btn" onclick="CM.reset()">Reset filters</button></div>`;
+}
+const velCls = c => c === 'up' ? ['#2f855a', 'Improving', 'cm-up'] : c === 'down' ? ['#b3261e', 'Declining', 'cm-dn'] : c === 'monitor' ? ['#c9a100', 'Monitor', 'cm-mon'] : ['#b5b5b5', 'No recent data', 'cm-gr'];
+function spark(series, w, h) {
+  const s = series.slice(-8); if (s.length < 2) return '<span class="cm-gr">—</span>';
+  const mx = Math.max(...s.map(x => x.v), 0.01), mn = Math.min(...s.map(x => x.v), 0), rg = (mx - mn) || 1;
+  const pts = s.map((x, i) => (i * (w - 4) / (s.length - 1) + 2).toFixed(1) + ',' + (h - 3 - (x.v - mn) / rg * (h - 6)).toFixed(1)).join(' ');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="#4472c4" stroke-width="1.6"/></svg>`;
+}
+function doorRow(m) {
+  const V = m.vel || { cls: 'none' }, c = velCls(V.cls), has = V.latest != null;
+  const pct = V.pct == null ? '—' : (V.pct >= 0 ? '+' : '') + Math.round(V.pct) + '%';
+  return `<tr class="cm-click" onclick="CM.report('store','${encK(m.key)}')"><td><span class="cm-dot" style="background:${c[0]}" title="${c[1]}"></span>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${H(m.storeId || '—')}</td>
+    <td><b>${has ? fmt1(V.latest) : '—'}</b></td><td>${V.prev != null ? fmt1(V.prev) : '—'}</td><td class="${c[2]}">${V.diff != null ? (V.diff >= 0 ? '+' : '') + fmt1(V.diff) : '—'}</td><td class="${c[2]}">${pct}</td>
+    <td>${has ? H(monthLabel(V.latestMonth)) : '—'}</td><td>${fmtD(m.lastTs)}</td><td>${spark(m.series, 64, 18)}</td><td>${m.active.length ? m.active.length + ' open' : '<span class="cm-gr">0</span>'}</td></tr>`;
+}
+CM.toggle = (kind, k) => { k = decK(k); const o = kind === 'c' ? CM.ui.openChains : CM.ui.openStates; o[k] = !o[k]; CM.render(); };
+CM.more = k => { k = decK(k); CM.ui.stateMore[k] = (CM.ui.stateMore[k] || 40) + 80; CM.render(); };
+function velocityHtml(C) {
+  const vd = C.doors.filter(m => m.vel && m.vel.latest != null);
+  const rank = vd.filter(m => !m.vel.stale);
+  const top = rank.slice().sort((a, b) => b.vel.latest - a.vel.latest).slice(0, 8), low = rank.filter(m => m.vel.latest > 0).sort((a, b) => a.vel.latest - b.vel.latest).slice(0, 8);
+  const r = (m, v) => `<div onclick="CM.report('store','${encK(m.key)}')"><span>${H(m.chain)} · ${H(m.address)}, ${H(m.state)}</span><b>${fmt1(m.vel.latest)} u/wk</b></div>`;
+  const cnt = { up: 0, monitor: 0, down: 0, none: 0 }; C.doors.forEach(m => { cnt[(m.vel ? m.vel.cls : 'none')]++; });
+  // chain-level monthly trend across the filtered doors (mean of each door's weekly velocity per month)
+  const bym = {}; vd.forEach(m => m.series.forEach(x => { (bym[x.mk] = bym[x.mk] || []).push(x.v); }));
+  const pts = Object.keys(bym).sort().filter(k => bym[k].length >= 5).slice(-14).map(k => ({ label: monthLabel(k).replace(' 20', " '"), y: Math.round(avg(bym[k]) * 10) / 10 }));
+  // hierarchy chain -> state -> door
+  const byChain = {}; vd.forEach(m => { ((byChain[m.chain] = byChain[m.chain] || {})[m.state] = byChain[m.chain][m.state] || []).push(m); });
+  const chains = Object.keys(byChain).map(c => { const ds = Object.values(byChain[c]).flat(); return { c, ds, n: ds.length, avg: avg(ds.filter(m => !m.vel.stale).map(m => m.vel.latest)), up: ds.filter(m => m.vel.cls === 'up').length, dn: ds.filter(m => m.vel.cls === 'down').length, mon: ds.filter(m => m.vel.cls === 'monitor').length, old: ds.filter(m => m.vel.cls === 'none').length, iss: ds.filter(m => m.active.some(i => i.severity !== 'Low')).length }; }).sort((a, b) => b.n - a.n);
+  let rows = '';
+  chains.forEach(ch => {
+    const open = CM.ui.openChains[ch.c], ns = Object.keys(byChain[ch.c]).length;
+    rows += `<tr class="cm-click" onclick="CM.toggle('c','${encK(ch.c)}')"><td><b>${open ? '▾' : '▸'} ${H(ch.c)}</b></td><td>${ch.n}</td><td><b>${fmt1(ch.avg)}</b></td><td class="cm-up">${ch.up}</td><td class="cm-mon">${ch.mon}</td><td class="cm-dn">${ch.dn}</td><td class="cm-gr">${ch.old}</td><td>${ch.iss}</td><td>${ns} state${ns === 1 ? '' : 's'}</td></tr>`;
+    if (!open) return;
+    Object.keys(byChain[ch.c]).sort((a, b) => byChain[ch.c][b].length - byChain[ch.c][a].length).forEach(st => {
+      const ds = byChain[ch.c][st], sk = ch.c + '|' + st, so = CM.ui.openStates[sk];
+      rows += `<tr class="cm-click" onclick="CM.toggle('s','${encK(sk)}')" style="background:#fafaf6"><td style="padding-left:24px">${so ? '▾' : '▸'} ${H(st)}</td><td>${ds.length}</td><td>${fmt1(avg(ds.filter(m => !m.vel.stale).map(m => m.vel.latest)))}</td><td class="cm-up">${ds.filter(m => m.vel.cls === 'up').length}</td><td class="cm-mon">${ds.filter(m => m.vel.cls === 'monitor').length}</td><td class="cm-dn">${ds.filter(m => m.vel.cls === 'down').length}</td><td class="cm-gr">${ds.filter(m => m.vel.cls === 'none').length}</td><td>${ds.filter(m => m.active.some(i => i.severity !== 'Low')).length}</td><td>state avg (all chains) ${fmt1(C.M.stateAvg[st])}</td></tr>`;
+      if (!so) return;
+      const lim = CM.ui.stateMore[sk] || 40, sorted = ds.slice().sort((a, b) => (a.vel.pct == null ? 0 : a.vel.pct) - (b.vel.pct == null ? 0 : b.vel.pct));
+      rows += `<tr><td colspan="9" style="padding:0 0 6px 24px"><table class="cm-t"><thead><tr><th>Store / address</th><th>Store ID</th><th>Latest u/wk</th><th>Previous</th><th>Change</th><th>% change</th><th>Latest record</th><th>Last visit</th><th>Trend</th><th>Issues</th></tr></thead><tbody>${sorted.slice(0, lim).map(doorRow).join('')}</tbody></table>${sorted.length > lim ? `<span class="cm-more" onclick="CM.more('${encK(sk)}')">Show ${Math.min(80, sorted.length - lim)} more of ${sorted.length - lim} remaining →</span>` : ''}</td></tr>`;
+    });
+  });
+  return `<div class="cm-sec" id="cm-velocity"><h2>Most recent velocity — chain → state → door <small>weekly units per door · latest sales month vs the month before</small></h2><div class="cm-body">
+    <div class="cm-note"><span class="cm-dot" style="background:#2f855a"></span>Improving (≥ +${T.improve}%) <span class="cm-dot" style="background:#c9a100;margin-left:10px"></span>Monitor (within ±${T.improve}%) <span class="cm-dot" style="background:#b3261e;margin-left:10px"></span>Declining (≤ ${T.decline}%) <span class="cm-dot" style="background:#b5b5b5;margin-left:10px"></span>No recent data (no sales, or latest record ${T.staleMonths}+ months behind ${H(monthLabel(C.M.latestMk))}). Each door shows its OWN latest record; chain and state averages are reference only. Only ${fmtNum(vd.length)} of ${fmtNum(C.doors.length)} doors in view have velocity data.</div>
+    <div class="cm-grid2" style="margin-bottom:12px"><div><div class="cm-sub2">Doors in view by trend</div><div class="cm-rank"><div><span><span class="cm-dot" style="background:#2f855a"></span>Improving</span><b>${cnt.up}</b></div><div><span><span class="cm-dot" style="background:#c9a100"></span>Monitor</span><b>${cnt.monitor}</b></div><div><span><span class="cm-dot" style="background:#b3261e"></span>Declining</span><b>${cnt.down}</b></div><div><span><span class="cm-dot" style="background:#b5b5b5"></span>No recent velocity data</span><b>${cnt.none}</b></div></div>
+      <div class="cm-sub2" style="margin-top:10px">Average weekly velocity per door, by month (doors in view)</div>${svgLineChart(pts, { width: 520, height: 150 })}</div>
+      <div class="cm-grid2"><div><div class="cm-sub2">Highest velocity</div><div class="cm-rank">${top.map(m => r(m)).join('') || '<div class="cm-gr">None in view</div>'}</div></div><div><div class="cm-sub2">Lowest (above zero)</div><div class="cm-rank">${low.map(m => r(m)).join('') || '<div class="cm-gr">None in view</div>'}</div></div></div></div>
+    <table class="cm-t"><thead><tr><th>Chain → State</th><th>Doors w/ velocity</th><th>Avg u/wk</th><th>Improving</th><th>Monitor</th><th>Declining</th><th>No recent record</th><th>With issues</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="9" class="cm-empty">No doors with velocity data match the current filters.</td></tr>'}</tbody></table></div></div>`;
+}
+
+// ---- before vs actual photos ------------------------------------------------------------------------------------------------------------------------
+function photoPair(m) {
+  const groups = m.photoGroups; if (!groups.length) return null;
+  const cmpUid = CM.ui.cmp[m.key];
+  const g = groups.find(x => x.items.some(i => i.type === 'After')) || groups[0];
+  const afters = g.items.filter(i => i.type === 'After'), others = g.items.filter(i => i.type !== 'Before' && i.type !== 'After');
+  let before = g.items.filter(i => i.type === 'Before'), note = 'Before photo from this visit';
+  const actual = afters.length ? afters : others.slice(0, 1);
+  if (cmpUid) { const o = groups.find(x => x.uid === cmpUid); if (o) { before = [(o.items.find(i => i.type === 'After') || o.items[0])]; note = 'Previous visit — ' + o.srcLabel + ', ' + fmtD(o.ts); } }
+  else if (!before.length) { const earlier = groups.filter(x => x.ts < g.ts), e = earlier[earlier.length - 1]; if (e) { const p = e.items.find(i => i.type === 'Before') || e.items[0]; if (p) { before = [p]; note = 'No before photo this visit — earliest earlier photo, ' + e.srcLabel + ', ' + fmtD(e.ts); } } }
+  return { g, before, actual, note, all: groups };
+}
+CM.cmp = (k, uid) => { CM.ui.cmp[decK(k)] = uid || ''; CM.render(); };
+CM.hist = k => { CM.ui.histOpen[decK(k)] = !CM.ui.histOpen[decK(k)]; CM.render(); };
+CM.lb = (urlsEnc, labsEnc, i) => openLightbox('', JSON.parse(decodeURIComponent(urlsEnc)), i, JSON.parse(decodeURIComponent(labsEnc)));
+function photoCell(items, tag, color, g, extraNote) {
+  if (!items.length) return `<div class="cm-ph empty"><span class="tag" style="background:${color}">${tag}</span>No ${tag.toLowerCase()} photograph documented</div>`;
+  const urls = items.map(i => i.url), labs = items.map(i => tag + ' · ' + fmtD(g.ts) + ' · ' + g.srcLabel);
+  const pack = encodeURIComponent(JSON.stringify(urls)).replace(/'/g, '%27'), pl = encodeURIComponent(JSON.stringify(labs)).replace(/'/g, '%27');
+  return `<div class="cm-ph"><span class="tag" style="background:${color}">${tag}</span><img loading="lazy" src="${H(items[0].url)}" alt="${tag}" onclick="CM.lb('${pack}','${pl}',0)"><div class="cap">${H(items[0].label)} · ${fmtD(g.ts)} · ${H(g.srcLabel)}${items.length > 1 ? ' · +' + (items.length - 1) + ' more' : ''}</div></div>`;
+}
+function improvements(m) {
+  const out = [], e = m.evals.slice().reverse().find(x => x.before && x.v);
+  if (e) { const b = e.before, a = e.v;
+    if (b.strip === false && a.strip === true) out.push('Shelf strip added (missing before, present now)');
+    if (b.stripOk === false && a.stripOk === true) out.push('Shelf strip corrected');
+    if (b.facings != null && a.facings != null && a.facings > b.facings) out.push('Facings up from ' + b.facings + ' to ' + a.facings);
+    if (b.empty != null && a.empty != null && a.empty < b.empty) out.push('Empty facings down from ' + b.empty + ' to ' + a.empty); }
+  return out;
+}
+function photosHtml(C) {
+  const withPh = C.doors.filter(m => m.photoGroups.length).sort((a, b) => b.photoGroups[0].ts - a.photoGroups[0].ts);
+  const pg = CM.ui.pPhoto, per = 4, slice = withPh.slice(pg * per, pg * per + per);
+  const cards = slice.map(m => {
+    const p = photoPair(m); if (!p) return '';
+    const imp = improvements(m), out = m.active.filter(i => i.severity !== 'Low').slice(0, 5);
+    const opts = p.all.filter(x => x.uid !== p.g.uid).map(x => `<option value="${H(x.uid)}" ${CM.ui.cmp[m.key] === x.uid ? 'selected' : ''}>${fmtD(x.ts)} · ${H(x.srcLabel)}</option>`).join('');
+    const hist = CM.ui.histOpen[m.key] ? `<div style="padding:4px 12px 10px">${p.all.slice().reverse().map(x => `<div style="margin:6px 0"><b style="font-size:11px">${fmtD(x.ts)} · ${H(x.srcLabel)}</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px">${x.items.slice(0, 8).map((i, idx) => { const urls = encodeURIComponent(JSON.stringify(x.items.map(z => z.url))).replace(/'/g, '%27'), labs = encodeURIComponent(JSON.stringify(x.items.map(z => z.type + ' · ' + fmtD(x.ts) + ' · ' + x.srcLabel))).replace(/'/g, '%27'); return `<img loading="lazy" src="${H(i.url)}" title="${H(i.type)}" style="height:96px;border-radius:4px;cursor:zoom-in" onclick="CM.lb('${urls}','${labs}',${idx})">`; }).join('')}</div></div>`).join('')}</div>` : '';
+    return `<div class="cm-pcard"><div class="cm-pcard-h"><span><b>${H(m.chain)}</b> · ${H(m.address)}${m.city ? ', ' + H(m.city) : ''}, ${H(m.state)}</span><span>Visit ${fmtD(p.g.ts)} · ${H(p.g.srcLabel)} <button class="cm-btn sm" onclick="CM.report('store','${encK(m.key)}')">OnePager</button></span></div>
+      <div class="cm-pair">${photoCell(p.before, 'Before', '#b7791f', p.g)}${photoCell(p.actual, 'Actual / After', '#2f855a', p.g)}</div>
+      <div class="cm-note" style="padding:0 12px">${H(p.note)}${p.g.items.length > 2 ? ` · ${p.g.items.length} photos in this visit` : ''} · <span class="cm-more" onclick="CM.hist('${encK(m.key)}')">${CM.ui.histOpen[m.key] ? 'Hide' : 'Show'} photo history (${p.all.length} visit${p.all.length === 1 ? '' : 's'})</span>
+        ${opts ? ` · Compare with: <select class="cm-act-in" onchange="CM.cmp('${encK(m.key)}',this.value)"><option value="">this visit's before</option>${opts}</select>` : ''}</div>${hist}
+      <div class="cm-two"><div><b>Identified improvements</b><ul>${imp.length ? imp.map(x => `<li>${H(x)}</li>`).join('') : '<li class="cm-gr">None recorded (needs Before and After answers)</li>'}</ul></div>
+        <div><b>Outstanding issues</b><ul>${out.length ? out.map(i => `<li>${sevChip(i.severity)} ${H(i.label)}${i.skuLabel ? ': ' + H(i.skuLabel) : ''}</li>`).join('') : '<li class="cm-gr">None open</li>'}</ul></div></div></div>`;
+  }).join('');
+  return `<div class="cm-sec" id="cm-photos"><h2>Store condition — before vs actual <small>actual visit photographs only · click a photo to enlarge</small></h2><div class="cm-body">
+    <div class="cm-note">Photographs come straight from the visit records (CI Visit Review Before/After categories, Highway reset photos, Eileen and earlier CI visit photos). Where a visit has no before photo, the card says so and, if an earlier visit exists, labels that photo as such rather than inventing a comparison. ${fmtNum(withPh.length)} doors in view have photographs.</div>
+    ${cards || '<div class="cm-empty">No doors with photographs match the current filters.</div>'}${(() => { const pages = Math.ceil(withPh.length / per); return pages > 1 ? `<div class="cm-pager"><button class="cm-btn sm" ${pg <= 0 ? 'disabled' : ''} onclick="CM.pg('pPhoto',-1)">‹ Prev</button> Doors ${pg * per + 1}–${Math.min(withPh.length, pg * per + per)} of ${fmtNum(withPh.length)} <button class="cm-btn sm" ${pg >= pages - 1 ? 'disabled' : ''} onclick="CM.pg('pPhoto',1)">Next ›</button></div>` : ''; })()}</div></div>`;
+}
+
+// ---- consolidated evaluations -----------------------------------------------------------------------------------------------------------------------
+function evalsHtml(C) {
+  const pg = Math.min(CM.ui.pEval, Math.max(0, Math.ceil(C.evals.length / PAGE) - 1)), rows = C.evals.slice(pg * PAGE, pg * PAGE + PAGE).map(e => {
+    const m = C.M.byKey.get(e.doorKey), v = e.v;
+    return `<tr class="cm-click" onclick="CM.report('store','${encK(e.doorKey)}')"><td>${fmtD(e.ts)}</td><td>${H(e.srcLabel)}</td><td>${H(m.chain)}</td><td>${H(m.state)}</td><td>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${H(e.reviewer || '—')}</td>
+      <td>${e.submitted ? '<b style="color:#2f855a">Submitted</b>' : '<span class="cm-gr">Pending</span>'}</td><td>${v ? yn(v.present) : '—'}</td><td>${v ? yn(v.visible) : '—'}</td><td>${v ? yn(v.strip) : '—'}</td><td>${v ? yn(v.stripOk) : '—'}</td><td>${v && v.facings != null ? v.facings : '—'}</td><td>${v && v.empty != null ? v.empty : '—'}</td>
+      <td>${H(e.skuSummary || '—')}</td><td>${H(e.popSummary || '—')}</td><td>${H(e.inventory || '—')}</td><td>${H(((e.recommendation ? e.recommendation + (e.notes ? ' · ' : '') : '') + (e.notes || '')).slice(0, 160)) || '—'}</td></tr>`;
+  }).join('');
+  return `<div class="cm-sec" id="cm-evals"><h2>Consolidated evaluation results <small>${fmtNum(C.evals.length)} evaluations · ${fmtNum(C.evals.filter(e => e.submitted).length)} submitted</small></h2><div class="cm-body">
+    <div class="cm-note">One row per visit record across CI Visit Review, Eileen, Extra, and Highway Partners, each kept under its own source (nothing is merged or duplicated). Reviewer-answer columns (product present … empty facings) are filled once the evaluation is submitted; SKU and POP columns come from the visit's own report. Reviewer names load for signed-in users.${C.M.extraUnmatched ? ` <b>${C.M.extraUnmatched} Extra Visit evaluations (mostly Circle K Florida stores) have no matching door record and are not shown here</b> — doors are matched by exact chain + address only, never by name or fuzzy address.` : ''}</div>
+    <div style="overflow-x:auto"><table class="cm-t"><thead><tr><th>Date</th><th>Source</th><th>Chain</th><th>State</th><th>Store</th><th>Reviewer</th><th>Status</th><th>Product present</th><th>Visible</th><th>Strip present</th><th>Strip correct</th><th>Facings</th><th>Empty</th><th>SKU availability</th><th>POP availability</th><th>Inventory findings</th><th>Comments / recommendation</th></tr></thead><tbody>${rows || '<tr><td colspan="17" class="cm-empty">No evaluations match the current filters.</td></tr>'}</tbody></table></div>${pager(C.evals.length, pg, 'pEval')}</div></div>`;
+}
+
+// ---- issues -------------------------------------------------------------------------------------------------------------------------------------------
+function issuesHtml(C) {
+  const list = C.issues.slice().sort((a, b) => SEVN[b.severity] - SEVN[a.severity] || b.last - a.last);
+  const pg = Math.min(CM.ui.pIssue, Math.max(0, Math.ceil(list.length / PAGE) - 1));
+  const byCat = {}; list.forEach(i => { byCat[i.cat] = (byCat[i.cat] || 0) + 1; });
+  const rows = list.slice(pg * PAGE, pg * PAGE + PAGE).map(i => { const m = C.M.byKey.get(i.doorKey);
+    return `<tr class="cm-click" onclick="CM.report('store','${encK(i.doorKey)}')"><td>${sevChip(i.severity)}</td><td>${stChip(i.status)}</td><td>${H(i.cat)}</td><td>${H(i.label)}${i.skuLabel ? '<br><b>' + H(i.skuLabel) + '</b>' : ''}<div class="cm-gr" style="font-size:10.5px">${H(i.detail || '')}</div></td>
+      <td>${H(m.chain)}</td><td>${H(m.state)}</td><td>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${fmtI(i.first, i.origin)}</td><td>${fmtI(i.last, i.origin)}</td><td>${i.count}</td><td><span class="cm-tag">${i.origin === 'review' ? 'Reviewer evaluation' : i.origin === 'report' ? 'Visit report' : i.origin === 'comment' ? 'Evaluator comment' : 'Sales data'}</span><div class="cm-gr" style="font-size:10.5px">${H(i.src)}</div></td></tr>`; }).join('');
+  return `<div class="cm-sec" id="cm-issues"><h2>Automatic issue detection <small>${fmtNum(list.length)} ${CM.f.istatus || (CM.f.kpi === 'resolved' ? 'Resolved' : 'active')} issues across ${fmtNum(new Set(list.map(i => i.doorKey)).size)} doors</small></h2><div class="cm-body">
+    <div style="margin-bottom:8px">${Object.keys(byCat).map(c => `<span class="cm-tag" style="margin-right:6px;cursor:pointer" onclick="CM.set('cat','${H(c)}')">${H(c)}: <b>${byCat[c]}</b></span>`).join('')}</div>
+    <details style="margin-bottom:8px"><summary class="cm-note" style="cursor:pointer"><b>How issues are rated</b> (click to expand)</summary><div class="cm-note">
+      <b>Critical</b>: product not present; velocity down ${Math.abs(T.dropCrit)}%+ (previous ≥ ${T.minPrevForDrop} u/wk). <b>High</b>: product not visible; shelf strip missing; incomplete assortment (${T.assortMin}+ SKUs, or ${Math.round(T.assortShare * 100)}%+ of the kit's core SKUs, missing); velocity down ${Math.abs(T.drop)}%+. <b>Medium</b>: facings ≤ ${T.lowFacings}; empty facings; wrong strip; promo / pricer / sign-plate problems; a SKU with 0 facings; velocity down ${Math.abs(T.declineIssue)}%+ or under ${Math.round(T.lowVsMedian * 100)}% of the chain median two months running. A velocity fall must show against the previous month AND against the average of the previous up-to-3 months (half the threshold) to be raised, and it can also reflect a change in how sales were reported, so investigate before acting. <b>Low</b>: a core SKU simply not recorded on the shelf; no recent sales data for a recently visited store.<br>
+      <b>Status</b>: <i>New</i> = found once, recently; <i>Recurring</i> = found in 2+ evaluations and still present; <i>Outstanding</i> = found once, still present after ${T.outstandingDays}+ days; <i>Resolved</i> = found before, absent from the latest assessment of that field; <i>Historical</i> = last assessed more than ${T.currentDays} days ago (not counted as open). The same problem found in several evaluations is ONE issue with its evidence listed. "Core SKUs" = SKUs recorded at ${Math.round(T.coreShare * 100)}%+ of the kit's recent visits. <b>Not detectable from current data:</b> shelf-strip refill needs and POP placement/replacement (no field exists; only strip damage mentioned in comments is picked up).</div></details>
+    <div style="overflow-x:auto"><table class="cm-t"><thead><tr><th>Severity</th><th>Status</th><th>Category</th><th>Issue / SKU</th><th>Chain</th><th>State</th><th>Store</th><th>First seen</th><th>Last seen</th><th>Evals</th><th>Evidence</th></tr></thead><tbody>${rows || '<tr><td colspan="11" class="cm-empty">No issues match the current filters.</td></tr>'}</tbody></table></div>${pager(list.length, pg, 'pIssue')}</div></div>`;
+}
+
+// ---- action center -----------------------------------------------------------------------------------------------------------------------------------
+CM.actSave = async function (k, patch, note) {
+  k = decK(k); ensure();
+  const it = CM.model.items.find(x => x.key === k); if (!it) return;
+  if (!canEdit()) { CM.ui.err = usingEmbeddedSnapshot ? 'Action tracking is available on the live dashboard (this read-only copy cannot save).' : 'Sign in as an editor (CI Visit Review tab) to update actions.'; CM.render(); return; }
+  const who = (civCurrentUser() || {}).fullName || 'Unknown', at = new Date().toISOString();
+  const o = Object.assign({ doorKey: it.doorKey, status: it.status === 'Resolved (auto)' ? 'Open' : it.status, assigned: it.assigned, target: it.target, comments: (it.comments || []).slice(), history: (it.history || []).slice(), label: it.label, severity: it.severity, recommended: it.recommended, source: it.source, identified: it.identified }, CM.overlay[k] || {});
+  const hist = [];
+  if (patch.status && patch.status !== o.status) hist.push({ at, by: who, what: 'Status: ' + o.status + ' → ' + patch.status });
+  if (patch.assigned !== undefined && patch.assigned !== o.assigned) hist.push({ at, by: who, what: 'Assigned to ' + (patch.assigned || 'nobody') });
+  if (patch.target !== undefined && patch.target !== o.target) hist.push({ at, by: who, what: 'Target date ' + (patch.target || 'cleared') });
+  Object.assign(o, patch);
+  if (note) o.comments = o.comments.concat([{ at, by: who, text: note }]);
+  o.history = (o.history || []).concat(hist);
+  CM.overlay[k] = o;
+  const row = { id: 'cm|' + k, door_key: it.doorKey, chain: it.chain, type: it.label, priority: it.severity, due_date: o.target || null, assigned_rep: o.assigned || null, notes: note || (o.comments.length ? o.comments[o.comments.length - 1].text : null), status: o.status,
+    issue_key: k, recommended_action: it.recommended, source: it.source, state: it.state, store_label: it.store, comments: o.comments, history: o.history };
+  const local = { id: row.id, doorKey: row.door_key, chain: row.chain, type: row.type, priority: row.priority, dueDate: row.due_date, assignedRep: row.assigned_rep, notes: row.notes, status: row.status, createdAt: new Date(it.identified || Date.now()).toISOString(), issueKey: k, recommended: it.recommended, source: it.source, comments: o.comments, history: o.history };
+  const ix = ACTIONS_CACHE.findIndex(a => a.id === row.id); if (ix >= 0) ACTIONS_CACHE[ix] = local; else ACTIONS_CACHE.push(local);
+  CM.ui.err = ''; CM.sig = ''; CM.render();
+  const { error } = await sb.from('actions').upsert(row);
+  if (error) { console.error('actions upsert failed', error); CM.ui.err = /column|schema/i.test(error.message || '') ? 'The Action Center needs one SQL step (migrate_cmcc_actions.sql) before updates can be saved; your change is kept on this screen only.' : 'Could not save the update: ' + (error.message || error); CM.render(); }
+};
+CM.actComment = k => { const t = prompt('Add a comment or record the corrective action taken:'); if (t && t.trim()) CM.actSave(k, {}, t.trim()); };
+CM.actHist = k => { CM.ui.hist[decK(k)] = !CM.ui.hist[decK(k)]; CM.render(); };
+function actionsHtml(C) {
+  const list = C.items, pg = Math.min(CM.ui.pAct, Math.max(0, Math.ceil(list.length / PAGE) - 1)), ed = canEdit();
+  const rows = list.slice(pg * PAGE, pg * PAGE + PAGE).map(x => {
+    const k = encK(x.key), dis = ed ? '' : 'disabled';
+    const hist = CM.ui.hist[x.key] ? `<tr><td colspan="13"><div class="cm-hist"><b>Why:</b> ${H(x.why || '—')}<br><b>History:</b> ${(x.history || []).map(h => `${fmtD(Date.parse(h.at))} · ${H(h.by)} · ${H(h.what)}`).join('<br>') || 'No changes recorded yet.'}<br><b>Comments:</b> ${(x.comments || []).map(c => `${fmtD(Date.parse(c.at))} · ${H(c.by)}: ${H(c.text)}`).join('<br>') || 'None.'}</div></td></tr>` : '';
+    return `<tr><td>${sevChip(x.severity)}</td><td>${H(x.chain)}</td><td>${H(x.state)}</td><td class="cm-click" onclick="CM.report('store','${encK(x.doorKey)}')" style="cursor:pointer;color:#1f4e9c">${H(x.store)}</td><td>${H(x.label)}<div class="cm-gr" style="font-size:10.5px">${H(x.detail || '')}</div></td><td><span class="cm-tag">${H(x.source)}</span></td><td>${H(x.recommended)}</td>
+      <td><input class="cm-act-in" ${dis} value="${H(x.assigned)}" placeholder="Category manager" onchange="CM.actSave('${k}',{assigned:this.value.trim()})"></td><td>${fmtI(x.identified, x.source)}</td><td><input class="cm-act-in" type="date" ${dis} value="${H(x.target)}" onchange="CM.actSave('${k}',{target:this.value})" style="max-width:118px"></td>
+      <td><select class="cm-act-in" ${dis} onchange="CM.actSave('${k}',{status:this.value})">${ACT_STATUS.map(s => `<option ${x.status === s ? 'selected' : ''}>${s}</option>`).join('')}${ACT_STATUS.includes(x.status) ? '' : `<option selected>${H(x.status)}</option>`}</select>${!x.active && x.issueStatus === 'Resolved' && OPEN_STATUS.includes(x.status) ? '<div class="cm-gr" style="font-size:10px">Issue no longer reported — verify &amp; close</div>' : ''}</td>
+      <td><button class="cm-btn sm" ${dis} onclick="CM.actComment('${k}')">+ Comment</button> <button class="cm-btn sm" onclick="CM.actHist('${k}')">History (${(x.history || []).length + (x.comments || []).length})</button></td><td>${stChip(x.issueStatus)}</td></tr>${hist}`;
+  }).join('');
+  return `<div class="cm-sec" id="cm-actions"><h2>Category Manager Action Center <small>${fmtNum(list.length)} action items · every active issue becomes a task</small></h2><div class="cm-body">
+    ${CM.ui.err ? `<div class="cm-banner">${H(CM.ui.err)}</div>` : ''}${ed ? '' : `<div class="cm-banner">${usingEmbeddedSnapshot ? 'Read-only copy: action tracking is available on the live dashboard.' : 'View only. Sign in as an editor (from the CI Visit Review tab) to assign, update, comment and close actions.'}</div>`}
+    <div class="cm-note"><label><input type="checkbox" ${CM.ui.showLow ? 'checked' : ''} onchange="CM.ui.showLow=this.checked;CM.render()"> include Low priority</label> &nbsp; <label><input type="checkbox" ${CM.ui.showClosed ? 'checked' : ''} onchange="CM.ui.showClosed=this.checked;CM.render()"> include completed / resolved</label> &nbsp; Status, assignee, target date and comments are saved to the shared actions table with a full history; the finding itself is never overwritten.</div>
+    <div style="overflow-x:auto"><table class="cm-t"><thead><tr><th>Priority</th><th>Chain</th><th>State</th><th>Store / door</th><th>Identified issue</th><th>Supporting evaluation</th><th>Recommended action</th><th>Assigned CM</th><th>Date identified</th><th>Target</th><th>Status</th><th>Updates</th><th>Issue</th></tr></thead><tbody>${rows || '<tr><td colspan="13" class="cm-empty">No action items match the current filters.</td></tr>'}</tbody></table></div>${pager(list.length, pg, 'pAct')}</div></div>`;
+}
+function reportsHtml(C) {
+  const M = C.M, chains = [...new Set(M.doors.map(m => m.chain))].sort(), states = [...new Set(M.doors.map(m => m.state))].sort();
+  return `<div class="cm-sec" id="cm-reports"><h2>Reports <small>OnePager-style · preview, print / save as PDF, Excel</small></h2><div class="cm-body"><div class="cm-filters" style="border:none;padding:0;margin:0">
+    <label>Chain report<select id="cm-rc"><option value="">Select chain…</option>${chains.map(c => `<option value="${H(c)}" ${CM.f.chain === c ? 'selected' : ''}>${H(c)}</option>`).join('')}</select></label><button class="cm-btn pri" onclick="var v=document.getElementById('cm-rc').value;if(v)CM.report('chain',encodeURIComponent(v))">Open chain report</button>
+    <label>State report<select id="cm-rs"><option value="">Select state…</option>${states.map(s => `<option value="${H(s)}" ${CM.f.state === s ? 'selected' : ''}>${H(s)}</option>`).join('')}</select></label><button class="cm-btn pri" onclick="var v=document.getElementById('cm-rs').value;if(v)CM.report('state',encodeURIComponent(v))">Open state report</button>
+    <button class="cm-btn" onclick="CM.exportXlsx()">Export current view to Excel</button></div><div class="cm-note">A store report opens from any row in this tab (velocity, photographs, evaluations, issues, actions). Chain and state reports cover every store in that chain or state, regardless of the filters above.</div></div></div>`;
+}
+CM.render = function () {
+  const el = $('cm-main'); if (!el) return;
+  try {
+    ensure();
+    const C = ctxOf(), M = C.M;
+    el.innerHTML = `<div class="cm-wrap"><div class="cm-head"><h1>Category Manager Command Center</h1><div><button class="cm-btn" onclick="CM.refresh()">Refresh data</button></div></div>
+      <div class="cm-sub">Latest velocity, store photographs, evaluation findings, missing SKUs and recommended actions for every door, from the dashboard's live data · model built in ${M.builtMs} ms${M.extraUnmatched ? ' · ' + M.extraUnmatched + ' Extra evaluations could not be matched to a door' : ''}${rsVersions ? '' : ' · reviewer names load after sign-in'}${usingEmbeddedSnapshot ? ' · <b>read-only copy: it holds Eileen visits from ' + ymd(Math.min(...M.evals.filter(e => e.src === 'eileen' && e.ts).map(e => e.ts).concat([Date.now()]))) + ' onward only (size limit), so issue counts are lower than on the live dashboard</b>' : ''}</div>
+      ${kpiHtml(C)}${filterHtml(M)}
+      <div class="cm-nav"><a onclick="CM.jump('cm-velocity')">Velocity</a><a onclick="CM.jump('cm-photos')">Photos</a><a onclick="CM.jump('cm-evals')">Evaluations</a><a onclick="CM.jump('cm-issues')">Issues</a><a onclick="CM.jump('cm-actions')">Action Center</a><a onclick="CM.jump('cm-reports')">Reports</a></div>
+      ${velocityHtml(C)}${photosHtml(C)}${evalsHtml(C)}${issuesHtml(C)}${actionsHtml(C)}${reportsHtml(C)}</div>`;
+  } catch (e) { console.error('Command Center render failed', e); el.innerHTML = `<div class="cm-wrap"><div class="cm-banner">The Command Center could not be drawn: ${H(e.message || e)}</div></div>`; }
+};
+CM.refresh = () => { CM.sig = ''; CM.render(); };
+window.renderCmcc = function () {
+  CM.render();
+  if (!usingEmbeddedSnapshot && rsVersions === null && typeof civCurrentUser === 'function' && civCurrentUser() && typeof rsLoad === 'function') { Promise.resolve(rsLoad()).then(() => { if (currentTab === 'cmcc') CM.render(); }); }
+};
+
+// ═══ ONEPAGER REPORTS ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+const opSvg = (m, M) => {
+  const W = 330, Hh = 112, pad = 26, s = m.series.slice(-10);
+  if (s.length < 2) return '<div class="na" style="padding:18px;text-align:center">Not enough monthly sales history for a trend chart</div>';
+  const ca = M.chainMonth[m.chain] || {}, sa = M.stateMonth[m.state] || {};
+  const lines = [{ name: 'This store', col: '#c55a11', w: 2.4, vals: s.map(x => x.v), dash: '' }, { name: 'Chain avg', col: '#2f5597', w: 1.4, vals: s.map(x => ca[x.mk]), dash: '4,3' }, { name: 'State avg', col: '#7f7f7f', w: 1.4, vals: s.map(x => sa[x.mk]), dash: '2,3' }];
+  const all = lines.flatMap(l => l.vals).filter(v => v != null), mx = Math.max(...all, 0.5), rg = mx || 1, sx = (W - pad * 2) / (s.length - 1);
+  const y = v => Hh - 20 - (v / rg) * (Hh - 36);
+  const paths = lines.map(l => { const pts = l.vals.map((v, i) => v == null ? null : [pad + i * sx, y(v)]).filter(Boolean); return pts.length > 1 ? `<polyline points="${pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}" fill="none" stroke="${l.col}" stroke-width="${l.w}" ${l.dash ? `stroke-dasharray="${l.dash}"` : ''}/>` : ''; }).join('');
+  const dots = s.map((x, i) => `<circle cx="${(pad + i * sx).toFixed(1)}" cy="${y(x.v).toFixed(1)}" r="2.4" fill="#c55a11"/>`).join('');
+  const lab = s.map((x, i) => (i % 2 === 0 || i === s.length - 1) ? `<text x="${(pad + i * sx).toFixed(1)}" y="${Hh - 6}" font-size="7.5" fill="#666" text-anchor="middle">${H(monthLabel(x.mk).replace(' 20', " '"))}</text>` : '').join('');
+  const leg = lines.map((l, i) => `<text x="${pad + i * 82}" y="9" font-size="8" fill="${l.col}" font-weight="700">${l.dash ? '- - ' : '— '}${l.name}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${Hh}" style="width:100%;height:${Hh}px">${leg}<line x1="${pad}" y1="${Hh - 20}" x2="${W - 8}" y2="${Hh - 20}" stroke="#ccc"/><text x="2" y="${y(mx) + 3}" font-size="7.5" fill="#666">${fmt1(mx)}</text>${paths}${dots}${lab}</svg>`;
+};
+const opPh = (items, tag, color, g) => items && items.length
+  ? `<div class="op-ph"><span class="tg" style="background:${color}">${tag}</span><img src="${H(items[0].url)}" alt="${tag}"><div class="cp">${H(items[0].label)} · ${fmtD(g.ts)} · ${H(g.srcLabel)}</div></div>`
+  : `<div class="op-ph"><span class="tg" style="background:${color}">${tag}</span>No ${tag.toLowerCase()} photograph documented</div>`;
+// OnePager only: several SKU findings at one store read better (and fit the page) as one grouped line; the dashboard keeps one row per SKU for tracking.
+const STAT_ORDER = { Recurring: 4, Outstanding: 3, New: 2, Resolved: 1, Historical: 0 };
+function skuSplit(sku) {
+  const oos = sku.filter(i => /0 facings|out of stock/i.test(i.detail || '')), nf = sku.filter(i => !oos.includes(i));
+  return { oos, nf, text: (oos.length ? oos.length + ' with 0 facings / reported out of stock' : '') + (oos.length && nf.length ? ', ' : '') + (nf.length ? nf.length + ' core SKU' + (nf.length === 1 ? '' : 's') + ' not recorded on the shelf' : '') };
+}
+function collapseSkuIssues(list) {
+  const sku = list.filter(i => i.code === 'SKU_MISS'); if (sku.length < 2) return list;
+  const names = sku.map(i => i.skuLabel), sp = skuSplit(sku);
+  const agg = { code: 'SKU_MISS', label: 'Missing SKUs (' + sku.length + ')', skuLabel: names.slice(0, 8).join(', ') + (names.length > 8 ? ' and ' + (names.length - 8) + ' more' : ''), detail: sp.text,
+    severity: sku.reduce((b, i) => SEVN[i.severity] > SEVN[b] ? i.severity : b, 'Low'), status: sku.map(i => i.status).sort((a, b) => (STAT_ORDER[b] || 0) - (STAT_ORDER[a] || 0))[0], src: sku[0].src };
+  return list.filter(i => i.code !== 'SKU_MISS').concat([agg]).sort((a, b) => SEVN[b.severity] - SEVN[a.severity]);
+}
+function collapseSkuItems(items) {
+  const sku = items.filter(x => x.issue && x.issue.code === 'SKU_MISS'); if (sku.length < 2) return items;
+  const sp = skuSplit(sku.map(x => x.issue)), openFirst = sku.map(x => x.status).sort((a, b) => (OPEN_STATUS.includes(b) ? 1 : 0) - (OPEN_STATUS.includes(a) ? 1 : 0))[0];
+  const agg = { label: 'Missing SKUs (' + sku.length + '): ' + sp.text, severity: sku.reduce((b, x) => SEVN[x.severity] > SEVN[b] ? x.severity : b, 'Low'), recommended: 'Coordinate replenishment of the missing SKUs', why: ISSUE.SKU_MISS.why, status: openFirst, assigned: sku.map(x => x.assigned).find(Boolean) || '' };
+  return items.filter(x => !sku.includes(x)).concat([agg]).sort((a, b) => SEVN[b.severity] - SEVN[a.severity]);
+}
+function summaryFor(m, M) {
+  const act = m.active.filter(i => i.severity !== 'Low'), crit = act.filter(i => SEVN[i.severity] >= 3), sku = m.active.filter(i => i.code === 'SKU_MISS');
+  const V = m.vel || {}, last = m.evals.filter(e => e.submitted).slice(-1)[0] || m.evals.slice(-1)[0];
+  const q = [];
+  q.push(`<b>Current condition:</b> ${m.evals.length ? `${m.evals.length} evaluation${m.evals.length === 1 ? '' : 's'} on file (${m.evals.filter(e => e.submitted).length} submitted); latest ${fmtD(last.ts)} (${H(last.srcLabel)}).` : 'No evaluation on file for this store.'} ${act.length ? `${act.length} open issue${act.length === 1 ? '' : 's'} (${crit.length} Critical/High).` : (m.evals.length ? 'No open issues detected.' : '')}`);
+  q.push(`<b>Performance:</b> ${V.latest != null ? `latest velocity ${fmt1(V.latest)} u/wk (${H(monthLabel(V.latestMonth))})${V.prev != null ? `, ${V.diff >= 0 ? 'up' : 'down'} ${fmt1(Math.abs(V.diff))} from ${fmt1(V.prev)}${V.pct != null ? ' (' + (V.pct >= 0 ? '+' : '') + Math.round(V.pct) + '%)' : ''}` : ''}; chain average ${fmt1(M.chainAvg[m.chain])}, state average ${fmt1(M.stateAvg[m.state])}.${V.stale ? ' This is an older record, not current.' : ''}` : 'no velocity data on file for this store.'}`);
+  q.push(`<b>Issues identified:</b> ${act.length ? act.slice(0, 5).map(i => H(i.label) + (i.skuLabel ? ' (' + H(i.skuLabel) + ')' : '')).join('; ') + (act.length > 5 ? '; +' + (act.length - 5) + ' more' : '') + '.' : 'none open.'}`);
+  const sp = skuSplit(sku);
+  q.push(`<b>Missing SKUs:</b> ${sku.length ? (sp.oos.length ? sp.oos.length + ' with 0 facings or reported out of stock (' + sp.oos.slice(0, 6).map(i => H(i.skuLabel)).join(', ') + (sp.oos.length > 6 ? ', …' : '') + ')' : '') + (sp.oos.length && sp.nf.length ? '; ' : '') + (sp.nf.length ? sp.nf.length + ' core SKU' + (sp.nf.length === 1 ? '' : 's') + ' not recorded on the shelf (' + sp.nf.slice(0, 6).map(i => H(i.skuLabel)).join(', ') + (sp.nf.length > 6 ? ', …' : '') + ')' : '') + '.' : 'none recorded.'}`);
+  q.push(`<b>Needs immediate attention:</b> ${crit.length ? crit.slice(0, 4).map(i => `<span class="op-chip" style="background:${SEV_CLR[i.severity]}">${i.severity}</span> ` + H(i.label) + (i.skuLabel ? ' (' + H(i.skuLabel) + ')' : '')).join('; ') + '.' : 'nothing Critical or High.'}`);
+  q.push(`<b>Next step for the Category Manager:</b> ${act.length ? [...new Set(act.slice(0, 3).map(i => i.recommended))].map(H).join('; ') + '.' : 'continue to monitor; no corrective action is indicated by the current data.'}`);
+  return `<ol style="margin:0;padding-left:16px">${q.map(x => `<li>${x}</li>`).join('')}</ol>`;
+}
+function opStore(m, M) {
+  const V = m.vel || {}, c = velCls(V.cls), p = photoPair(m), gen = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const issAll = collapseSkuIssues(m.active), itemsAll = collapseSkuItems(m.items.filter(x => x.active || OPEN_STATUS.includes(x.status)));
+  const evs = m.evals.slice().reverse().slice(0, 4), iss = issAll.slice(0, 6), items = itemsAll.filter(x => x.severity !== 'Low' || itemsAll.length < 3).slice(0, 6);
+  const imp = improvements(m);
+  return `<div class="op-page"><div class="op-title">Lucy Goods — Store Performance &amp; Evaluation OnePager &nbsp;|&nbsp; ${H(m.chain)} · ${H(m.address)}${m.city ? ', ' + H(m.city) : ''}, ${H(m.state)}</div>
+    <div class="op-subb">Generated ${gen} from live dashboard data &nbsp;|&nbsp; ${m.evals.length} evaluation record${m.evals.length === 1 ? '' : 's'} (${[...new Set(m.evals.map(e => e.srcLabel))].map(H).join(', ') || 'none'}) &nbsp;|&nbsp; latest visit ${fmtD(m.lastTs)}</div><div class="op-body">
+    <div class="op-row op-r2"><div><h3>1 · Store profile</h3><div class="op-kv"><span>Chain</span><b>${H(m.chain)}</b><span>State</span><b>${H(m.state)}</b><span>Store</span><b>${H(m.storeName || 'Not on file')}</b><span>Store ID</span><b>${H(m.storeId || 'Not on file')}</b><span>Address</span><b>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}, ${H(m.state)}</b><span>Latest visit</span><b>${fmtD(m.lastTs)}</b></div>
+        <div style="display:flex;gap:14px;align-items:flex-end;margin-top:6px"><div><div class="op-big" style="color:${c[0]}">${V.latest != null ? fmt1(V.latest) : '—'}</div><div class="na">latest u/wk</div></div><div class="op-kv"><span>Previous</span><b>${V.prev != null ? fmt1(V.prev) : '—'}</b><span>Change</span><b style="color:${c[0]}">${V.diff != null ? (V.diff >= 0 ? '+' : '') + fmt1(V.diff) + (V.pct != null ? ' (' + (V.pct >= 0 ? '+' : '') + Math.round(V.pct) + '%)' : '') : '—'}</b><span>Status</span><span class="op-chip" style="background:${c[0]}">${c[1]}</span></div></div></div>
+      <div><h3>3 · Velocity performance</h3>${opSvg(m, M)}<div class="na" style="font-size:8.4px">Weekly units = monthly units ÷ 4.33. Latest record: ${H(V.latestMonth ? monthLabel(V.latestMonth) : '—')}. Chain avg ${fmt1(M.chainAvg[m.chain])} · state avg ${fmt1(M.stateAvg[m.state])} u/wk (latest month, doors with data).</div></div></div>
+    <div><h3>2 · Visual store conditions</h3><div class="op-row op-rp" style="margin-bottom:6px">${p ? `<div>${opPh(p.before, 'Before', '#b7791f', p.g)}</div><div>${opPh(p.actual, 'Actual / After', '#2f855a', p.g)}</div>` : '<div class="na" style="grid-column:1/3">No photographs on file for this store.</div>'}
+      <div><div class="na" style="font-size:8.6px;margin-bottom:3px">${p ? H(p.note) + ' · ' + fmtD(p.g.ts) + ' · ' + H(p.g.srcLabel) : ''}</div><b style="font-size:9.4px">Improvements</b><ul style="font-size:9.2px">${imp.length ? imp.map(x => `<li>${H(x)}</li>`).join('') : '<li class="na">None recorded (needs Before and After answers)</li>'}</ul>${p && p.g.items.length > 2 ? `<div class="na" style="font-size:8.4px;margin-top:3px">${p.g.items.length} photographs in the latest visit (${[...new Set(p.g.items.map(i => i.type))].join(', ')}); ${p.all.length} visit${p.all.length === 1 ? '' : 's'} with photographs.</div>` : ''}</div></div></div>
+    <div class="op-row op-r2"><div><h3>4 · Evaluation summary</h3><table><thead><tr><th>Date</th><th>Source</th><th>Reviewer</th><th>Findings</th></tr></thead><tbody>${evs.map(e => `<tr><td style="white-space:nowrap">${fmtD(e.ts)}</td><td>${H(e.srcLabel)}</td><td>${H(e.reviewer || '—')}</td><td>${e.v ? `Present ${yn(e.v.present)} · Visible ${yn(e.v.visible)} · Strip ${yn(e.v.strip)}${e.v.stripOk != null ? '/' + yn(e.v.stripOk) : ''} · Facings ${e.v.facings != null ? e.v.facings : '—'} (empty ${e.v.empty != null ? e.v.empty : '—'})` : '<span class="na">Pending review</span>'}${e.popSummary ? ' · ' + H(e.popSummary) : ''}${e.skuSummary ? ' · ' + H(e.skuSummary) : ''}${e.recommendation || e.notes ? '<br><i>' + H((e.recommendation ? e.recommendation + ' · ' : '') + e.notes).slice(0, 110) + '</i>' : ''}</td></tr>`).join('') || '<tr><td colspan="4" class="na">No evaluations on file</td></tr>'}</tbody></table></div>
+      <div><h3>5 · Identified issues &amp; missing SKUs</h3><table><thead><tr><th>Sev.</th><th>Issue</th><th>Status</th><th>Source</th></tr></thead><tbody>${iss.map(i => `<tr><td><span class="op-chip" style="background:${SEV_CLR[i.severity]}">${i.severity}</span></td><td>${H(i.label)}${i.skuLabel ? ': <b>' + H(i.skuLabel) + '</b>' : ''}${i.detail ? '<br><span class="na">' + H(i.detail) + '</span>' : ''}</td><td>${i.status}</td><td>${H(i.src)}</td></tr>`).join('') || '<tr><td colspan="4" class="na">No open issues</td></tr>'}</tbody></table>${issAll.length > 6 ? `<div class="na">+ ${issAll.length - 6} more open issue${issAll.length - 6 === 1 ? '' : 's'} in the dashboard</div>` : ''}</div></div>
+    <div class="op-row op-r1"><div><h3>6 · Recommended action plan</h3><table><thead><tr><th>Issue</th><th>Recommended action</th><th>Why</th><th>Priority</th><th>Status</th></tr></thead><tbody>${items.map(x => `<tr><td>${H(x.label)}</td><td><b>${H(x.recommended)}</b></td><td>${H(x.why || '')}</td><td>${x.severity}</td><td>${H(x.status)}${x.assigned ? ' · ' + H(x.assigned) : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="na">No corrective action indicated by the current data</td></tr>'}</tbody></table></div></div>
+    <div class="op-row op-r1"><div><h3>7 · Management summary</h3><div class="op-sum">${summaryFor(m, M)}</div></div></div></div>
+    <div class="op-foot">Built from the dashboard's own evaluation, sales and photograph records; nothing is estimated. Door key: ${H(m.key)}. Issue ratings and status rules are listed in the Command Center. Figures and findings should be spot-checked before external distribution.</div></div>`;
+}
+function opScope(kind, name, M) {
+  const ds = M.doors.filter(m => kind === 'chain' ? m.chain === name : m.state === name);
+  const vd = ds.filter(m => m.vel && m.vel.latest != null && !m.vel.stale), act = ds.flatMap(m => m.active).filter(i => i.severity !== 'Low');
+  const gen = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const rankT = vd.slice().sort((a, b) => b.vel.latest - a.vel.latest).slice(0, 8), rankB = vd.filter(m => m.vel.latest > 0).sort((a, b) => a.vel.latest - b.vel.latest).slice(0, 8);
+  const grp = {}; ds.forEach(m => { const k = kind === 'chain' ? m.state : m.chain; (grp[k] = grp[k] || []).push(m); });
+  const dist = Object.keys(grp).map(k => { const g = grp[k], v = g.filter(m => m.vel && m.vel.latest != null && !m.vel.stale); return { k, n: g.length, avg: avg(v.map(m => m.vel.latest)), dn: g.filter(m => m.vel && m.vel.cls === 'down').length, iss: g.filter(m => m.active.length).length }; }).sort((a, b) => b.n - a.n).slice(0, 9);
+  const codes = {}; act.forEach(i => { codes[i.label] = (codes[i.label] || 0) + 1; });
+  const common = Object.keys(codes).sort((a, b) => codes[b] - codes[a]).slice(0, 8);
+  const skus = {}; ds.flatMap(m => m.active).filter(i => i.code === 'SKU_MISS' && i.sku).forEach(i => { skus[i.skuLabel] = (skus[i.skuLabel] || 0) + 1; });
+  const topSku = Object.keys(skus).sort((a, b) => skus[b] - skus[a]).slice(0, 10);
+  const mostMissing = ds.map(m => ({ m, n: m.active.filter(i => i.code === 'SKU_MISS').length })).filter(x => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 8);
+  const withPair = ds.map(m => ({ m, p: photoPair(m) })).filter(x => x.p && x.p.before.length && x.p.actual.length).sort((a, b) => b.p.g.ts - a.p.g.ts).slice(0, 2);
+  const top = act.slice().sort((a, b) => SEVN[b.severity] - SEVN[a.severity] || b.last - a.last).slice(0, 10);
+  const agg = {}; act.forEach(i => { const k = i.recommended; (agg[k] = agg[k] || { n: 0, stores: new Set(), sev: 0 }).n++; agg[k].stores.add(i.doorKey); agg[k].sev = Math.max(agg[k].sev, SEVN[i.severity]); });
+  const plan = Object.keys(agg).sort((a, b) => agg[b].sev - agg[a].sev || agg[b].stores.size - agg[a].stores.size).slice(0, 8);
+  const avgAll = avg(vd.map(m => m.vel.latest)), up = ds.filter(m => m.vel && m.vel.cls === 'up').length, dn = ds.filter(m => m.vel && m.vel.cls === 'down').length;
+  const title = `${kind === 'chain' ? 'Chain' : 'State'} report — ${H(name)}`;
+  const sum = [`<b>Scope:</b> ${ds.length} store${ds.length === 1 ? '' : 's'}${kind === 'chain' ? ' in ' + Object.keys(grp).length + ' state(s)' : ' across ' + Object.keys(grp).length + ' chain(s)'}; ${ds.filter(m => m.visited).length} visited; ${vd.length} with current velocity data.`,
+    `<b>Velocity:</b> average ${fmt1(avgAll)} u/wk per door with data; ${up} improving, ${dn} declining.${kind === 'state' ? '' : ''}`,
+    `<b>Issues:</b> ${act.length} open Critical/High/Medium issue${act.length === 1 ? '' : 's'} at ${new Set(act.map(i => i.doorKey)).size} store${new Set(act.map(i => i.doorKey)).size === 1 ? '' : 's'}${common.length ? '; most common: ' + common.slice(0, 3).map(c => H(c) + ' (' + codes[c] + ')').join(', ') : ''}.`,
+    `<b>Missing SKUs:</b> ${topSku.length ? topSku.slice(0, 5).map(s => H(s) + ' at ' + skus[s] + ' store' + (skus[s] === 1 ? '' : 's')).join('; ') + '.' : 'none recorded.'}`,
+    `<b>Recommended focus:</b> ${plan.length ? plan.slice(0, 3).map(p => H(p) + ' (' + agg[p].stores.size + ' store' + (agg[p].stores.size === 1 ? '' : 's') + ')').join('; ') + '.' : 'no corrective action indicated by the current data.'}`];
+  const pageHead = `<div class="op-title">Lucy Goods — ${title} &nbsp;|&nbsp; ${ds.length} stores</div><div class="op-subb">Generated ${gen} from live dashboard data &nbsp;|&nbsp; latest velocity month ${H(monthLabel(M.latestMk))} &nbsp;|&nbsp; ${new Set(ds.flatMap(m => [...m.srcs])).size} evaluation source(s)</div>`;
+  const tbl = (arr) => `<table><thead><tr><th>Store</th><th>State</th><th>Latest u/wk</th><th>Prev.</th><th>% chg</th></tr></thead><tbody>${arr.map(m => `<tr><td>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${H(m.state)}</td><td><b>${fmt1(m.vel.latest)}</b></td><td>${m.vel.prev != null ? fmt1(m.vel.prev) : '—'}</td><td>${m.vel.pct != null ? (m.vel.pct >= 0 ? '+' : '') + Math.round(m.vel.pct) + '%' : '—'}</td></tr>`).join('') || '<tr><td colspan="5" class="na">No current velocity data</td></tr>'}</tbody></table>`;
+  const p1 = `<div class="op-page">${pageHead}<div class="op-body">
+    <div class="op-row op-r3"><div><h3>1 · ${kind === 'chain' ? 'Chain' : 'State'} profile</h3><div class="op-kv"><span>${kind === 'chain' ? 'Chain' : 'State'}</span><b>${H(name)}</b><span>Stores</span><b>${ds.length}</b><span>Visited</span><b>${ds.filter(m => m.visited).length}</b><span>With velocity</span><b>${vd.length}</b><span>Avg u/wk</span><b>${fmt1(avgAll)}</b><span>Improving / declining</span><b>${up} / ${dn}</b><span>Open issues</span><b>${act.length}</b><span>Open actions</span><b>${ds.reduce((s, m) => s + m.openItems.length, 0)}</b></div></div>
+      <div><h3>Highest velocity</h3>${tbl(rankT)}</div><div><h3>Lowest velocity (above zero)</h3>${tbl(rankB)}</div></div>
+    <div class="op-row op-r2"><div><h3>${kind === 'chain' ? 'State' : 'Chain'} distribution</h3><table><thead><tr><th>${kind === 'chain' ? 'State' : 'Chain'}</th><th>Stores</th><th>Avg u/wk</th><th>Declining</th><th>With issues</th></tr></thead><tbody>${dist.map(d => `<tr><td>${H(d.k)}</td><td>${d.n}</td><td>${fmt1(d.avg)}</td><td>${d.dn}</td><td>${d.iss}</td></tr>`).join('')}</tbody></table></div>
+      <div><h3>Before-and-actual highlights (2 most recent)</h3>${withPair.length ? `<div style="display:grid;grid-template-columns:1fr;gap:6px">${withPair.map(x => `<div><div class="na" style="font-size:8.2px">${H(x.m.address)}, ${H(x.m.state)} · ${fmtD(x.p.g.ts)}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:3px"><div class="op-ph" style="height:128px"><span class="tg" style="background:#b7791f">Before</span><img src="${H(x.p.before[0].url)}"></div><div class="op-ph" style="height:128px"><span class="tg" style="background:#2f855a">After</span><img src="${H(x.p.actual[0].url)}"></div></div></div>`).join('')}</div>` : '<div class="na">No stores with both before and after photographs</div>'}</div></div>
+    <div class="op-row op-r1"><div><h3>Management summary</h3><div class="op-sum"><ol style="margin:0;padding-left:16px">${sum.map(x => `<li>${x}</li>`).join('')}</ol></div></div></div></div><div class="op-foot">Built from the dashboard's own evaluation, sales and photograph records; nothing is estimated. Figures should be spot-checked before external distribution.</div></div>`;
+  const p2 = `<div class="op-page">${pageHead}<div class="op-body">
+    <div class="op-row op-r2"><div><h3>Common evaluation findings</h3><table><thead><tr><th>Finding</th><th>Open issues</th></tr></thead><tbody>${common.map(c => `<tr><td>${H(c)}</td><td>${codes[c]}</td></tr>`).join('') || '<tr><td colspan="2" class="na">None</td></tr>'}</tbody></table>
+        <h3 style="margin-top:8px">Stores with missing SKUs</h3><table><thead><tr><th>Store</th><th>Missing SKUs</th></tr></thead><tbody>${mostMissing.map(x => `<tr><td>${H(x.m.address)}${x.m.city ? ', ' + H(x.m.city) : ''}, ${H(x.m.state)}</td><td>${x.n}</td></tr>`).join('') || '<tr><td colspan="2" class="na">None</td></tr>'}</tbody></table></div>
+      <div><h3>Most-missing SKUs / flavors</h3><table><thead><tr><th>SKU</th><th>Stores</th></tr></thead><tbody>${topSku.map(s => `<tr><td>${H(s)}</td><td>${skus[s]}</td></tr>`).join('') || '<tr><td colspan="2" class="na">None</td></tr>'}</tbody></table>
+        <h3 style="margin-top:8px">Recommended ${kind} actions</h3><table><thead><tr><th>Action</th><th>Stores</th><th>Top priority</th></tr></thead><tbody>${plan.map(p => `<tr><td>${H(p)}</td><td>${agg[p].stores.size}</td><td>${SEV[4 - agg[p].sev]}</td></tr>`).join('') || '<tr><td colspan="3" class="na">None</td></tr>'}</tbody></table></div></div>
+    <div class="op-row op-r1"><div><h3>Outstanding issues (highest priority first)</h3><table><thead><tr><th>Sev.</th><th>Issue</th><th>Status</th><th>Store</th><th>State</th><th>Source</th></tr></thead><tbody>${top.map(i => { const m = M.byKey.get(i.doorKey); return `<tr><td><span class="op-chip" style="background:${SEV_CLR[i.severity]}">${i.severity}</span></td><td>${H(i.label)}${i.skuLabel ? ': ' + H(i.skuLabel) : ''}</td><td>${i.status}</td><td>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${H(m.state)}</td><td>${H(i.src)}</td></tr>`; }).join('') || '<tr><td colspan="6" class="na">No open issues</td></tr>'}</tbody></table></div></div></div><div class="op-foot">Built from the dashboard's own evaluation, sales and photograph records; nothing is estimated. Figures should be spot-checked before external distribution.</div></div>`;
+  return { title, html: p1 + p2, ds };
+}
+CM.report = function (kind, enc) {
+  ensure(); const M = CM.model, name = decK(enc);
+  let out;
+  if (kind === 'store') { const m = M.byKey.get(name); if (!m) return; out = { title: 'Store OnePager — ' + m.chain + ' · ' + m.address, html: opStore(m, M) }; }
+  else out = opScope(kind, name, M);
+  CM.ui.op = { kind, name, title: out.title };
+  let el = $('cm-op'); if (!el) { el = document.createElement('div'); el.id = 'cm-op'; document.body.appendChild(el); }
+  el.innerHTML = `<div class="op-bar"><b>${H(out.title)}</b><button class="pri" onclick="CM.print()">Print / Save as PDF</button><button onclick="CM.downloadHtml()">Download report (HTML)</button><button onclick="CM.exportXlsx('${kind}','${enc}')">Export data to Excel</button><button onclick="CM.closeOp()">Close</button>${usingEmbeddedSnapshot ? '<span style="font-size:11px;color:#a33;flex-basis:100%">Printing and downloads are blocked in this read-only copy — open the report on the live dashboard to save it as a PDF or Excel file.</span>' : ''}</div>${out.html}`;
+  el.style.display = 'block'; el.scrollTop = 0;
+};
+CM.closeOp = () => { const el = $('cm-op'); if (el) el.style.display = 'none'; };
+CM.print = () => { document.body.classList.add('cm-printing'); const done = () => { document.body.classList.remove('cm-printing'); window.removeEventListener('afterprint', done); }; window.addEventListener('afterprint', done); setTimeout(() => window.print(), 60); };
+CM.downloadHtml = () => {
+  const el = $('cm-op'); if (!el) return; const pages = [...el.querySelectorAll('.op-page')].map(p => p.outerHTML).join('');
+  const css = [...document.querySelectorAll('style')].map(s => s.textContent).filter(t => t.indexOf('#cm-op') >= 0).join('\n');
+  const doc = `<!doctype html><html><head><meta charset="utf-8"><title>${H(CM.ui.op ? CM.ui.op.title : 'OnePager')}</title><style>body{margin:0;background:#fff}${css.replace(/#cm-op\s+/g, '').replace(/@media print\{[\s\S]*$/, '')}.op-page{margin:0 auto 14px;box-shadow:none}@page{size:letter landscape;margin:.28in}</style></head><body>${pages}</body></html>`;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([doc], { type: 'text/html;charset=utf-8' })); a.download = (CM.ui.op ? CM.ui.op.title : 'onepager').replace(/[^A-Za-z0-9]+/g, '_') + '.html'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+};
+CM.exportXlsx = function (kind, enc) {
+  ensure(); const M = CM.model; let doors, label;
+  if (kind === 'store') { const m = M.byKey.get(decK(enc)); doors = m ? [m] : []; label = 'store'; }
+  else if (kind === 'chain' || kind === 'state') { const nm = decK(enc); doors = M.doors.filter(m => kind === 'chain' ? m.chain === nm : m.state === nm); label = kind + '_' + nm; }
+  else { const C = ctxOf(); doors = C.doors; label = 'current_view'; }
+  const set = new Set(doors.map(m => m.key));
+  const sheetDoors = [['Chain', 'State', 'Store ID', 'Address', 'City', 'Door key', 'Latest velocity (u/wk)', 'Latest record', 'Previous (u/wk)', 'Change', '% change', 'Trend', 'Last visit', 'Open issues', 'Open actions']]
+    .concat(doors.map(m => { const V = m.vel || {}; return [m.chain, m.state, m.storeId, m.address, m.city, m.key, V.latest != null ? Math.round(V.latest * 100) / 100 : '', V.latestMonth || '', V.prev != null ? Math.round(V.prev * 100) / 100 : '', V.diff != null ? Math.round(V.diff * 100) / 100 : '', V.pct != null ? Math.round(V.pct) : '', velCls(V.cls || 'none')[1], m.lastTs ? ymd(m.lastTs) : '', m.active.length, m.openItems.length]; }));
+  const sheetVel = [['Chain', 'State', 'Address', 'Month', 'Units', 'Weekly velocity']].concat(doors.flatMap(m => m.series.map(x => [m.chain, m.state, m.address, x.month, x.units, Math.round(x.v * 100) / 100])));
+  const sheetEval = [['Date', 'Source', 'Chain', 'State', 'Address', 'Reviewer', 'Status', 'Product present', 'Visible', 'Strip present', 'Strip correct', 'Facings', 'Empty facings', 'Needs product', 'SKU availability', 'POP availability', 'Inventory', 'Recommendation', 'Comments']]
+    .concat(M.evals.filter(e => set.has(e.doorKey)).sort((a, b) => b.ts - a.ts).map(e => { const m = M.byKey.get(e.doorKey), v = e.v || {}; return [e.ts ? ymd(e.ts) : '', e.srcLabel, m.chain, m.state, m.address, e.reviewer, e.status, v.present != null ? yn(v.present) : '', v.visible != null ? yn(v.visible) : '', v.strip != null ? yn(v.strip) : '', v.stripOk != null ? yn(v.stripOk) : '', v.facings != null ? v.facings : '', v.empty != null ? v.empty : '', v.needs != null ? yn(v.needs) : '', e.skuSummary, e.popSummary, e.inventory, e.recommendation, e.notes]; }));
+  const sheetIss = [['Severity', 'Status', 'Category', 'Issue', 'SKU / flavor', 'Detail', 'Chain', 'State', 'Address', 'First seen', 'Last seen', 'Evaluations', 'Evidence origin', 'Source', 'Recommended action']]
+    .concat(M.issues.filter(i => set.has(i.doorKey)).map(i => { const m = M.byKey.get(i.doorKey); return [i.severity, i.status, i.cat, i.label, i.skuLabel, i.detail, m.chain, m.state, m.address, i.first ? ymd(i.first) : '', i.last ? ymd(i.last) : '', i.count, i.origin, i.src, i.recommended]; }));
+  const sheetAct = [['Priority', 'Chain', 'State', 'Store', 'Issue', 'Source', 'Recommended action', 'Assigned CM', 'Date identified', 'Target', 'Status', 'Last comment']]
+    .concat(M.items.filter(x => set.has(x.doorKey)).map(x => [x.severity, x.chain, x.state, x.store, x.label, x.source, x.recommended, x.assigned, x.identified ? ymd(x.identified) : '', x.target, x.status, (x.comments || []).slice(-1).map(c => c.text).join('')]));
+  const sheetPh = [['Chain', 'State', 'Address', 'Visit date', 'Source', 'Type', 'Photo URL']].concat(doors.flatMap(m => m.photoGroups.flatMap(g => g.items.map(i => [m.chain, m.state, m.address, ymd(g.ts), g.srcLabel, i.type, i.url]))));
+  downloadXLSX('command_center_' + label.replace(/[^A-Za-z0-9]+/g, '_') + '_' + ymd(Date.now()) + '.xlsx', [{ name: 'Doors', rows: sheetDoors }, { name: 'Velocity', rows: sheetVel }, { name: 'Evaluations', rows: sheetEval }, { name: 'Issues', rows: sheetIss }, { name: 'Actions', rows: sheetAct }, { name: 'Photos', rows: sheetPh }]);
+};
+})();
+
+</script>
+<!-- CMCC:END -->
 </body></html>
