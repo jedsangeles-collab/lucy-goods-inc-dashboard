@@ -1383,6 +1383,10 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 
 /* CI VISIT REVIEW -- AUTH / ACCESS CONTROL / AUDIT / VERSION HISTORY -- scoped entirely under
    #view-civisitreview like the rest of the civr-* rules, so none of this affects any other tab. */
+#app-gate{position:fixed;inset:0;z-index:3000;background:var(--bg);overflow:auto;}
+#app-gate .civauth-gate{min-height:100vh;}
+#app-gate .app-gate-logo{font-size:22px;font-weight:700;color:#1a1a18;margin-bottom:14px;letter-spacing:.5px;}
+#app-gate .app-gate-logo em{color:var(--orange);font-style:normal;}
 .civauth-gate{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:24px;}
 .civauth-gate-box{background:#fff;border:1px solid #e0ddd6;border-radius:12px;padding:32px;max-width:360px;width:100%;text-align:center;}
 .civauth-gate-title{font-size:16px;font-weight:700;color:#1a1a18;margin-bottom:6px;}
@@ -1654,6 +1658,10 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   <div class="load-overlay-title">Loading dashboard data…</div>
   <div class="load-overlay-detail">Fetching the latest data from the database.</div>
 </div>
+
+<!-- APP GATE: whole-dashboard sign-in (live site only; the Claude Artifact build has no Supabase and skips it).
+     Shown before any data is fetched; filled by appGateEval(). -->
+<div id="app-gate" style="display:none;"></div>
 
 <!-- TOP BAR -->
 <div class="topbar">
@@ -4302,6 +4310,7 @@ async function civAuthInit() {
     civSession = session;
     if (session && (!civUserProfile || civUserProfile.id !== session.user.id)) civUserProfile = await civLoadProfile(session.user.id);
     if (!session) civUserProfile = null;
+    if (!session && hadSession && event === 'SIGNED_OUT') { location.reload(); return; } // signed out in another tab, or the session expired: back to the gate
     if (session && !hadSession) { civSessionLoginAt = new Date().toISOString(); civLogAudit('login', {}); civRecordLogin(false); civRefreshDashboardStats(); }
     civRerenderActive();
   });
@@ -4334,6 +4343,12 @@ async function civSignInWithPassword(username, password) {
   const { error } = await sb.auth.signInWithPassword({ email, password });
   return error ? GENERIC_ERR : null;
 }
+// The login field takes either the username or the full email address (2026-11-03, whole-dashboard gate).
+async function civSignInWithIdentifier(identifier, password) {
+  if (identifier.indexOf('@') === -1) return civSignInWithPassword(identifier, password);
+  const { error } = await sb.auth.signInWithPassword({ email: identifier, password });
+  return error ? 'Invalid username or password.' : null;
+}
 
 function civRecordLogin(passwordChanged) {
   sb.rpc('civ_record_login', { p_password_changed: !!passwordChanged }).then(({ error }) => { if (error) console.error('civ_record_login failed', error); });
@@ -4351,7 +4366,7 @@ async function civSignOut() {
   civLogAudit('logout', {});
   await sb.auth.signOut();
   civSession = null; civUserProfile = null;
-  civRerenderActive();
+  location.reload(); // the whole dashboard is behind the sign-in gate now: reloading puts the gate back and drops every loaded dataset
 }
 
 function civTouchActivity() { civLastActivityAt = new Date().toISOString(); }
@@ -9017,7 +9032,78 @@ function hideLoadOverlay() {
   if (el) el.style.display = 'none';
 }
 
+// ── Whole-dashboard sign-in gate (2026-11-03) ───────────────────────────────
+// Nothing is fetched from Supabase until a signed-in, active user exists: the data tables are
+// authenticated-read only (migrate_lock_dashboard_data.sql), so this gate is backed by the database,
+// not just by the UI. Accounts are the existing user_profiles/Supabase Auth ones (same as the review
+// tabs); the login field takes the username or the full email. The Claude Artifact build embeds its
+// own snapshot, has no Supabase session, and skips the gate (the Artifact itself is private).
+let appGateResolve = null;
+function appGateShow(innerHtml) {
+  const g = document.getElementById('app-gate');
+  g.innerHTML = `<div class="civauth-gate"><div class="civauth-gate-box"><div class="app-gate-logo">LUCY<em>/</em>goods</div>${innerHtml}</div></div>`;
+  g.style.display = 'block';
+  const first = g.querySelector('input'); if (first) first.focus();
+}
+function appGateMsg(t) { const m = document.getElementById('app-gate-msg'); if (m) m.textContent = t; }
+async function appGateEval() {
+  hideLoadOverlay();
+  let session = null, profile = null;
+  try { const r = await sb.auth.getSession(); session = r.data.session || null; } catch (e) { session = null; }
+  if (session) profile = await civLoadProfile(session.user.id);
+  if (!session) {
+    appGateShow(`<div class="civauth-gate-title">Sign in required</div>
+      <div class="civauth-gate-sub">Enter your email (or username) and password.</div>
+      <input type="text" class="civauth-gate-input" id="app-gate-user" placeholder="Email or username" autocomplete="username" onkeydown="if(event.key==='Enter')appGateLogin()">
+      <input type="password" class="civauth-gate-input" id="app-gate-pass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')appGateLogin()">
+      <button class="civauth-gate-btn" onclick="appGateLogin()">Log in</button>
+      <div class="civauth-gate-msg" id="app-gate-msg"></div>`);
+    return;
+  }
+  if (!profile || profile.status === 'disabled') {
+    appGateShow(`<div class="civauth-gate-title">No dashboard access</div>
+      <div class="civauth-gate-sub">${profile ? 'Your dashboard access has been disabled.' : 'This account is not set up for the dashboard.'} Contact an administrator.</div>
+      <button class="civauth-gate-btn" onclick="appGateLogout()">Log out</button>`);
+    return;
+  }
+  if (profile.must_change_password) {
+    appGateShow(`<div class="civauth-gate-title">Set a new password</div>
+      <div class="civauth-gate-sub">Your account has a temporary password. Choose a new one to continue.</div>
+      <input type="password" class="civauth-gate-input" id="app-gate-new1" placeholder="New password (8+ characters)" autocomplete="new-password">
+      <input type="password" class="civauth-gate-input" id="app-gate-new2" placeholder="Confirm new password" autocomplete="new-password" onkeydown="if(event.key==='Enter')appGateChange()">
+      <button class="civauth-gate-btn" onclick="appGateChange()">Set password</button>
+      <div class="civauth-gate-msg" id="app-gate-msg"></div>
+      <div class="civauth-identity" style="justify-content:center;margin-top:10px;"><span class="civauth-signout" onclick="appGateLogout()">Log out</span></div>`);
+    return;
+  }
+  document.getElementById('app-gate').style.display = 'none';
+  document.getElementById('app-gate').innerHTML = '';
+  if (appGateResolve) { const r = appGateResolve; appGateResolve = null; r(); }
+}
+function appGateLogin() {
+  const u = ((document.getElementById('app-gate-user') || {}).value || '').trim().toLowerCase();
+  const p = (document.getElementById('app-gate-pass') || {}).value || '';
+  if (!u || !p) { appGateMsg('Enter your email and password.'); return; }
+  appGateMsg('Signing in…');
+  civSignInWithIdentifier(u, p).then(err => { if (err) appGateMsg(err); else appGateEval(); });
+}
+function appGateChange() {
+  const a = (document.getElementById('app-gate-new1') || {}).value || '';
+  const b = (document.getElementById('app-gate-new2') || {}).value || '';
+  if (a.length < 8) { appGateMsg('Password must be at least 8 characters.'); return; }
+  if (a !== b) { appGateMsg('Passwords do not match.'); return; }
+  appGateMsg('Saving…');
+  civCompletePasswordChange(a).then(err => { if (err) appGateMsg('Error: ' + err); else appGateEval(); });
+}
+async function appGateLogout() { try { await sb.auth.signOut(); } catch (e) {} location.reload(); }
+function appGate() {
+  if (window.__EMBEDDED_SNAPSHOT__) return Promise.resolve();
+  return new Promise(resolve => { appGateResolve = resolve; appGateEval(); });
+}
+
 async function init() {
+  showLoadOverlay('loading');
+  await appGate();
   showLoadOverlay('loading');
   try {
     await loadAllData();
