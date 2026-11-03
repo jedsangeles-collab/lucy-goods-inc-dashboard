@@ -3409,23 +3409,39 @@ let doorsTablePage = {};
 const DOORS_TABLE_PAGE_SIZE = 100;
 const DOORS_TABLE_COLS = [
   ['address', 'Address'], ['city', 'City'], ['state', 'State'],
-  ['visited', 'Visited'], ['score', 'Score'], ['lastVisit', 'Most Recent Visit (CI/Eileen)'],
+  ['visited', 'Visited'], ['score', 'Score'], ['lastVisit', 'Most Recent Visit'],
   ['velocity', 'Most Recent Velocity'],
 ];
 
-// Most recent CI or Eileen visit date for a door -- deliberately excludes poppromo/clarks visits
-// (per user request on the Store Map/List table specifically), unlike d.lastVisitMonth which rolls
-// up every visit source. Returns a plain 'YYYY-MM-DD' string (civVisitDateOnly's own format) or
-// null when the door has no CI/Eileen visit on file, rather than falling back to lastVisitMonth and
-// silently mixing sources back in.
-function doorMostRecentCiEileenVisitDate(door) {
-  let latest = null;
-  (door.visits || []).forEach(v => {
-    if (v.src !== 'ci' && v.src !== 'eileen') return;
-    const d = civVisitDateOnly(v.vd);
-    if (d && (!latest || d > latest)) latest = d;
+// Most recent visit date for a door across EVERY source the dashboard tracks: door.visits (ci,
+// eileen, poppromo = the CI Visit Review cycles, clarks), the doors table's own rolled-up
+// last_visit_date, plus Highway Partners and Extra Visit Reviews, which live in their own tables
+// and never land in door.visits. This column used to read only ci/eileen, so every store whose
+// latest visit came from a poppromo cycle (e.g. all of October) showed "—" or an older date.
+// Returns a plain 'YYYY-MM-DD' string (civVisitDateOnly's own format) or null when the door has no
+// dated visit anywhere. The index is rebuilt only when the underlying data changes size.
+let DOOR_LATEST_VISIT_CACHE = { sig: null, map: {} };
+function doorLatestVisitMap() {
+  const sig = [DOORS.length, EXTRA_VISITS.length, HIGHWAY.length].join('|');
+  if (DOOR_LATEST_VISIT_CACHE.sig === sig) return DOOR_LATEST_VISIT_CACHE.map;
+  const map = {};
+  const bump = (key, d) => { if (key && d && (!map[key] || d > map[key])) map[key] = d; };
+  DOORS.forEach(door => {
+    (door.visits || []).forEach(v => bump(door.key, civVisitDateOnly(v.vd)));
+    bump(door.key, civVisitDateOnly(door.lastVisitDate));
   });
-  return latest;
+  HIGHWAY.forEach(h => bump(h.doorKey, civVisitDateOnly(h.vd)));
+  // Extra visits carry no door key: match on canonical chain + address, same rule the Command Center uses.
+  const canon = extraChainCanonicalMap();
+  EXTRA_VISITS.forEach(v => {
+    const c = extraEffectiveChain(v, canon);
+    bump(normChain(c === EXTRA_OTHERS ? v.chain : c) + '|' + normChain(v.address), civVisitDateOnly(v.visitDate));
+  });
+  DOOR_LATEST_VISIT_CACHE = { sig, map };
+  return map;
+}
+function doorMostRecentVisitDate(door) {
+  return doorLatestVisitMap()[door.key] || null;
 }
 
 function doorsTableSortValue(d, col) {
@@ -3435,7 +3451,7 @@ function doorsTableSortValue(d, col) {
     case 'state': return (d.state || '').toLowerCase();
     case 'visited': return d.visited ? 1 : 0;
     case 'score': return d.latestScore;
-    case 'lastVisit': return doorMostRecentCiEileenVisitDate(d);
+    case 'lastVisit': return doorMostRecentVisitDate(d);
     case 'velocity': return d.realVelocity;
     default: return null;
   }
@@ -3502,7 +3518,7 @@ function renderDoorsTable(doors, mapContainerId, tableId) {
       <td>${escHtml(d.address)}</td><td>${escHtml(d.city)}</td><td>${escHtml(d.state)}</td>
       <td>${d.visited ? '<span class="badge badge-good">Visited</span>' : '<span class="badge badge-muted">Not visited</span>'}</td>
       <td>${d.latestScore!==null&&d.latestScore!==undefined ? d.latestScore+'/4' : '—'}</td>
-      <td>${escHtml(doorMostRecentCiEileenVisitDate(d)||'—')}</td>
+      <td>${escHtml(doorMostRecentVisitDate(d)||'—')}</td>
       <td>${d.realVelocity!==null&&d.realVelocity!==undefined ? d.realVelocity.toFixed(1)+' u/wk' : 'N/A'}</td>
     </tr>`).join('')}</tbody></table>
     <div class="pg-row">
