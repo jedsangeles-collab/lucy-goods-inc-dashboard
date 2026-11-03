@@ -3420,28 +3420,35 @@ const DOORS_TABLE_COLS = [
 // latest visit came from a poppromo cycle (e.g. all of October) showed "—" or an older date.
 // Returns a plain 'YYYY-MM-DD' string (civVisitDateOnly's own format) or null when the door has no
 // dated visit anywhere. The index is rebuilt only when the underlying data changes size.
-let DOOR_LATEST_VISIT_CACHE = { sig: null, map: {} };
+// `other` keeps the Highway/Extra visit records per door ({ v, dateOnly }) so the Excel export's
+// latest-visit lookup (xlsxLatestVisitInfo) resolves the same visit the table's date came from.
+let DOOR_LATEST_VISIT_CACHE = { sig: null, map: {}, other: {} };
 function doorLatestVisitMap() {
   const sig = [DOORS.length, EXTRA_VISITS.length, HIGHWAY.length].join('|');
   if (DOOR_LATEST_VISIT_CACHE.sig === sig) return DOOR_LATEST_VISIT_CACHE.map;
-  const map = {};
+  const map = {}, other = {};
   const bump = (key, d) => { if (key && d && (!map[key] || d > map[key])) map[key] = d; };
+  const addOther = (key, v, d) => { if (!key || !d) return; bump(key, d); (other[key] = other[key] || []).push({ v, dateOnly: d }); };
   DOORS.forEach(door => {
     (door.visits || []).forEach(v => bump(door.key, civVisitDateOnly(v.vd)));
     bump(door.key, civVisitDateOnly(door.lastVisitDate));
   });
-  HIGHWAY.forEach(h => bump(h.doorKey, civVisitDateOnly(h.vd)));
+  HIGHWAY.forEach(h => addOther(h.doorKey, h, civVisitDateOnly(h.vd)));
   // Extra visits carry no door key: match on canonical chain + address, same rule the Command Center uses.
   const canon = extraChainCanonicalMap();
   EXTRA_VISITS.forEach(v => {
     const c = extraEffectiveChain(v, canon);
-    bump(normChain(c === EXTRA_OTHERS ? v.chain : c) + '|' + normChain(v.address), civVisitDateOnly(v.visitDate));
+    addOther(normChain(c === EXTRA_OTHERS ? v.chain : c) + '|' + normChain(v.address), { src: 'extra', id: v.id, evaluator: v.evaluator }, civVisitDateOnly(v.visitDate));
   });
-  DOOR_LATEST_VISIT_CACHE = { sig, map };
+  DOOR_LATEST_VISIT_CACHE = { sig, map, other };
   return map;
 }
 function doorMostRecentVisitDate(door) {
   return doorLatestVisitMap()[door.key] || null;
+}
+function doorOtherSourceVisits(door) {
+  doorLatestVisitMap();
+  return DOOR_LATEST_VISIT_CACHE.other[door.key] || [];
 }
 
 function doorsTableSortValue(d, col) {
@@ -8239,11 +8246,16 @@ function xlsxSetPhotoCount(v) {
 // (every source only ever tracks present-vs-missing), so it can never actually be produced; flagged
 // to the user rather than silently omitted or faked.
 function xlsxLatestVisitInfo(door) {
+  // Same all-source rule as the Stores table's Most Recent Visit column (doorMostRecentVisitDate):
+  // door.visits + Highway + Extra, and the doors table's own last_visit_date when it is newer than
+  // any visit record on hand (e.g. the Artifact snapshot trims older Eileen visit rows).
   const dated = (door.visits || [])
     .map(v => ({ v, dateOnly: civVisitDateOnly(v.vd) }))
+    .concat(doorOtherSourceVisits(door))
     .filter(x => x.dateOnly)
     .sort((a, b) => b.dateOnly.localeCompare(a.dateOnly));
-  if (!dated.length) return { dateOnly: null, sourceLabel: 'Not Recorded', shelfStrip: 'Not Recorded', pop: 'Not Recorded', photos: [] };
+  const tableDate = doorMostRecentVisitDate(door);
+  if (!dated.length || (tableDate && tableDate > dated[0].dateOnly)) return { dateOnly: tableDate, sourceLabel: 'Not Recorded', shelfStrip: 'Not Recorded', pop: 'Not Recorded', photos: [] };
 
   const { v, dateOnly } = dated[0];
   let sourceLabel = 'Not Recorded', shelfStrip = 'Not Recorded', pop = 'Not Recorded';
@@ -8261,6 +8273,23 @@ function xlsxLatestVisitInfo(door) {
     } else if (v.src === 'poppromo') {
       shelfStrip = v.shelfStripPresent === true ? 'Present' : v.shelfStripPresent === false ? 'Missing' : 'Not Recorded';
       pop = v.promoRunning === true ? 'Yes' : v.promoRunning === false ? 'No' : 'Not Recorded';
+    }
+  } else if (v.src === 'highway') {
+    // Highway Partners reviewer verdicts ride the shared report_status/report_verdicts caches, same as Eileen.
+    sourceLabel = 'Highway Partners';
+    const rec = { src: 'highway', id: v.id };
+    const verdict = getReportStatus(rec) === 'Reviewed' ? REPORT_VERDICT_CACHE[reportKey(rec)] : null;
+    if (verdict) {
+      shelfStrip = verdict.shelfStripPresent === true ? 'Present' : verdict.shelfStripPresent === false ? 'Missing' : 'Not Recorded';
+      pop = verdict.productPresent === true ? 'Yes' : verdict.productPresent === false ? 'No' : 'Not Recorded';
+    }
+  } else if (v.src === 'extra') {
+    // Extra Visit Reviews keep their own isolated verdict cache (EXTRA_VERDICT_CACHE / EXTRA_STATUS_CACHE).
+    sourceLabel = 'Extra';
+    const verdict = (EXTRA_STATUS_CACHE[v.id] || {}).status === 'Reviewed' ? EXTRA_VERDICT_CACHE[v.id] : null;
+    if (verdict) {
+      shelfStrip = verdict.shelfStripPresent === true ? 'Present' : verdict.shelfStripPresent === false ? 'Missing' : 'Not Recorded';
+      pop = verdict.productPresent === true ? 'Yes' : verdict.productPresent === false ? 'No' : 'Not Recorded';
     }
   } else if (v.src === 'eileen') {
     sourceLabel = 'Eileen';
@@ -8282,6 +8311,7 @@ function xlsxLatestVisitInfo(door) {
   // already exist in the separate top-level CI/EILEEN/CLARKS "master" ph list. Fall back to that
   // master list by ciId rather than showing an empty Photo column for most real visits.
   let photos = v.photos || [];
+  if (v.src === 'highway') photos = (v.ph || []).map(p => p && p.url).filter(Boolean); // Highway photos are {url,label} objects, the export wants plain URLs
   if (!photos.length) {
     let masterRec = null;
     if (v.src === 'ci') masterRec = CI.find(r => r.id === v.ciId);
