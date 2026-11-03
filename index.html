@@ -9190,6 +9190,7 @@ init();
 #view-cmcc .cm-kpi.on{outline:2px solid #203864;}
 #view-cmcc .cm-kpi .n{font-size:24px;font-weight:700;color:#141413;line-height:1.1;}
 #view-cmcc .cm-kpi .l{font-size:11px;color:#666;margin-top:2px;text-transform:uppercase;letter-spacing:.05em;}
+#view-cmcc .cm-kpi .s{font-size:11.5px;color:#c00000;margin-top:4px;font-weight:600;}
 #view-cmcc .cm-kpi.red{border-left-color:#c00000;} #view-cmcc .cm-kpi.org{border-left-color:#c55a11;} #view-cmcc .cm-kpi.grn{border-left-color:#375623;}
 #view-cmcc .cm-filters{background:#fff;border:1px solid #e0ddd6;border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:12px;}
 #view-cmcc .cm-filters label{display:flex;flex-direction:column;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;gap:2px;}
@@ -9603,6 +9604,8 @@ function kpis(C) {
   return {
     chains: inChains ? [...dc].filter(c => inChains.has(c)).length : dc.size, states: new Set(doors.map(m => m.state)).size, doors: doors.length, visited: doors.filter(m => m.visited).length,
     issues: doors.filter(m => m.active.some(i => i.severity !== 'Low')).length, missingSku: act.filter(i => i.code === 'SKU_MISS' && i.severity !== 'Low').length,
+    // Doors with a Medium+ missing-SKU finding as a share of EVALUATED doors (those with at least one evaluation record): an unevaluated store can't show a missing SKU, so all/visited doors would understate it.
+    missingSkuDoors: doors.filter(m => m.active.some(i => i.code === 'SKU_MISS' && i.severity !== 'Low')).length, evaluatedDoors: doors.filter(m => m.evals.length).length,
     declining: doors.filter(m => m.vel && m.vel.cls === 'down').length, actionDoors: doors.filter(m => m.openItems.length).length, outstanding: openItems.length,
     resolved: M.issues.filter(i => keys.has(i.doorKey) && i.status === 'Resolved').length + M.items.filter(x => keys.has(x.doorKey) && x.status === 'Verified / Resolved').length
   };
@@ -9622,9 +9625,10 @@ CM.jump = id => { const el = $(id); if (el) el.scrollIntoView({ behavior: 'smoot
 
 function kpiHtml(C) {
   const K = kpis(C), f = CM.f.kpi;
-  const c = (id, n, l, cls) => `<div class="cm-kpi ${cls || ''} ${f === id ? 'on' : ''}" onclick="CM.kpi('${id}')" title="Click to filter the sections below"><div class="n">${fmtNum(n)}</div><div class="l">${l}</div></div>`;
+  const c = (id, n, l, cls, sub) => `<div class="cm-kpi ${cls || ''} ${f === id ? 'on' : ''}" onclick="CM.kpi('${id}')" title="Click to filter the sections below"><div class="n">${fmtNum(n)}</div><div class="l">${l}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div>`;
+  const skuSub = `${fmtNum(K.missingSkuDoors)} doors · ${K.evaluatedDoors ? (K.missingSkuDoors / K.evaluatedDoors * 100).toFixed(1) + '%' : '—'} of ${fmtNum(K.evaluatedDoors)} evaluated`;
   return `<div class="cm-kpis">${c('chains', K.chains, 'Chains with doors')}${c('states', K.states, 'States')}${c('doors', K.doors, 'Doors / stores')}${c('visited', K.visited, 'Doors visited')}${c('issues', K.issues, 'Doors with issues (Medium+)', 'red')}
-    ${c('missingSku', K.missingSku, 'Missing SKU findings', 'red')}${c('declining', K.declining, 'Doors, declining velocity', 'org')}${c('actionDoors', K.actionDoors, 'Doors requiring action', 'org')}${c('outstanding', K.outstanding, 'Outstanding actions', 'org')}${c('resolved', K.resolved, 'Resolved issues', 'grn')}</div>`;
+    ${c('missingSku', K.missingSku, 'Missing SKU findings', 'red', skuSub)}${c('declining', K.declining, 'Doors, declining velocity', 'org')}${c('actionDoors', K.actionDoors, 'Doors requiring action', 'org')}${c('outstanding', K.outstanding, 'Outstanding actions', 'org')}${c('resolved', K.resolved, 'Resolved issues', 'grn')}</div>`;
 }
 function filterHtml(M) {
   const f = CM.f, chains = [...new Set(M.doors.map(m => m.chain))].sort(), states = [...new Set(M.doors.map(m => m.state))].sort();
@@ -9908,6 +9912,7 @@ function opScope(kind, name, M) {
   const common = Object.keys(codes).sort((a, b) => codes[b] - codes[a]).slice(0, 8);
   const skus = {}; ds.flatMap(m => m.active).filter(i => i.code === 'SKU_MISS' && i.sku).forEach(i => { skus[i.skuLabel] = (skus[i.skuLabel] || 0) + 1; });
   const topSku = Object.keys(skus).sort((a, b) => skus[b] - skus[a]).slice(0, 10);
+  const evalDoors = ds.filter(m => m.evals.length).length, pctEval = n => evalDoors ? (n / evalDoors * 100).toFixed(1) + '%' : '—'; // share of EVALUATED doors in scope, same basis as the Command Center KPI card
   const mostMissing = ds.map(m => ({ m, n: m.active.filter(i => i.code === 'SKU_MISS').length })).filter(x => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 8);
   const withPair = ds.map(m => ({ m, p: photoPair(m) })).filter(x => x.p && x.p.before.length && x.p.actual.length).sort((a, b) => b.p.g.ts - a.p.g.ts).slice(0, 2);
   const top = act.slice().sort((a, b) => SEVN[b.severity] - SEVN[a.severity] || b.last - a.last).slice(0, 10);
@@ -9918,7 +9923,7 @@ function opScope(kind, name, M) {
   const sum = [`<b>Scope:</b> ${ds.length} store${ds.length === 1 ? '' : 's'}${kind === 'chain' ? ' in ' + Object.keys(grp).length + ' state(s)' : ' across ' + Object.keys(grp).length + ' chain(s)'}; ${ds.filter(m => m.visited).length} visited; ${vd.length} with current velocity data.`,
     `<b>Velocity:</b> average ${fmt1(avgAll)} u/wk per door with data; ${up} improving, ${dn} declining.${kind === 'state' ? '' : ''}`,
     `<b>Issues:</b> ${act.length} open Critical/High/Medium issue${act.length === 1 ? '' : 's'} at ${new Set(act.map(i => i.doorKey)).size} store${new Set(act.map(i => i.doorKey)).size === 1 ? '' : 's'}${common.length ? '; most common: ' + common.slice(0, 3).map(c => H(c) + ' (' + codes[c] + ')').join(', ') : ''}.`,
-    `<b>Missing SKUs:</b> ${topSku.length ? topSku.slice(0, 5).map(s => H(s) + ' at ' + skus[s] + ' store' + (skus[s] === 1 ? '' : 's')).join('; ') + '.' : 'none recorded.'}`,
+    `<b>Missing SKUs:</b> ${topSku.length ? topSku.slice(0, 5).map(s => H(s) + ' at ' + skus[s] + ' store' + (skus[s] === 1 ? '' : 's') + ' (' + pctEval(skus[s]) + ')').join('; ') + '.' : 'none recorded.'}`,
     `<b>Recommended focus:</b> ${plan.length ? plan.slice(0, 3).map(p => H(p) + ' (' + agg[p].stores.size + ' store' + (agg[p].stores.size === 1 ? '' : 's') + ')').join('; ') + '.' : 'no corrective action indicated by the current data.'}`];
   const pageHead = `<div class="op-title">Lucy Goods — ${title} &nbsp;|&nbsp; ${ds.length} stores</div><div class="op-subb">Generated ${gen} from live dashboard data &nbsp;|&nbsp; latest velocity month ${H(monthLabel(M.latestMk))} &nbsp;|&nbsp; ${new Set(ds.flatMap(m => [...m.srcs])).size} evaluation source(s)</div>`;
   const tbl = (arr) => `<table><thead><tr><th>Store</th><th>State</th><th>Latest u/wk</th><th>Prev.</th><th>% chg</th></tr></thead><tbody>${arr.map(m => `<tr><td>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${H(m.state)}</td><td><b>${fmt1(m.vel.latest)}</b></td><td>${m.vel.prev != null ? fmt1(m.vel.prev) : '—'}</td><td>${m.vel.pct != null ? (m.vel.pct >= 0 ? '+' : '') + Math.round(m.vel.pct) + '%' : '—'}</td></tr>`).join('') || '<tr><td colspan="5" class="na">No current velocity data</td></tr>'}</tbody></table>`;
@@ -9931,7 +9936,7 @@ function opScope(kind, name, M) {
   const p2 = `<div class="op-page">${pageHead}<div class="op-body">
     <div class="op-row op-r2"><div><h3>Common evaluation findings</h3><table><thead><tr><th>Finding</th><th>Open issues</th></tr></thead><tbody>${common.map(c => `<tr><td>${H(c)}</td><td>${codes[c]}</td></tr>`).join('') || '<tr><td colspan="2" class="na">None</td></tr>'}</tbody></table>
         <h3 style="margin-top:8px">Stores with missing SKUs</h3><table><thead><tr><th>Store</th><th>Missing SKUs</th></tr></thead><tbody>${mostMissing.map(x => `<tr><td>${H(x.m.address)}${x.m.city ? ', ' + H(x.m.city) : ''}, ${H(x.m.state)}</td><td>${x.n}</td></tr>`).join('') || '<tr><td colspan="2" class="na">None</td></tr>'}</tbody></table></div>
-      <div><h3>Most-missing SKUs / flavors</h3><table><thead><tr><th>SKU</th><th>Stores</th></tr></thead><tbody>${topSku.map(s => `<tr><td>${H(s)}</td><td>${skus[s]}</td></tr>`).join('') || '<tr><td colspan="2" class="na">None</td></tr>'}</tbody></table>
+      <div><h3>Most-missing SKUs / flavors</h3><table><thead><tr><th>SKU</th><th>Stores</th><th>% of evaluated</th></tr></thead><tbody>${topSku.map(s => `<tr><td>${H(s)}</td><td>${skus[s]}</td><td>${pctEval(skus[s])}</td></tr>`).join('') || '<tr><td colspan="3" class="na">None</td></tr>'}</tbody></table>
         <h3 style="margin-top:8px">Recommended ${kind} actions</h3><table><thead><tr><th>Action</th><th>Stores</th><th>Top priority</th></tr></thead><tbody>${plan.map(p => `<tr><td>${H(p)}</td><td>${agg[p].stores.size}</td><td>${SEV[4 - agg[p].sev]}</td></tr>`).join('') || '<tr><td colspan="3" class="na">None</td></tr>'}</tbody></table></div></div>
     <div class="op-row op-r1"><div><h3>Outstanding issues (highest priority first)</h3><table><thead><tr><th>Sev.</th><th>Issue</th><th>Status</th><th>Store</th><th>State</th><th>Source</th></tr></thead><tbody>${top.map(i => { const m = M.byKey.get(i.doorKey); return `<tr><td><span class="op-chip" style="background:${SEV_CLR[i.severity]}">${i.severity}</span></td><td>${H(i.label)}${i.skuLabel ? ': ' + H(i.skuLabel) : ''}</td><td>${i.status}</td><td>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${H(m.state)}</td><td>${H(i.src)}</td></tr>`; }).join('') || '<tr><td colspan="6" class="na">No open issues</td></tr>'}</tbody></table></div></div></div><div class="op-foot">Built from the dashboard's own evaluation, sales and photograph records; nothing is estimated. Figures should be spot-checked before external distribution.</div></div>`;
   return { title, html: p1 + p2, ds };
