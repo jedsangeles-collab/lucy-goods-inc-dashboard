@@ -1668,8 +1668,8 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   <div class="logo">LUCY<em>/</em>goods</div>
   <div class="nav-tabs">
     <div class="tab active" onclick="switchTab(&#39;overview&#39;)" id="tab-overview"><span class="tab-icon">🏠</span> Overview</div>
-    <div class="tab" onclick="switchTab(&#39;cmcc&#39;)" id="tab-cmcc"><span class="tab-icon">🎯</span> Command Center</div>
     <div class="tab" onclick="switchTab(&#39;map&#39;)" id="tab-map"><span class="tab-icon">🗺</span> Map</div>
+    <div class="tab" onclick="switchTab(&#39;cmcc&#39;)" id="tab-cmcc"><span class="tab-icon">🎯</span> Command Center</div>
     <!-- Chains and Stores tabs hidden 2026-11-04 (code and views kept): remove the display:none below and the HIDDEN_TABS guard in switchTab() to restore. Full copy: dashboard.html.bak_with_chains_stores_tabs_20261104 -->
     <div class="tab" onclick="switchTab(&#39;chains&#39;)" id="tab-chains" style="display:none"><span class="tab-icon">⬡</span> Chains</div>
     <div class="tab" onclick="switchTab(&#39;stores&#39;)" id="tab-stores" style="display:none"><span class="tab-icon">⊞</span> Stores</div>
@@ -2582,6 +2582,9 @@ const SCORE_LABELS = ['Not Carrying','Needs Work','Partial','Good','Full'];
 // zooming in so far that neighboring stores scroll off screen. Purely a ceiling on user-driven
 // zoom (wheel/pinch/+- control); the main Map tab has no auto-zoom-to-selection behavior.
 const MAX_STORE_MAP_ZOOM = 16;
+// Basemap tiles: Esri Dark Gray Canvas (no key; its detail stops at zoom 16, same as MAX_STORE_MAP_ZOOM). Replaced CARTO dark_all on 2026-11-04 -- CARTO's free endpoint began stamping every tile "API KEY REQUIRED".
+const BASEMAP_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+const BASEMAP_OPTS = { attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ', maxNativeZoom: 16, maxZoom: 19 };
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let currentTab = 'overview';
@@ -2736,10 +2739,7 @@ function initMap() {
     maxZoom: MAX_STORE_MAP_ZOOM,
   });
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '© OpenStreetMap © CartoDB',
-    maxZoom: 19,
-  }).addTo(leafletMap);
+  L.tileLayer(BASEMAP_URL, BASEMAP_OPTS).addTo(leafletMap);
 
   renderMapPins();
   renderMapChainSelector();
@@ -7249,7 +7249,7 @@ function initChainMap(doors, containerId) {
   if (!withCoords.length) { el.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:12px;">No geocoded stores in this scope.</div>'; return; }
   const map = L.map(containerId, { center: [withCoords[0].la, withCoords[0].lo], zoom: 6, maxZoom: MAX_STORE_MAP_ZOOM });
   reg.instance = map;
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CartoDB', maxZoom: 19 }).addTo(map);
+  L.tileLayer(BASEMAP_URL, BASEMAP_OPTS).addTo(map);
   const cluster = L.markerClusterGroup({ maxClusterRadius: 45 });
   reg.clusterGroup = cluster;
   withCoords.forEach(d => {
