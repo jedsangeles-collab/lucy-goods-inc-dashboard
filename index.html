@@ -985,6 +985,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
    Supabase side gate exactly what this key can read/write -- see supabase_schema.sql). */
 const SUPABASE_URL = 'https://ruxdxwrsauhszhmdobga.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_yrlcO5JeWY0m_4sggCHemQ_MfhWcP8i';
+// Password-reset link landing (2026-11-05). Must run BEFORE createClient: the client consumes and strips the URL
+// token on creation. A recovery link signs the user in, so a sessionStorage flag keeps the "choose a new
+// password" screen up (even across a reload) until a new password is actually saved.
+let APP_LINK_ERROR = /[#&?]error(_code)?=/.test(location.hash + location.search); // expired / already-used link
+try { if (/[#&?]type=recovery\b/.test(location.hash + location.search)) sessionStorage.setItem('lucyRecoveryPending', '1'); } catch (e) {}
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 </script>
 <style>
@@ -1399,6 +1404,8 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .civauth-readonly-banner a{color:#1a5fa0;font-weight:600;}
 .civauth-identity{font-size:11px;color:#666;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .civauth-identity strong{color:#1a1a18;}
+.civauth-gate-link{display:inline-block;margin-top:14px;font-size:12px;color:#1a5fa0;cursor:pointer;}
+.civauth-gate-link:hover{text-decoration:underline;}
 .civauth-signout{font-size:11px;color:#a02020;cursor:pointer;}
 .civauth-signout:hover{text-decoration:underline;}
 .civauth-dash{background:#fafaf8;border-bottom:1px solid #eae8df;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
@@ -9106,7 +9113,8 @@ async function appGateEval() {
       <input type="text" class="civauth-gate-input" id="app-gate-user" placeholder="Email or username" autocomplete="username" onkeydown="if(event.key==='Enter')appGateLogin()">
       <input type="password" class="civauth-gate-input" id="app-gate-pass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')appGateLogin()">
       <button class="civauth-gate-btn" onclick="appGateLogin()">Log in</button>
-      <div class="civauth-gate-msg" id="app-gate-msg"></div>`);
+      <div class="civauth-gate-msg" id="app-gate-msg">${APP_LINK_ERROR ? 'That reset link has expired or was already used. Choose "Forgot password?" to get a new one.' : ''}</div>
+      <span class="civauth-gate-link" onclick="appGateForgot()">Forgot password?</span>`);
     return;
   }
   if (!profile || profile.status === 'disabled') {
@@ -9115,9 +9123,10 @@ async function appGateEval() {
       <button class="civauth-gate-btn" onclick="appGateLogout()">Log out</button>`);
     return;
   }
-  if (profile.must_change_password) {
-    appGateShow(`<div class="civauth-gate-title">Set a new password</div>
-      <div class="civauth-gate-sub">Your account has a temporary password. Choose a new one to continue.</div>
+  if (appRecoveryPending() || profile.must_change_password) {
+    const viaLink = appRecoveryPending();
+    appGateShow(`<div class="civauth-gate-title">${viaLink ? 'Choose a new password' : 'Set a new password'}</div>
+      <div class="civauth-gate-sub">${viaLink ? 'Enter a new password for your account to finish resetting it.' : 'Your account has a temporary password. Choose a new one to continue.'}</div>
       <input type="password" class="civauth-gate-input" id="app-gate-new1" placeholder="New password (8+ characters)" autocomplete="new-password">
       <input type="password" class="civauth-gate-input" id="app-gate-new2" placeholder="Confirm new password" autocomplete="new-password" onkeydown="if(event.key==='Enter')appGateChange()">
       <button class="civauth-gate-btn" onclick="appGateChange()">Set password</button>
@@ -9142,9 +9151,54 @@ function appGateChange() {
   if (a.length < 8) { appGateMsg('Password must be at least 8 characters.'); return; }
   if (a !== b) { appGateMsg('Passwords do not match.'); return; }
   appGateMsg('Saving…');
-  civCompletePasswordChange(a).then(err => { if (err) appGateMsg('Error: ' + err); else appGateEval(); });
+  civCompletePasswordChange(a).then(err => {
+    if (err) { appGateMsg('Error: ' + err); return; }
+    appRecoveryClear(); // a reset-link session is only finished once the new password is saved
+    appGateEval();
+  });
 }
-async function appGateLogout() { try { await sb.auth.signOut(); } catch (e) {} location.reload(); }
+// ── Forgot password (2026-11-05): emailed reset link -> "Choose a new password" screen above ──────────────
+// The link is sent by Supabase Auth (resetPasswordForEmail) and returns here with a recovery session; the
+// redirect URL must be allow-listed under Supabase > Authentication > URL Configuration. The reply is the
+// same whether or not the account exists, so the form can't be used to probe which accounts are real.
+function appRecoveryPending() { try { return sessionStorage.getItem('lucyRecoveryPending') === '1'; } catch (e) { return false; } }
+function appRecoveryClear() {
+  try { sessionStorage.removeItem('lucyRecoveryPending'); } catch (e) {}
+  if (location.hash || location.search) history.replaceState(null, '', location.pathname); // drop the leftover token / error from the address bar
+}
+function appGateForgot() {
+  APP_LINK_ERROR = false; appRecoveryClear(); // the expired-link notice has done its job
+  appGateShow(`<div class="civauth-gate-title">Reset your password</div>
+    <div class="civauth-gate-sub">Enter your email (or username) and we'll email you a link to choose a new password.</div>
+    <input type="text" class="civauth-gate-input" id="app-gate-fid" placeholder="Email or username" autocomplete="username" onkeydown="if(event.key==='Enter')appGateSendReset()">
+    <button class="civauth-gate-btn" id="app-gate-fbtn" onclick="appGateSendReset()">Send reset link</button>
+    <div class="civauth-gate-msg" id="app-gate-msg"></div>
+    <span class="civauth-gate-link" onclick="appGateEval()">‹ Back to log in</span>`);
+}
+let appGateResetAt = 0;
+async function appGateSendReset() {
+  const id = ((document.getElementById('app-gate-fid') || {}).value || '').trim().toLowerCase();
+  if (!id) { appGateMsg('Enter your email or username.'); return; }
+  const wait = Math.ceil((appGateResetAt + 60000 - Date.now()) / 1000);
+  if (wait > 0) { appGateMsg(`A link was just sent. You can request another in ${wait}s.`); return; }
+  const btn = document.getElementById('app-gate-fbtn'); if (btn) btn.disabled = true;
+  appGateMsg('Sending…');
+  try {
+    let email = id.indexOf('@') > -1 ? id : null;
+    if (!email) { const r = await sb.rpc('civ_email_for_username', { p_username: id }); email = r.data || null; } // unknown / disabled username -> null -> still the same reply below
+    if (email) {
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      if (error) throw error;
+    }
+    appGateResetAt = Date.now();
+    appGateMsg('If an account exists for that email or username, a reset link is on its way. Check your inbox and spam folder. The link works once and expires soon.');
+  } catch (e) {
+    console.error('password reset request failed', e);
+    appGateMsg('We could not send the email right now. Wait a few minutes and try again, or ask an administrator to reset your password.');
+  }
+  if (btn) btn.disabled = false;
+}
+async function appGateLogout() { try { await sb.auth.signOut(); } catch (e) {} try { sessionStorage.removeItem('lucyRecoveryPending'); } catch (e) {} location.reload(); }
 function appGate() {
   if (window.__EMBEDDED_SNAPSHOT__) return Promise.resolve();
   return new Promise(resolve => { appGateResolve = resolve; appGateEval(); });
