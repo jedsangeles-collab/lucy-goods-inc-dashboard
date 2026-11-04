@@ -9754,7 +9754,7 @@ function inspectHtml(M) {
         <label>Find a store <input type="text" value="${H(I.q)}" placeholder="address or city, then Enter" onchange="CM.inspQ(this.value.trim())"></label></div>
       <div style="overflow-x:auto"><table class="cm-t"><thead><tr><th style="width:34px"></th><th>Store / door</th><th>Complete address</th><th>Health score</th><th>Health status</th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="cm-empty">No stores match that search.</td></tr>'}</tbody></table></div>
       ${pages > 1 ? `<div class="cm-pager"><button class="cm-btn sm" ${I.page <= 0 ? 'disabled' : ''} onclick="CM.inspPage(-1)">‹ Prev</button> Page ${I.page + 1} of ${pages} · ${fmtNum(list.length)} stores <button class="cm-btn sm" ${I.page >= pages - 1 ? 'disabled' : ''} onclick="CM.inspPage(1)">Next ›</button></div>` : ''}
-      <div class="cm-note">Tick a store to open its Sample Store Condition Overview (Before / After photographs), then choose BACK to return to this list or NEXT for the full OnePager.</div>`;
+      <div class="cm-note">Tick a store to open its Store Condition Overview (Before / After photographs), then choose BACK to return to this list or NEXT for the full OnePager.</div>`;
   }
   return `<div class="cm-sec" id="cm-inspect"><h2>Store inspection <small>${sub}</small></h2><div class="cm-body">${body}</div></div>`;
 }
@@ -9774,6 +9774,12 @@ function inspPhoto(items, tag, color, g) {
   const pack = encodeURIComponent(JSON.stringify(items.map(i => i.url))).replace(/'/g, '%27'), pl = encodeURIComponent(JSON.stringify(items.map(() => tag + ' · ' + fmtD(g.ts) + ' · ' + g.srcLabel))).replace(/'/g, '%27');
   return `<div class="ip-ph"><span class="tag" style="background:${color}">${tag}</span><img src="${H(items[0].url)}" alt="${tag}" onclick="CM.lb('${pack}','${pl}',0)"><div class="cap">${H(items[0].label)} · ${fmtD(g.ts)} · ${H(g.srcLabel)}${items.length > 1 ? ' · +' + (items.length - 1) + ' more (click to browse)' : ''}</div></div>`;
 }
+// Velocity score = the store's own latest weekly velocity (u/wk, same figure as the OnePager) with its trend vs the previous month; "No recent data" when the store has no current sales record
+function velScore(m) {
+  const V = m.vel || {}; if (V.latest == null || V.stale) return '<b>No recent data</b>';
+  const c = velCls(V.cls), chg = V.pct != null ? ' (' + (V.pct >= 0 ? '+' : '') + Math.round(V.pct) + '%)' : '';
+  return `<span class="ip-chip" style="background:${c[0]}">${fmt1(V.latest)} u/wk</span><b>${c[1]}${chg}</b>`;
+}
 CM.inspOverview = () => {
   ensure(); const m = CM.model.byKey.get(CM.ui.insp.door); if (!m) return;
   const s = doorScore(m), p = photoPair(m);
@@ -9781,8 +9787,8 @@ CM.inspOverview = () => {
   // photoPair's own note says "Before photo from this visit" even when none exists, so word the gap explicitly
   const gaps = p ? [!p.before.length ? 'Before' : '', !p.actual.length ? 'After' : ''].filter(Boolean) : [];
   const note = !p ? 'This store has no photographs on any visit record.' : (gaps.length ? `No ${gaps.join(' or ')} photograph is on file for this store (latest photographed visit ${fmtD(p.g.ts)} · ${H(p.g.srcLabel)}).` : `${H(p.note)} · visit ${fmtD(p.g.ts)} · ${H(p.g.srcLabel)}`);
-  el.innerHTML = `<div class="ip-panel" onclick="event.stopPropagation()"><div class="ip-head"><b>Sample Store Condition Overview</b><span>Step 3 · review the store, then go BACK to the list or NEXT to the OnePager</span></div>
-    <div class="ip-prof"><div><label>Chain</label><b>${H(m.chain)}</b></div><div><label>Store address</label><b>${H(doorAddr(m))}</b></div><div><label>Health score</label>${s === null ? '<b>Not scored</b>' : `<span class="ip-chip" style="background:${scoreColor(s)}">${s} / 4</span><b>${H(healthTxt(s))}</b>`}</div></div>
+  el.innerHTML = `<div class="ip-panel" onclick="event.stopPropagation()"><div class="ip-head"><b>Store Condition Overview</b><span>Step 3 · review the store, then go BACK to the list or NEXT to the OnePager</span></div>
+    <div class="ip-prof"><div><label>Chain</label><b>${H(m.chain)}</b></div><div><label>Store address</label><b>${H(doorAddr(m))}</b></div><div><label>Health score</label>${s === null ? '<b>Not scored</b>' : `<span class="ip-chip" style="background:${scoreColor(s)}">${s} / 4</span><b>${H(healthTxt(s))}</b>`}</div><div><label>Velocity score</label>${velScore(m)}</div></div>
     <div class="ip-photos">${inspPhoto(p && p.before, 'Before', '#b7791f', p && p.g)}${inspPhoto(p && p.actual, 'Actual / After', '#2f855a', p && p.g)}</div>
     <div class="ip-note">${note}</div>
     <div class="ip-foot"><button onclick="CM.inspBack()">‹ BACK</button><button class="pri" onclick="CM.inspNext()">NEXT ›</button></div></div>`;
