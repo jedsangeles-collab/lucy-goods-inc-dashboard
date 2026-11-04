@@ -9238,6 +9238,35 @@ init();
 #view-cmcc .cm-sev-Critical{background:#b3261e;} #view-cmcc .cm-sev-High{background:#d9730d;} #view-cmcc .cm-sev-Medium{background:#c9a100;} #view-cmcc .cm-sev-Low{background:#6b7280;}
 #view-cmcc .cm-st-New{background:#2563eb;} #view-cmcc .cm-st-Recurring{background:#7c3aed;} #view-cmcc .cm-st-Outstanding{background:#b45309;} #view-cmcc .cm-st-Resolved{background:#2f855a;} #view-cmcc .cm-st-Historical{background:#9ca3af;}
 
+/* ---------- Store inspection: chain -> stores -> condition overview ---------- */
+#view-cmcc .cm-chaingrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:8px;}
+#view-cmcc .cm-chcard{background:#fff;border:1px solid #dcd9d0;border-left:4px solid #4472c4;border-radius:8px;padding:9px 11px;cursor:pointer;display:flex;flex-direction:column;gap:3px;font-size:12px;color:#555;transition:box-shadow .12s;}
+#view-cmcc .cm-chcard:hover{box-shadow:0 2px 8px rgba(0,0,0,.14);background:#f6f8fc;}
+#view-cmcc .cm-chcard b{font-size:13px;color:#141413;}
+#view-cmcc tr.cm-sel td{background:#eaf0fb;}
+#view-cmcc .cm-insp-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:12px;}
+#view-cmcc .cm-insp-bar input[type=text]{font-size:12px;padding:4px 6px;border:1px solid #cfd3da;border-radius:5px;min-width:200px;}
+#cm-insp{position:fixed;inset:0;z-index:99990;background:rgba(20,20,19,.72);display:none;align-items:center;justify-content:center;}
+#cm-insp .ip-panel{width:87vw;height:87vh;max-width:96vw;background:#fff;border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.45);font-family:'Segoe UI',Arial,sans-serif;color:#141413;}
+#cm-insp .ip-head{background:#203864;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+#cm-insp .ip-head b{font-size:17px;letter-spacing:.02em;} #cm-insp .ip-head span{font-size:12px;opacity:.85;}
+#cm-insp .ip-prof{display:flex;gap:34px;flex-wrap:wrap;padding:10px 18px;background:#d9e1f2;align-items:flex-end;}
+#cm-insp .ip-prof label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#44546a;font-weight:700;margin-bottom:2px;}
+#cm-insp .ip-prof b{font-size:15px;}
+#cm-insp .ip-chip{display:inline-block;color:#fff;font-weight:700;border-radius:12px;padding:2px 12px;font-size:14px;margin-right:6px;}
+#cm-insp .ip-photos{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:12px 18px 4px;}
+#cm-insp .ip-ph{position:relative;background:#1b1b1a;border-radius:8px;overflow:hidden;min-height:0;display:flex;align-items:center;justify-content:center;}
+#cm-insp .ip-ph img{width:100%;height:100%;object-fit:contain;cursor:zoom-in;display:block;}
+#cm-insp .ip-ph .tag{position:absolute;top:10px;left:10px;color:#fff;font-size:13px;font-weight:700;border-radius:5px;padding:3px 12px;letter-spacing:.07em;text-transform:uppercase;z-index:1;}
+#cm-insp .ip-ph .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(20,20,19,.72);color:#fff;font-size:12px;padding:5px 10px;}
+#cm-insp .ip-ph.empty{background:#eceae3;color:#777;font-size:15px;text-align:center;padding:20px;}
+#cm-insp .ip-note{padding:4px 18px 0;font-size:12px;color:#666;min-height:18px;}
+#cm-insp .ip-foot{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-top:1px solid #e0ddd6;background:#f5f3ee;}
+#cm-insp .ip-foot button{font-size:15px;font-weight:700;letter-spacing:.06em;padding:9px 36px;border-radius:7px;border:1px solid #203864;background:#fff;color:#203864;cursor:pointer;}
+#cm-insp .ip-foot button.pri{background:#203864;color:#fff;}
+#cm-insp .ip-foot button:hover{opacity:.88;}
+@media (max-width:800px){#cm-insp .ip-panel{width:96vw;height:94vh;} #cm-insp .ip-photos{grid-template-columns:1fr;overflow:auto;} #cm-insp .ip-ph{min-height:260px;}}
+
 /* ---------- OnePager overlay (preview + print) ---------- */
 #cm-op{position:fixed;inset:0;z-index:100000;background:rgba(20,20,19,.72);overflow:auto;display:none;padding:18px 0 40px;}
 #cm-op .op-bar{position:sticky;top:0;z-index:2;max-width:1100px;margin:0 auto 10px;background:#fff;border-radius:8px;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 10px rgba(0,0,0,.25);}
@@ -9322,7 +9351,7 @@ const ISSUE = {
 };
 
 CM.f = { chain: '', state: '', q: '', src: '', cat: '', sev: '', vel: '', astatus: '', from: '', to: '', kpi: '', istatus: '' };
-CM.ui = { openChains: {}, openStates: {}, pEval: 0, pIssue: 0, pAct: 0, pPhoto: 0, showLow: false, showClosed: false, cmp: {}, hist: {}, histOpen: {}, op: null, err: '', stateMore: {} };
+CM.ui = { insp: { chain: '', door: '', page: 0, q: '', cq: '' }, openChains: {}, openStates: {}, pEval: 0, pIssue: 0, pAct: 0, pPhoto: 0, showLow: false, showClosed: false, cmp: {}, hist: {}, histOpen: {}, op: null, err: '', stateMore: {} };
 CM.model = null; CM.sig = ''; CM.overlay = {};
 
 // ---- small helpers ------------------------------------------------------------------------------------------------------------------------------
@@ -9648,15 +9677,6 @@ function spark(series, w, h) {
   const pts = s.map((x, i) => (i * (w - 4) / (s.length - 1) + 2).toFixed(1) + ',' + (h - 3 - (x.v - mn) / rg * (h - 6)).toFixed(1)).join(' ');
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="#4472c4" stroke-width="1.6"/></svg>`;
 }
-function doorRow(m) {
-  const V = m.vel || { cls: 'none' }, c = velCls(V.cls), has = V.latest != null;
-  const pct = V.pct == null ? '—' : (V.pct >= 0 ? '+' : '') + Math.round(V.pct) + '%';
-  return `<tr class="cm-click" onclick="CM.report('store','${encK(m.key)}')"><td><span class="cm-dot" style="background:${c[0]}" title="${c[1]}"></span>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${H(m.storeId || '—')}</td>
-    <td><b>${has ? fmt1(V.latest) : '—'}</b></td><td>${V.prev != null ? fmt1(V.prev) : '—'}</td><td class="${c[2]}">${V.diff != null ? (V.diff >= 0 ? '+' : '') + fmt1(V.diff) : '—'}</td><td class="${c[2]}">${pct}</td>
-    <td>${has ? H(monthLabel(V.latestMonth)) : '—'}</td><td>${fmtD(m.lastTs)}</td><td>${spark(m.series, 64, 18)}</td><td>${m.active.length ? m.active.length + ' open' : '<span class="cm-gr">0</span>'}</td></tr>`;
-}
-CM.toggle = (kind, k) => { k = decK(k); const o = kind === 'c' ? CM.ui.openChains : CM.ui.openStates; o[k] = !o[k]; CM.render(); };
-CM.more = k => { k = decK(k); CM.ui.stateMore[k] = (CM.ui.stateMore[k] || 40) + 80; CM.render(); };
 function velocityHtml(C) {
   const vd = C.doors.filter(m => m.vel && m.vel.latest != null);
   const rank = vd.filter(m => !m.vel.stale);
@@ -9666,28 +9686,11 @@ function velocityHtml(C) {
   // chain-level monthly trend across the filtered doors (mean of each door's weekly velocity per month)
   const bym = {}; vd.forEach(m => m.series.forEach(x => { (bym[x.mk] = bym[x.mk] || []).push(x.v); }));
   const pts = Object.keys(bym).sort().filter(k => bym[k].length >= 5).slice(-14).map(k => ({ label: monthLabel(k).replace(' 20', " '"), y: Math.round(avg(bym[k]) * 10) / 10 }));
-  // hierarchy chain -> state -> door
-  const byChain = {}; vd.forEach(m => { ((byChain[m.chain] = byChain[m.chain] || {})[m.state] = byChain[m.chain][m.state] || []).push(m); });
-  const chains = Object.keys(byChain).map(c => { const ds = Object.values(byChain[c]).flat(); return { c, ds, n: ds.length, avg: avg(ds.filter(m => !m.vel.stale).map(m => m.vel.latest)), up: ds.filter(m => m.vel.cls === 'up').length, dn: ds.filter(m => m.vel.cls === 'down').length, mon: ds.filter(m => m.vel.cls === 'monitor').length, old: ds.filter(m => m.vel.cls === 'none').length, iss: ds.filter(m => m.active.some(i => i.severity !== 'Low')).length }; }).sort((a, b) => b.n - a.n);
-  let rows = '';
-  chains.forEach(ch => {
-    const open = CM.ui.openChains[ch.c], ns = Object.keys(byChain[ch.c]).length;
-    rows += `<tr class="cm-click" onclick="CM.toggle('c','${encK(ch.c)}')"><td><b>${open ? '▾' : '▸'} ${H(ch.c)}</b></td><td>${ch.n}</td><td><b>${fmt1(ch.avg)}</b></td><td class="cm-up">${ch.up}</td><td class="cm-mon">${ch.mon}</td><td class="cm-dn">${ch.dn}</td><td class="cm-gr">${ch.old}</td><td>${ch.iss}</td><td>${ns} state${ns === 1 ? '' : 's'}</td></tr>`;
-    if (!open) return;
-    Object.keys(byChain[ch.c]).sort((a, b) => byChain[ch.c][b].length - byChain[ch.c][a].length).forEach(st => {
-      const ds = byChain[ch.c][st], sk = ch.c + '|' + st, so = CM.ui.openStates[sk];
-      rows += `<tr class="cm-click" onclick="CM.toggle('s','${encK(sk)}')" style="background:#fafaf6"><td style="padding-left:24px">${so ? '▾' : '▸'} ${H(st)}</td><td>${ds.length}</td><td>${fmt1(avg(ds.filter(m => !m.vel.stale).map(m => m.vel.latest)))}</td><td class="cm-up">${ds.filter(m => m.vel.cls === 'up').length}</td><td class="cm-mon">${ds.filter(m => m.vel.cls === 'monitor').length}</td><td class="cm-dn">${ds.filter(m => m.vel.cls === 'down').length}</td><td class="cm-gr">${ds.filter(m => m.vel.cls === 'none').length}</td><td>${ds.filter(m => m.active.some(i => i.severity !== 'Low')).length}</td><td>state avg (all chains) ${fmt1(C.M.stateAvg[st])}</td></tr>`;
-      if (!so) return;
-      const lim = CM.ui.stateMore[sk] || 40, sorted = ds.slice().sort((a, b) => (a.vel.pct == null ? 0 : a.vel.pct) - (b.vel.pct == null ? 0 : b.vel.pct));
-      rows += `<tr><td colspan="9" style="padding:0 0 6px 24px"><table class="cm-t"><thead><tr><th>Store / address</th><th>Store ID</th><th>Latest u/wk</th><th>Previous</th><th>Change</th><th>% change</th><th>Latest record</th><th>Last visit</th><th>Trend</th><th>Issues</th></tr></thead><tbody>${sorted.slice(0, lim).map(doorRow).join('')}</tbody></table>${sorted.length > lim ? `<span class="cm-more" onclick="CM.more('${encK(sk)}')">Show ${Math.min(80, sorted.length - lim)} more of ${sorted.length - lim} remaining →</span>` : ''}</td></tr>`;
-    });
-  });
-  return `<div class="cm-sec" id="cm-velocity"><h2>Most recent velocity — chain → state → door <small>weekly units per door · latest sales month vs the month before</small></h2><div class="cm-body">
-    <div class="cm-note"><span class="cm-dot" style="background:#2f855a"></span>Improving (≥ +${T.improve}%) <span class="cm-dot" style="background:#c9a100;margin-left:10px"></span>Monitor (within ±${T.improve}%) <span class="cm-dot" style="background:#b3261e;margin-left:10px"></span>Declining (≤ ${T.decline}%) <span class="cm-dot" style="background:#b5b5b5;margin-left:10px"></span>No recent data (no sales, or latest record ${T.staleMonths}+ months behind ${H(monthLabel(C.M.latestMk))}). Each door shows its OWN latest record; chain and state averages are reference only. Only ${fmtNum(vd.length)} of ${fmtNum(C.doors.length)} doors in view have velocity data.</div>
+  return `<div class="cm-sec" id="cm-velocity"><h2>Most recent velocity <small>weekly units per door · latest sales month vs the month before</small></h2><div class="cm-body">
+    <div class="cm-note"><span class="cm-dot" style="background:#2f855a"></span>Improving (≥ +${T.improve}%) <span class="cm-dot" style="background:#c9a100;margin-left:10px"></span>Monitor (within ±${T.improve}%) <span class="cm-dot" style="background:#b3261e;margin-left:10px"></span>Declining (≤ ${T.decline}%) <span class="cm-dot" style="background:#b5b5b5;margin-left:10px"></span>No recent data (no sales, or latest record ${T.staleMonths}+ months behind ${H(monthLabel(C.M.latestMk))}). Each door shows its OWN latest record. Only${fmtNum(vd.length)} of ${fmtNum(C.doors.length)} doors in view have velocity data.</div>
     <div class="cm-grid2" style="margin-bottom:12px"><div><div class="cm-sub2">Doors in view by trend</div><div class="cm-rank"><div><span><span class="cm-dot" style="background:#2f855a"></span>Improving</span><b>${cnt.up}</b></div><div><span><span class="cm-dot" style="background:#c9a100"></span>Monitor</span><b>${cnt.monitor}</b></div><div><span><span class="cm-dot" style="background:#b3261e"></span>Declining</span><b>${cnt.down}</b></div><div><span><span class="cm-dot" style="background:#b5b5b5"></span>No recent velocity data</span><b>${cnt.none}</b></div></div>
       <div class="cm-sub2" style="margin-top:10px">Average weekly velocity per door, by month (doors in view)</div>${svgLineChart(pts, { width: 520, height: 150 })}</div>
-      <div class="cm-grid2"><div><div class="cm-sub2">Highest velocity</div><div class="cm-rank">${top.map(m => r(m)).join('') || '<div class="cm-gr">None in view</div>'}</div></div><div><div class="cm-sub2">Lowest (above zero)</div><div class="cm-rank">${low.map(m => r(m)).join('') || '<div class="cm-gr">None in view</div>'}</div></div></div></div>
-    <table class="cm-t"><thead><tr><th>Chain → State</th><th>Doors w/ velocity</th><th>Avg u/wk</th><th>Improving</th><th>Monitor</th><th>Declining</th><th>No recent record</th><th>With issues</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="9" class="cm-empty">No doors with velocity data match the current filters.</td></tr>'}</tbody></table></div></div>`;
+      <div class="cm-grid2"><div><div class="cm-sub2">Highest velocity</div><div class="cm-rank">${top.map(m => r(m)).join('') || '<div class="cm-gr">None in view</div>'}</div></div><div><div class="cm-sub2">Lowest (above zero)</div><div class="cm-rank">${low.map(m => r(m)).join('') || '<div class="cm-gr">None in view</div>'}</div></div></div></div></div></div>`;
 }
 
 // ---- before vs actual photos ------------------------------------------------------------------------------------------------------------------------
@@ -9702,15 +9705,7 @@ function photoPair(m) {
   else if (!before.length) { const earlier = groups.filter(x => x.ts < g.ts), e = earlier[earlier.length - 1]; if (e) { const p = e.items.find(i => i.type === 'Before') || e.items[0]; if (p) { before = [p]; note = 'No before photo this visit — earliest earlier photo, ' + e.srcLabel + ', ' + fmtD(e.ts); } } }
   return { g, before, actual, note, all: groups };
 }
-CM.cmp = (k, uid) => { CM.ui.cmp[decK(k)] = uid || ''; CM.render(); };
-CM.hist = k => { CM.ui.histOpen[decK(k)] = !CM.ui.histOpen[decK(k)]; CM.render(); };
-CM.lb = (urlsEnc, labsEnc, i) => openLightbox('', JSON.parse(decodeURIComponent(urlsEnc)), i, JSON.parse(decodeURIComponent(labsEnc)));
-function photoCell(items, tag, color, g, extraNote) {
-  if (!items.length) return `<div class="cm-ph empty"><span class="tag" style="background:${color}">${tag}</span>No ${tag.toLowerCase()} photograph documented</div>`;
-  const urls = items.map(i => i.url), labs = items.map(i => tag + ' · ' + fmtD(g.ts) + ' · ' + g.srcLabel);
-  const pack = encodeURIComponent(JSON.stringify(urls)).replace(/'/g, '%27'), pl = encodeURIComponent(JSON.stringify(labs)).replace(/'/g, '%27');
-  return `<div class="cm-ph"><span class="tag" style="background:${color}">${tag}</span><img loading="lazy" src="${H(items[0].url)}" alt="${tag}" onclick="CM.lb('${pack}','${pl}',0)"><div class="cap">${H(items[0].label)} · ${fmtD(g.ts)} · ${H(g.srcLabel)}${items.length > 1 ? ' · +' + (items.length - 1) + ' more' : ''}</div></div>`;
-}
+CM.lb = (urlsEnc, labsEnc, i) => { const lb = document.getElementById('lightbox'); if (lb) lb.style.zIndex = '100001'; /* above the store-overview modal */ openLightbox('', JSON.parse(decodeURIComponent(urlsEnc)), i, JSON.parse(decodeURIComponent(labsEnc))); };
 function improvements(m) {
   const out = [], e = m.evals.slice().reverse().find(x => x.before && x.v);
   if (e) { const b = e.before, a = e.v;
@@ -9720,25 +9715,80 @@ function improvements(m) {
     if (b.empty != null && a.empty != null && a.empty < b.empty) out.push('Empty facings down from ' + b.empty + ' to ' + a.empty); }
   return out;
 }
-function photosHtml(C) {
-  const withPh = C.doors.filter(m => m.photoGroups.length).sort((a, b) => b.photoGroups[0].ts - a.photoGroups[0].ts);
-  const pg = CM.ui.pPhoto, per = 4, slice = withPh.slice(pg * per, pg * per + per);
-  const cards = slice.map(m => {
-    const p = photoPair(m); if (!p) return '';
-    const imp = improvements(m), out = m.active.filter(i => i.severity !== 'Low').slice(0, 5);
-    const opts = p.all.filter(x => x.uid !== p.g.uid).map(x => `<option value="${H(x.uid)}" ${CM.ui.cmp[m.key] === x.uid ? 'selected' : ''}>${fmtD(x.ts)} · ${H(x.srcLabel)}</option>`).join('');
-    const hist = CM.ui.histOpen[m.key] ? `<div style="padding:4px 12px 10px">${p.all.slice().reverse().map(x => `<div style="margin:6px 0"><b style="font-size:11px">${fmtD(x.ts)} · ${H(x.srcLabel)}</b><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px">${x.items.slice(0, 8).map((i, idx) => { const urls = encodeURIComponent(JSON.stringify(x.items.map(z => z.url))).replace(/'/g, '%27'), labs = encodeURIComponent(JSON.stringify(x.items.map(z => z.type + ' · ' + fmtD(x.ts) + ' · ' + x.srcLabel))).replace(/'/g, '%27'); return `<img loading="lazy" src="${H(i.url)}" title="${H(i.type)}" style="height:96px;border-radius:4px;cursor:zoom-in" onclick="CM.lb('${urls}','${labs}',${idx})">`; }).join('')}</div></div>`).join('')}</div>` : '';
-    return `<div class="cm-pcard"><div class="cm-pcard-h"><span><b>${H(m.chain)}</b> · ${H(m.address)}${m.city ? ', ' + H(m.city) : ''}, ${H(m.state)}</span><span>Visit ${fmtD(p.g.ts)} · ${H(p.g.srcLabel)} <button class="cm-btn sm" onclick="CM.report('store','${encK(m.key)}')">OnePager</button></span></div>
-      <div class="cm-pair">${photoCell(p.before, 'Before', '#b7791f', p.g)}${photoCell(p.actual, 'Actual / After', '#2f855a', p.g)}</div>
-      <div class="cm-note" style="padding:0 12px">${H(p.note)}${p.g.items.length > 2 ? ` · ${p.g.items.length} photos in this visit` : ''} · <span class="cm-more" onclick="CM.hist('${encK(m.key)}')">${CM.ui.histOpen[m.key] ? 'Hide' : 'Show'} photo history (${p.all.length} visit${p.all.length === 1 ? '' : 's'})</span>
-        ${opts ? ` · Compare with: <select class="cm-act-in" onchange="CM.cmp('${encK(m.key)}',this.value)"><option value="">this visit's before</option>${opts}</select>` : ''}</div>${hist}
-      <div class="cm-two"><div><b>Identified improvements</b><ul>${imp.length ? imp.map(x => `<li>${H(x)}</li>`).join('') : '<li class="cm-gr">None recorded (needs Before and After answers)</li>'}</ul></div>
-        <div><b>Outstanding issues</b><ul>${out.length ? out.map(i => `<li>${sevChip(i.severity)} ${H(i.label)}${i.skuLabel ? ': ' + H(i.skuLabel) : ''}</li>`).join('') : '<li class="cm-gr">None open</li>'}</ul></div></div></div>`;
-  }).join('');
-  return `<div class="cm-sec" id="cm-photos"><h2>Store condition — before vs actual <small>actual visit photographs only · click a photo to enlarge</small></h2><div class="cm-body">
-    <div class="cm-note">Photographs come straight from the visit records (CI Visit Review Before/After categories, Highway reset photos, Eileen and earlier CI visit photos). Where a visit has no before photo, the card says so and, if an earlier visit exists, labels that photo as such rather than inventing a comparison. ${fmtNum(withPh.length)} doors in view have photographs.</div>
-    ${cards || '<div class="cm-empty">No doors with photographs match the current filters.</div>'}${(() => { const pages = Math.ceil(withPh.length / per); return pages > 1 ? `<div class="cm-pager"><button class="cm-btn sm" ${pg <= 0 ? 'disabled' : ''} onclick="CM.pg('pPhoto',-1)">‹ Prev</button> Doors ${pg * per + 1}–${Math.min(withPh.length, pg * per + per)} of ${fmtNum(withPh.length)} <button class="cm-btn sm" ${pg >= pages - 1 ? 'disabled' : ''} onclick="CM.pg('pPhoto',1)">Next ›</button></div>` : ''; })()}</div></div>`;
+// ---- guided store inspection: chain -> stores (weakest health first) -> condition overview -> OnePager ------------------------------------------------
+// Health Score = the door's latest visit score (0-4), the same value and wording as the Map legend. Stores with no score sort LAST, so "lowest to
+// highest" shows the weakest scored stores first. NEXT reuses CM.report('store') -> opStore(), the one existing OnePager template (no second copy).
+const HEALTH_TXT = ['Not carrying', 'Significant issues', 'Partial issues', 'Good', 'Full stock + strip'];
+const INSP_PAGE = 25;
+const doorScore = m => { const s = m.door ? m.door.latestScore : null; return (s === null || s === undefined || isNaN(s)) ? null : Number(s); };
+const healthChip = s => s === null ? '<span class="cm-tag">Not scored</span>' : `<span class="cm-chip" style="background:${scoreColor(s)}">${s}/4</span>`;
+const healthTxt = s => s === null ? 'No score on file' : HEALTH_TXT[Math.max(0, Math.min(4, Math.round(s)))];
+const doorLabel = m => m.storeName || (m.chain + (m.storeId ? ' · Store #' + m.storeId : ''));
+const doorAddr = m => [m.address, m.city, m.state].filter(Boolean).join(', ');
+function inspChains(M) {
+  // only the tracked chains (the CHAINS table), the same set the "Chains with doors" KPI counts, not every raw door label
+  const known = (typeof CHAINS !== 'undefined' && CHAINS.length) ? new Set(CHAINS.map(c => c.chain)) : null;
+  const by = {}; M.doors.forEach(m => { if (!known || known.has(m.chain)) (by[m.chain] = by[m.chain] || []).push(m); });
+  return Object.keys(by).sort((a, b) => a.localeCompare(b)).map(c => { const sc = by[c].map(doorScore).filter(x => x !== null); return { c, n: by[c].length, scored: sc.length, avg: sc.length ? avg(sc) : null }; });
 }
+function inspStores(M, chain) {
+  return M.doors.filter(m => m.chain === chain).sort((a, b) => { const x = doorScore(a), y = doorScore(b);
+    if (x === null && y === null) return (a.address || '').localeCompare(b.address || ''); if (x === null) return 1; if (y === null) return -1;
+    return x - y || (a.address || '').localeCompare(b.address || ''); });
+}
+function inspectHtml(M) {
+  const I = CM.ui.insp; let body, sub;
+  if (!I.chain) {
+    const q = I.cq.trim().toLowerCase(), list = inspChains(M).filter(x => !q || x.c.toLowerCase().includes(q));
+    sub = 'Step 1 · choose a chain';
+    body = `<div class="cm-insp-bar"><label>Find a chain <input type="text" value="${H(I.cq)}" placeholder="type a chain name, then Enter" onchange="CM.inspCq(this.value.trim())"></label><span class="cm-note">${fmtNum(list.length)} chain${list.length === 1 ? '' : 's'} · click one to see its stores, weakest health score first.</span></div>
+      <div class="cm-chaingrid">${list.map(x => { const st = chainHealthStatus(x.avg); return `<div class="cm-chcard" onclick="CM.inspChain('${encK(x.c)}')"><b>${H(x.c)}</b><span>${fmtNum(x.n)} store${x.n === 1 ? '' : 's'}</span><span>${x.avg === null ? 'No health scores yet' : 'Avg health ' + x.avg.toFixed(1) + '/4 · ' + fmtNum(x.scored) + ' scored'}</span><span class="cc-health-badge ${st.cls}">${st.label}</span></div>`; }).join('') || '<div class="cm-empty">No chain matches that search.</div>'}</div>`;
+  } else {
+    const all = inspStores(M, I.chain), q = I.q.trim().toLowerCase(), list = q ? all.filter(m => (doorAddr(m) + ' ' + doorLabel(m)).toLowerCase().includes(q)) : all;
+    const pages = Math.max(1, Math.ceil(list.length / INSP_PAGE)); I.page = Math.min(I.page, pages - 1);
+    const rows = list.slice(I.page * INSP_PAGE, I.page * INSP_PAGE + INSP_PAGE).map(m => { const s = doorScore(m), on = I.door === m.key, k = encK(m.key);
+      return `<tr class="cm-click ${on ? 'cm-sel' : ''}" onclick="CM.inspPick('${k}')"><td><input type="checkbox" ${on ? 'checked' : ''} onclick="event.stopPropagation();CM.inspPick('${k}')" title="Tick to preview this store"></td><td><b>${H(doorLabel(m))}</b></td><td>${H(doorAddr(m))}</td><td>${healthChip(s)}</td><td>${H(healthTxt(s))}</td></tr>`; }).join('');
+    const scored = all.filter(m => doorScore(m) !== null).length;
+    sub = `Step 2 · ${H(I.chain)} · ${fmtNum(all.length)} stores, lowest health score first`;
+    body = `<div class="cm-insp-bar"><button class="cm-btn" onclick="CM.inspChains()">‹ All chains</button><b style="font-size:14px">${H(I.chain)}</b><span class="cm-note">${fmtNum(scored)} of ${fmtNum(all.length)} stores have a health score; stores without one are listed last.</span>
+        <label>Find a store <input type="text" value="${H(I.q)}" placeholder="address or city, then Enter" onchange="CM.inspQ(this.value.trim())"></label></div>
+      <div style="overflow-x:auto"><table class="cm-t"><thead><tr><th style="width:34px"></th><th>Store / door</th><th>Complete address</th><th>Health score</th><th>Health status</th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="cm-empty">No stores match that search.</td></tr>'}</tbody></table></div>
+      ${pages > 1 ? `<div class="cm-pager"><button class="cm-btn sm" ${I.page <= 0 ? 'disabled' : ''} onclick="CM.inspPage(-1)">‹ Prev</button> Page ${I.page + 1} of ${pages} · ${fmtNum(list.length)} stores <button class="cm-btn sm" ${I.page >= pages - 1 ? 'disabled' : ''} onclick="CM.inspPage(1)">Next ›</button></div>` : ''}
+      <div class="cm-note">Tick a store to open its Sample Store Condition Overview (Before / After photographs), then choose BACK to return to this list or NEXT for the full OnePager.</div>`;
+  }
+  return `<div class="cm-sec" id="cm-inspect"><h2>Store inspection <small>${sub}</small></h2><div class="cm-body">${body}</div></div>`;
+}
+// re-draws just this section, so the list keeps its scroll position, chain, page and sort when the overview opens and closes
+CM.inspRender = () => { const el = $('cm-inspect'); if (!el) return; ensure(); const t = document.createElement('div'); t.innerHTML = inspectHtml(CM.model); el.replaceWith(t.firstElementChild); };
+CM.inspCq = v => { CM.ui.insp.cq = v; CM.inspRender(); };
+CM.inspQ = v => { CM.ui.insp.q = v; CM.ui.insp.page = 0; CM.inspRender(); };
+CM.inspPage = d => { const I = CM.ui.insp; I.page = Math.max(0, I.page + d); CM.inspRender(); };
+CM.inspChain = k => { Object.assign(CM.ui.insp, { chain: decK(k), door: '', page: 0, q: '' }); CM.inspRender(); CM.jump('cm-inspect'); };
+CM.inspChains = () => { CM.inspClose(); Object.assign(CM.ui.insp, { chain: '', door: '', page: 0, q: '' }); CM.inspRender(); };
+CM.inspPick = k => { CM.ui.insp.door = decK(k); CM.inspRender(); CM.inspOverview(); };
+CM.inspClose = () => { const el = $('cm-insp'); if (el) el.style.display = 'none'; };
+CM.inspBack = () => { CM.inspClose(); CM.inspRender(); };
+CM.inspNext = () => { const k = CM.ui.insp.door; if (k) CM.report('store', encK(k)); }; // the OnePager overlay (z-index above this one) opens on top; its Close returns here
+function inspPhoto(items, tag, color, g) {
+  if (!items || !items.length) return `<div class="ip-ph empty"><span class="tag" style="background:${color}">${tag}</span>No ${tag.toLowerCase()} photograph on file for this store</div>`;
+  const pack = encodeURIComponent(JSON.stringify(items.map(i => i.url))).replace(/'/g, '%27'), pl = encodeURIComponent(JSON.stringify(items.map(() => tag + ' · ' + fmtD(g.ts) + ' · ' + g.srcLabel))).replace(/'/g, '%27');
+  return `<div class="ip-ph"><span class="tag" style="background:${color}">${tag}</span><img src="${H(items[0].url)}" alt="${tag}" onclick="CM.lb('${pack}','${pl}',0)"><div class="cap">${H(items[0].label)} · ${fmtD(g.ts)} · ${H(g.srcLabel)}${items.length > 1 ? ' · +' + (items.length - 1) + ' more (click to browse)' : ''}</div></div>`;
+}
+CM.inspOverview = () => {
+  ensure(); const m = CM.model.byKey.get(CM.ui.insp.door); if (!m) return;
+  const s = doorScore(m), p = photoPair(m);
+  let el = $('cm-insp'); if (!el) { el = document.createElement('div'); el.id = 'cm-insp'; el.onclick = () => CM.inspBack(); document.body.appendChild(el); }
+  // photoPair's own note says "Before photo from this visit" even when none exists, so word the gap explicitly
+  const gaps = p ? [!p.before.length ? 'Before' : '', !p.actual.length ? 'After' : ''].filter(Boolean) : [];
+  const note = !p ? 'This store has no photographs on any visit record.' : (gaps.length ? `No ${gaps.join(' or ')} photograph is on file for this store (latest photographed visit ${fmtD(p.g.ts)} · ${H(p.g.srcLabel)}).` : `${H(p.note)} · visit ${fmtD(p.g.ts)} · ${H(p.g.srcLabel)}`);
+  el.innerHTML = `<div class="ip-panel" onclick="event.stopPropagation()"><div class="ip-head"><b>Sample Store Condition Overview</b><span>Step 3 · review the store, then go BACK to the list or NEXT to the OnePager</span></div>
+    <div class="ip-prof"><div><label>Chain</label><b>${H(m.chain)}</b></div><div><label>Store address</label><b>${H(doorAddr(m))}</b></div><div><label>Health score</label>${s === null ? '<b>Not scored</b>' : `<span class="ip-chip" style="background:${scoreColor(s)}">${s} / 4</span><b>${H(healthTxt(s))}</b>`}</div></div>
+    <div class="ip-photos">${inspPhoto(p && p.before, 'Before', '#b7791f', p && p.g)}${inspPhoto(p && p.actual, 'Actual / After', '#2f855a', p && p.g)}</div>
+    <div class="ip-note">${note}</div>
+    <div class="ip-foot"><button onclick="CM.inspBack()">‹ BACK</button><button class="pri" onclick="CM.inspNext()">NEXT ›</button></div></div>`;
+  el.style.display = 'flex';
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('cm-insp') && $('cm-insp').style.display === 'flex' && !($('cm-op') && $('cm-op').style.display === 'block')) CM.inspBack(); });
 
 // ---- consolidated evaluations -----------------------------------------------------------------------------------------------------------------------
 function evalsHtml(C) {
@@ -9816,7 +9866,7 @@ function reportsHtml(C) {
   return `<div class="cm-sec" id="cm-reports"><h2>Reports <small>OnePager-style · preview, print / save as PDF, Excel</small></h2><div class="cm-body"><div class="cm-filters" style="border:none;padding:0;margin:0">
     <label>Chain report<select id="cm-rc"><option value="">Select chain…</option>${chains.map(c => `<option value="${H(c)}" ${CM.f.chain === c ? 'selected' : ''}>${H(c)}</option>`).join('')}</select></label><button class="cm-btn pri" onclick="var v=document.getElementById('cm-rc').value;if(v)CM.report('chain',encodeURIComponent(v))">Open chain report</button>
     <label>State report<select id="cm-rs"><option value="">Select state…</option>${states.map(s => `<option value="${H(s)}" ${CM.f.state === s ? 'selected' : ''}>${H(s)}</option>`).join('')}</select></label><button class="cm-btn pri" onclick="var v=document.getElementById('cm-rs').value;if(v)CM.report('state',encodeURIComponent(v))">Open state report</button>
-    <button class="cm-btn" onclick="CM.exportXlsx()">Export current view to Excel</button></div><div class="cm-note">A store report opens from any row in this tab (velocity, photographs, evaluations, issues, actions). Chain and state reports cover every store in that chain or state, regardless of the filters above.</div></div></div>`;
+    <button class="cm-btn" onclick="CM.exportXlsx()">Export current view to Excel</button></div><div class="cm-note">A store report opens from any row in this tab (velocity rankings, evaluations, issues, actions) and from the Store inspection steps above. Chain and state reports cover every store in that chain or state, regardless of the filters above.</div></div></div>`;
 }
 CM.render = function () {
   const el = $('cm-main'); if (!el) return;
@@ -9826,8 +9876,8 @@ CM.render = function () {
     el.innerHTML = `<div class="cm-wrap"><div class="cm-head"><h1>Command Center</h1><div><button class="cm-btn" onclick="CM.refresh()">Refresh data</button></div></div>
       <div class="cm-sub">Latest velocity, store photographs, evaluation findings, missing SKUs and recommended actions for every door, from the dashboard's live data · model built in ${M.builtMs} ms${M.extraUnmatched ? ' · ' + M.extraUnmatched + ' Extra evaluations could not be matched to a door' : ''}${rsVersions ? '' : ' · reviewer names load after sign-in'}${usingEmbeddedSnapshot ? ' · <b>read-only copy: it holds Eileen visits from ' + ymd(Math.min(...M.evals.filter(e => e.src === 'eileen' && e.ts).map(e => e.ts).concat([Date.now()]))) + ' onward only (size limit), so issue counts are lower than on the live dashboard</b>' : ''}</div>
       ${kpiHtml(C)}${filterHtml(M)}
-      <div class="cm-nav"><a onclick="CM.jump('cm-velocity')">Velocity</a><a onclick="CM.jump('cm-photos')">Photos</a><a onclick="CM.jump('cm-evals')">Evaluations</a><a onclick="CM.jump('cm-issues')">Issues</a><a onclick="CM.jump('cm-actions')">Action Center</a><a onclick="CM.jump('cm-reports')">Reports</a></div>
-      ${velocityHtml(C)}${photosHtml(C)}${evalsHtml(C)}${issuesHtml(C)}${actionsHtml(C)}${reportsHtml(C)}</div>`;
+      <div class="cm-nav"><a onclick="CM.jump('cm-inspect')">Store inspection</a><a onclick="CM.jump('cm-velocity')">Velocity</a><a onclick="CM.jump('cm-evals')">Evaluations</a><a onclick="CM.jump('cm-issues')">Issues</a><a onclick="CM.jump('cm-actions')">Action Center</a><a onclick="CM.jump('cm-reports')">Reports</a></div>
+      ${inspectHtml(M)}${velocityHtml(C)}${evalsHtml(C)}${issuesHtml(C)}${actionsHtml(C)}${reportsHtml(C)}</div>`;
   } catch (e) { console.error('Command Center render failed', e); el.innerHTML = `<div class="cm-wrap"><div class="cm-banner">The Command Center could not be drawn: ${H(e.message || e)}</div></div>`; }
 };
 CM.refresh = () => { CM.sig = ''; CM.render(); };
