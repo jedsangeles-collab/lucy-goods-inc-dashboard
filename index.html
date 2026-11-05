@@ -1677,9 +1677,8 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
     <div class="tab active" onclick="switchTab(&#39;overview&#39;)" id="tab-overview"><span class="tab-icon">🏠</span> Overview</div>
     <div class="tab" onclick="switchTab(&#39;map&#39;)" id="tab-map"><span class="tab-icon">🗺</span> Map</div>
     <div class="tab" onclick="switchTab(&#39;cmcc&#39;)" id="tab-cmcc"><span class="tab-icon">🎯</span> Command Center</div>
-    <!-- Chains and Stores tabs hidden 2026-11-04 (code and views kept): remove the display:none below and the HIDDEN_TABS guard in switchTab() to restore. Full copy: dashboard.html.bak_with_chains_stores_tabs_20261104 -->
-    <div class="tab" onclick="switchTab(&#39;chains&#39;)" id="tab-chains" style="display:none"><span class="tab-icon">⬡</span> Chains</div>
-    <div class="tab" onclick="switchTab(&#39;stores&#39;)" id="tab-stores" style="display:none"><span class="tab-icon">⊞</span> Stores</div>
+    <div class="tab" onclick="switchTab(&#39;chains&#39;)" id="tab-chains"><span class="tab-icon">⬡</span> Chains</div>
+    <div class="tab" onclick="switchTab(&#39;stores&#39;)" id="tab-stores"><span class="tab-icon">⊞</span> Stores</div>
     <div class="tab" onclick="switchTab(&#39;civisitreview&#39;)" id="tab-civisitreview"><span class="tab-icon">📷</span> CI Visit</div>
     <div class="tab" onclick="switchTab(&#39;eileenvisitreview&#39;)" id="tab-eileenvisitreview"><span class="tab-icon">🛍</span> Eileen Visit</div>
     <div class="tab" onclick="switchTab(&#39;extravisitreview&#39;)" id="tab-extravisitreview"><span class="tab-icon">📝</span> Extra</div>
@@ -3081,7 +3080,7 @@ document.addEventListener('click', closePanelOnOutsideClick, true);
 // module itself, and it's a no-op for every other tab-to-tab switch.
 let civPendingTabSwitch = null;
 
-const HIDDEN_TABS = ['chains', 'stores']; // tabs taken off the strip for now; empty this list (and un-hide their buttons) to bring them back
+const HIDDEN_TABS = []; // tab ids to take off the strip (also add style="display:none" to the tab button); Chains and Stores were hidden 2026-11-04 to 2026-11-06
 function switchTab(tab) {
   if (HIDDEN_TABS.includes(tab)) return;
   const leavingReviewTab = currentTab === 'civisitreview' || currentTab === 'eileenvisitreview' || currentTab === 'highwayreview';
