@@ -1625,6 +1625,36 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .ranked-table th{text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;}
 .ranked-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
 .ranked-table tr:hover td{background:var(--surface2);cursor:pointer;}
+/* Stores > Store Map / List: click = highlight + photo preview, double-click = select. Preview is a docked bottom sheet (66.7vh), not a modal,
+   so the list and map above it stay usable for switching stores, panning, zooming and scrolling. */
+tr.prev-row{cursor:pointer;user-select:none;}
+tr.prev-row:hover td{background:var(--blue-dim);}
+tr.prev-row.row-hl td{background:#F59E0B2E;}
+tr.prev-row.row-sel td,tr.prev-row.row-sel.row-hl td{background:#2563EB33;font-weight:600;}
+tr.prev-row.row-sel td:first-child{box-shadow:inset 3px 0 0 var(--blue);}
+tr.prev-row.row-sel td:first-child::before{content:'✓ ';color:var(--blue);font-weight:700;}
+#store-prev{position:fixed;left:0;right:0;bottom:0;height:66.7vh;z-index:400;display:none;flex-direction:column;background:#fff;color:var(--text);border-top:3px solid var(--blue);box-shadow:0 -8px 28px rgba(0,0,0,.3);font-family:'DM Sans',sans-serif;}
+#store-prev .sp-head{display:flex;align-items:center;gap:14px;padding:8px 18px;background:#F1F3F6;border-bottom:1px solid var(--border);}
+#store-prev .sp-title{flex:1;min-width:0;}
+#store-prev .sp-name{font-size:15px;font-weight:700;cursor:pointer;user-select:none;}
+#store-prev .sp-addr{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#store-prev .sp-sel{font-size:11px;font-weight:700;color:#fff;background:var(--blue);border-radius:12px;padding:2px 10px;}
+#store-prev .sp-close{font-size:12px;font-weight:700;padding:6px 14px;border:1px solid var(--border2);border-radius:6px;background:#fff;color:var(--text);cursor:pointer;}
+#store-prev .sp-close:hover{background:var(--surface3);}
+#store-prev .sp-note{padding:4px 18px 0;font-size:11px;color:var(--muted);min-height:16px;}
+#store-prev .sp-panes{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 18px 6px;}
+#store-prev .sp-pane{display:flex;flex-direction:column;min-height:0;}
+#store-prev .sp-view{position:relative;flex:1;min-height:0;background:#1b1b1a;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;touch-action:none;}
+#store-prev .sp-view img{max-width:100%;max-height:100%;object-fit:contain;cursor:grab;user-select:none;-webkit-user-drag:none;transform-origin:center center;}
+#store-prev .sp-view img.drag{cursor:grabbing;}
+#store-prev .sp-tag{position:absolute;top:8px;left:8px;z-index:2;color:#fff;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:5px;padding:2px 11px;}
+#store-prev .sp-empty{background:#eceae3;color:#777;font-size:15px;text-align:center;padding:20px;}
+#store-prev .sp-ctl{display:flex;align-items:center;gap:6px;padding-top:5px;font-size:11px;color:var(--muted);flex-wrap:wrap;}
+#store-prev .sp-ctl button{font-size:12px;font-weight:700;min-width:28px;padding:3px 8px;border:1px solid var(--border2);border-radius:5px;background:#fff;color:var(--text);cursor:pointer;}
+#store-prev .sp-ctl button:hover{background:var(--surface3);}
+#store-prev .sp-cap{flex:1;min-width:120px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#store-prev .sp-foot{padding:4px 18px 8px;font-size:11px;color:var(--muted);}
+@media (max-width:800px){#store-prev .sp-panes{grid-template-columns:1fr;overflow:auto;}#store-prev .sp-view{min-height:200px;}}
 /* Shared row-picking look (every list/table row you choose from): hover highlights, one click selects (stays highlighted),
    a double click opens/chooses. Behaviour lives in pickSelectRow()/the document click listener; each row supplies its own ondblclick. */
 .pick-row{user-select:none;cursor:pointer;}
@@ -3104,6 +3134,7 @@ function switchTab(tab) {
   // Right-hand detail panel is contextual to whatever was selected in the PREVIOUS view --
   // never carry it over into a different tab; reopening always requires a fresh selection.
   if (document.getElementById('detail-panel').classList.contains('open')) closeDetail();
+  if (tab !== 'stores') storePreviewClose(); // the photo preview belongs to the Stores tab
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -3533,8 +3564,97 @@ document.addEventListener('click', e => {
   pickSelectRow(row);
 });
 function doorsTableChoose(key, mapContainerId) { openDoorDetail(key); highlightOnChainMap(key, mapContainerId); }
+
+// ── Stores > Store Map / List: PREVIEW on click, SELECT on double-click (2026-11-06) ────────────────────────────
+// One click only HIGHLIGHTS a store and opens the Before/After photo preview (a docked bottom sheet, 66.7vh); it never selects.
+// A double click on the highlighted row / map pin (or on the store name in the preview) SELECTS the store: PICK_SEL['stores-main'],
+// a persistent check-marked row / ringed pin, the preview closes and the existing store detail panel opens. A double click is two
+// clicks, so the sheet ignores the pointer for a moment after it first opens: the 2nd click must still reach the row, not the sheet.
+const STORE_PREV = { key: '', m: null, b: [], a: [], bi: 0, ai: 0, zb: { z: 1, x: 0, y: 0 }, za: { z: 1, x: 0, y: 0 }, note: '', timer: 0, marked: [] };
+function storePreviewVisible() { const el = document.getElementById('store-prev'); return !!el && el.style.display === 'flex'; }
+function storeMarkHighlight() {
+  const sel = PICK_SEL['stores-main'] || '', hl = storePreviewVisible() ? STORE_PREV.key : '';
+  document.querySelectorAll('tr.prev-row').forEach(r => { r.classList.toggle('row-hl', !!hl && r.dataset.pk === hl); r.classList.toggle('row-sel', !!sel && r.dataset.pk === sel); });
+  const reg = chainMapRegistry['cp-chain-map'];
+  if (reg) { // only restyle the pins that changed (a chain can have 1,000+)
+    new Set([...STORE_PREV.marked, hl, sel]).forEach(k => { const m = k && reg.markers[k]; if (m) m.setStyle(k === sel ? { radius: 11, weight: 3, color: '#2563EB' } : k === hl ? { radius: 10, weight: 3, color: '#F59E0B' } : { radius: 7, weight: 1, color: '#0c0e13' }); });
+    STORE_PREV.marked = [hl, sel].filter(Boolean);
+  }
+}
+function storePreviewDate(ts) { return ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
+function storePreviewRender() {
+  const S = STORE_PREV, m = S.m; if (!m) return;
+  let el = document.getElementById('store-prev'); if (!el) { el = document.createElement('div'); el.id = 'store-prev'; document.body.appendChild(el); }
+  const addr = [m.address, m.city, m.state].filter(Boolean).join(', '), name = m.storeName || (m.chain + (m.storeId ? ' · Store #' + m.storeId : ''));
+  const pane = (side, label, color, items, idx) => {
+    if (!items.length) return `<div class="sp-pane"><div class="sp-view sp-empty" style="display:flex;align-items:center;justify-content:center;position:relative;"><span class="sp-tag" style="background:${color}">${label}</span>No ${label.toLowerCase()} photograph on file for this store</div></div>`;
+    const it = items[idx];
+    return `<div class="sp-pane"><div class="sp-view" data-side="${side}"><span class="sp-tag" style="background:${color}">${label}</span><img id="sp-img-${side}" src="${escHtml(it.url)}" alt="${label}" draggable="false"></div>
+      <div class="sp-ctl"><button title="Previous photo" onclick="spNav('${side}',-1)" ${items.length < 2 ? 'disabled' : ''}>◀</button><span>${idx + 1} / ${items.length}</span><button title="Next photo" onclick="spNav('${side}',1)" ${items.length < 2 ? 'disabled' : ''}>▶</button>
+        <button title="Zoom in" onclick="spZoom('${side}',1.4)">＋</button><button title="Zoom out" onclick="spZoom('${side}',1/1.4)">－</button><button title="Reset zoom" onclick="spReset('${side}')">Reset</button>
+        <span class="sp-cap">${escHtml(it.label || '')} · ${escHtml(storePreviewDate(it.ts))} · ${escHtml(it.src || '')}</span></div></div>`;
+  };
+  const gaps = [!S.b.length ? 'Before' : '', !S.a.length ? 'After' : ''].filter(Boolean);
+  const note = !S.b.length && !S.a.length ? 'This store has no photographs on any visit record.' : gaps.length ? `No ${gaps.join(' or ')} photograph is on file for this store.` : (S.note || '');
+  el.innerHTML = `<div class="sp-head"><div class="sp-title"><div class="sp-name" title="Double-click to select this store" ondblclick="storeSelect(STORE_PREV.key)">${escHtml(name)}</div><div class="sp-addr">${escHtml(addr)} · ${escHtml(m.chain)}</div></div>
+      ${PICK_SEL['stores-main'] === S.key ? '<span class="sp-sel">✓ Selected</span>' : ''}<button class="sp-close" onclick="storePreviewClose()">✕ Close</button></div>
+    <div class="sp-note">${escHtml(note)}</div>
+    <div class="sp-panes">${pane('b', 'Before', '#b7791f', S.b, S.bi)}${pane('a', 'After', '#2f855a', S.a, S.ai)}</div>
+    <div class="sp-foot">Preview only · click another store to switch · double-click the highlighted store (or its name above) to select it · scroll to zoom, drag to pan.</div>`;
+  el.querySelectorAll('.sp-view[data-side]').forEach(v => {
+    const side = v.dataset.side, img = v.querySelector('img'); spApply(side);
+    v.addEventListener('wheel', e => { e.preventDefault(); spZoom(side, e.deltaY < 0 ? 1.15 : 1 / 1.15); }, { passive: false });
+    let drag = null;
+    img.addEventListener('pointerdown', e => { const z = STORE_PREV['z' + side]; drag = { x: e.clientX - z.x, y: e.clientY - z.y }; img.setPointerCapture(e.pointerId); img.classList.add('drag'); });
+    img.addEventListener('pointermove', e => { if (!drag) return; const z = STORE_PREV['z' + side]; if (z.z <= 1) return; z.x = e.clientX - drag.x; z.y = e.clientY - drag.y; spApply(side); });
+    const end = () => { drag = null; img.classList.remove('drag'); };
+    img.addEventListener('pointerup', end); img.addEventListener('pointercancel', end);
+  });
+}
+function spApply(side) { const img = document.getElementById('sp-img-' + side), z = STORE_PREV['z' + side]; if (img) img.style.transform = `translate(${z.x}px,${z.y}px) scale(${z.z})`; }
+function spZoom(side, f) { const z = STORE_PREV['z' + side]; z.z = Math.min(8, Math.max(1, z.z * f)); if (z.z === 1) { z.x = 0; z.y = 0; } spApply(side); }
+function spReset(side) { Object.assign(STORE_PREV['z' + side], { z: 1, x: 0, y: 0 }); spApply(side); }
+function spNav(side, d) {
+  const S = STORE_PREV, list = side === 'b' ? S.b : S.a, k = side === 'b' ? 'bi' : 'ai'; if (list.length < 2) return;
+  S[k] = (S[k] + d + list.length) % list.length; Object.assign(S['z' + side], { z: 1, x: 0, y: 0 }); storePreviewRender();
+}
+function storePreviewOpen(key) {
+  const was = storePreviewVisible(); if (was && STORE_PREV.key === key) return; // 2nd click of a double-click, or a re-click of the store already shown
+  const L = CM && CM.photoListsFor ? CM.photoListsFor(key) : null; if (!L) return;
+  Object.assign(STORE_PREV, { key, m: L.m, b: L.before, a: L.after, bi: 0, ai: 0, note: L.note, zb: { z: 1, x: 0, y: 0 }, za: { z: 1, x: 0, y: 0 } });
+  storePreviewRender();
+  const el = document.getElementById('store-prev'); el.style.display = 'flex';
+  const view = document.getElementById('view-stores'); if (view) view.style.paddingBottom = 'calc(66.7vh + 24px)'; // lets the list/map scroll up above the sheet
+  storeMarkHighlight();
+  if (!was) {
+    el.style.pointerEvents = 'none'; clearTimeout(STORE_PREV.timer);
+    STORE_PREV.timer = setTimeout(() => { el.style.pointerEvents = ''; storeRevealRow(); }, 550);
+  }
+}
+// once the double-click window has passed, scroll the previewed row (or the map) into the strip above the sheet
+function storeRevealRow() {
+  const view = document.getElementById('view-stores'); if (!view || currentTab !== 'stores' || !storePreviewVisible()) return;
+  const t = [...document.querySelectorAll('tr.prev-row')].find(r => r.dataset.pk === STORE_PREV.key) || document.getElementById('cp-chain-map'); if (!t) return;
+  const r = t.getBoundingClientRect();
+  if (r.top < 70 || r.bottom > innerHeight * 0.333) view.scrollBy({ top: r.top - 110, behavior: 'smooth' });
+}
+function storePreviewClose() {
+  clearTimeout(STORE_PREV.timer);
+  const el = document.getElementById('store-prev'); if (el) { el.style.display = 'none'; el.style.pointerEvents = ''; }
+  const view = document.getElementById('view-stores'); if (view) view.style.paddingBottom = '';
+  storeMarkHighlight();
+}
+function storeSelect(key) {
+  PICK_SEL['stores-main'] = key;
+  storePreviewClose();
+  openDoorDetail(key); // the existing store-level actions
+}
+function storeClearSelection() { PICK_SEL['stores-main'] = ''; storeMarkHighlight(); if (currentTab === 'stores') renderStoresTab(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && storePreviewVisible() && !document.getElementById('lightbox').classList.contains('open')) storePreviewClose(); });
+
 function renderDoorsTable(doors, mapContainerId, tableId) {
   tableId = tableId || mapContainerId || 'doors-table-default';
+  const prevMode = tableId === 'stores-main'; // Stores > Store Map / List: click previews photos, double-click selects
   const state = doorsTableSort[tableId] || { col: 'score', dir: 'asc' };
   const sorted = [...doors].sort((a,b) => compareDoorsForSort(a, b, state.col, state.dir));
 
@@ -3558,10 +3678,12 @@ function renderDoorsTable(doors, mapContainerId, tableId) {
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">
       <strong style="color:var(--text);">${fmtNum(doors.length)}</strong> total stores &middot;
       <span style="color:var(--green);">${fmtNum(visitedCount)} visited</span> &middot;
-      <span>${fmtNum(notVisitedCount)} not visited</span> &middot; <span>click a row to select it, double-click to choose that store</span>
+      <span>${fmtNum(notVisitedCount)} not visited</span> &middot; <span>${prevMode ? 'click a store to preview its Before / After photos, double-click to select it' : 'click a row to select it, double-click to choose that store'}</span>${prevMode && PICK_SEL[tableId] ? ` &middot; <span style="color:var(--blue);font-weight:700;">✓ Selected: ${escHtml((doors.find(x => x.key === PICK_SEL[tableId]) || {}).address || '')}</span> <a style="cursor:pointer;text-decoration:underline;" onclick="storeClearSelection()">clear</a>` : ''}
     </div>
     <table class="ranked-table"><thead><tr>${headerHtml}</tr></thead>
-    <tbody>${pageRows.map(d => `<tr class="pick-row${pickClassFor(tableId, d.key)}" data-pg="${tableId}" data-pk="${escHtml(d.key)}" title="Click to select · double-click to open this store" ondblclick="doorsTableChoose('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''})">
+    <tbody>${pageRows.map(d => (prevMode
+      ? `<tr class="prev-row${storePreviewVisible() && STORE_PREV.key === d.key ? ' row-hl' : ''}${PICK_SEL[tableId] === d.key ? ' row-sel' : ''}" data-pk="${escHtml(d.key)}" title="Click to preview photos · double-click to select this store" onclick="storePreviewOpen('${esc(d.key)}')" ondblclick="storeSelect('${esc(d.key)}')">`
+      : `<tr class="pick-row${pickClassFor(tableId, d.key)}" data-pg="${tableId}" data-pk="${escHtml(d.key)}" title="Click to select · double-click to open this store" ondblclick="doorsTableChoose('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''})">`) + `
       <td>${escHtml(d.address)}</td><td>${escHtml(d.city)}</td><td>${escHtml(d.state)}</td>
       <td>${d.visited ? '<span class="badge badge-good">Visited</span>' : '<span class="badge badge-muted">Not visited</span>'}</td>
       <td>${d.latestScore!==null&&d.latestScore!==undefined ? d.latestScore+'/4' : '—'}</td>
@@ -7292,12 +7414,18 @@ function initChainMap(doors, containerId) {
   withCoords.forEach(d => {
     const col = d.latestScore===null||d.latestScore===undefined ? '#6B7280' : scoreColor(d.latestScore);
     const m = L.circleMarker([d.la, d.lo], { radius: 7, fillColor: col, color: '#0c0e13', weight: 1, fillOpacity: 0.85 });
-    m.on('click', () => openDoorDetail(d.key));
+    if (containerId === 'cp-chain-map') {
+      // Stores tab map: a click previews the store's photos, a double click selects it. stopPropagation keeps the map's own
+      // double-click-to-zoom from firing on a pin, and nothing here pans or zooms the map.
+      m.on('click', () => storePreviewOpen(d.key));
+      m.on('dblclick', e => { L.DomEvent.stopPropagation(e); storeSelect(d.key); });
+    } else m.on('click', () => openDoorDetail(d.key));
     m.bindTooltip(`${d.address} — ${d.latestScore!==null&&d.latestScore!==undefined?d.latestScore+'/4':'no score'}`);
     cluster.addLayer(m);
     reg.markers[d.key] = m;
   });
   map.addLayer(cluster);
+  if (containerId === 'cp-chain-map') { STORE_PREV.marked = []; storeMarkHighlight(); } // re-apply the highlighted / selected pin after a re-render
 }
 
 function highlightOnChainMap(doorKey, containerId) {
@@ -7510,6 +7638,7 @@ let cpMapView = false;
 let cpVelocityFilters = { minDeclinePct: '', belowChainAvg: false, rep: '' };
 
 function drillChain(chain) {
+  PICK_SEL['stores-main'] = ''; storePreviewClose();
   chainPanelState.chain = chain;
   cpMapView = false;
   doorsTablePage['stores-main'] = 1;
@@ -7864,6 +7993,7 @@ function cpQuickAddAction(chainName) {
 }
 
 function cpSelectChain(chainName) {
+  PICK_SEL['stores-main'] = ''; storePreviewClose(); // a new chain starts with nothing highlighted or selected
   chainPanelState.chain = chainName || null;
   cpMapView = false;
   doorsTablePage['stores-main'] = 1;
@@ -9791,6 +9921,18 @@ function photoPair(m) {
   else if (!before.length) { const earlier = groups.filter(x => x.ts < g.ts), e = earlier[earlier.length - 1]; if (e) { const p = e.items.find(i => i.type === 'Before') || e.items[0]; if (p) { before = [p]; note = 'No before photo this visit — earliest earlier photo, ' + e.srcLabel + ', ' + fmtD(e.ts); } } }
   return { g, before, actual, note, all: groups };
 }
+// Before / After photo lists for one door, for the Stores tab photo preview (storePreviewOpen). The first entry of each list is the
+// same pair photoPair() picks for the OnePager (latest visit with an After photo); the rest are the Before / After photos of every other
+// visit, newest first, so the preview can browse them. Each entry carries its own visit date + source for the caption.
+CM.photoListsFor = key => {
+  ensure(); const m = CM.model.byKey.get(key); if (!m) return null;
+  const p = photoPair(m); if (!p) return { m, p: null, before: [], after: [], note: '' };
+  const mk = (items, g) => items.map(i => ({ url: i.url, label: i.label || i.type, ts: g.ts, src: g.srcLabel }));
+  const uniq = a => { const seen = new Set(); return a.filter(x => x.url && !seen.has(x.url) && seen.add(x.url)); };
+  const before = mk(p.before, p.g), after = mk(p.actual, p.g);
+  m.photoGroups.filter(g => g !== p.g).forEach(g => { before.push(...mk(g.items.filter(i => i.type === 'Before'), g)); after.push(...mk(g.items.filter(i => i.type === 'After'), g)); });
+  return { m, p, before: uniq(before), after: uniq(after), note: p.note };
+};
 CM.lb = (urlsEnc, labsEnc, i) => { const lb = document.getElementById('lightbox'); if (lb) lb.style.zIndex = '100001'; /* above the store-overview modal */ openLightbox('', JSON.parse(decodeURIComponent(urlsEnc)), i, JSON.parse(decodeURIComponent(labsEnc))); };
 function improvements(m) {
   const out = [], e = m.evals.slice().reverse().find(x => x.before && x.v);
