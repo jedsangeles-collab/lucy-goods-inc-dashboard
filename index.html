@@ -1274,7 +1274,8 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .rs-table th.num,.rs-table td.num{text-align:right;}
 .rs-table td{padding:7px 10px;border-bottom:1px solid #eeede7;color:#1a1a18;}
 .rs-table tr.rs-row{cursor:pointer;}
-.rs-table tr.rs-row:hover{background:#faf9f4;}
+.rs-table tr.rs-row:hover{background:var(--blue-dim);} /* same hover tint as every other pick row; a click here already selects (rs-sel) */
+.rs-bar-row:hover{background:var(--blue-dim);}
 .rs-table tr.rs-sel{background:#e8f1fb !important;box-shadow:inset 3px 0 0 #1a5fa0;}
 .rs-table td.zero{color:#b5b3aa;}
 .rs-table td.total{font-weight:700;}
@@ -1624,11 +1625,15 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .ranked-table th{text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;}
 .ranked-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
 .ranked-table tr:hover td{background:var(--surface2);cursor:pointer;}
-/* Stores tab (pickMode): clear hover highlight, a persistent selected row, no text selection on double-click */
-.ranked-table.door-pick tbody tr.door-row{user-select:none;}
-.ranked-table.door-pick tbody tr.door-row:hover td{background:var(--blue-dim);}
-.ranked-table.door-pick tbody tr.door-row.row-sel td{background:#2563EB33;font-weight:600;}
-.ranked-table.door-pick tbody tr.door-row.row-sel td:first-child{box-shadow:inset 3px 0 0 var(--blue);}
+/* Shared row-picking look (every list/table row you choose from): hover highlights, one click selects (stays highlighted),
+   a double click opens/chooses. Behaviour lives in pickSelectRow()/the document click listener; each row supplies its own ondblclick. */
+.pick-row{user-select:none;cursor:pointer;}
+tr.pick-row:hover td,div.pick-row:hover{background:var(--blue-dim);}
+tr.pick-row.row-sel td,div.pick-row.row-sel{background:#2563EB33;}
+tr.pick-row.row-sel td{font-weight:600;}
+tr.pick-row.row-sel td:first-child,div.pick-row.row-sel{box-shadow:inset 3px 0 0 var(--blue);}
+#view-cmcc table.cm-t tr.pick-row:hover td,#view-cmcc .cm-rank div.pick-row:hover{background:var(--blue-dim);}
+#view-cmcc table.cm-t tr.pick-row.row-sel td,#view-cmcc .cm-rank div.pick-row.row-sel{background:#2563EB33;}
 .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
 .badge-critical{background:var(--red-dim);color:var(--red);}
 .badge-warn{background:var(--yellow-dim);color:var(--yellow);}
@@ -3393,7 +3398,7 @@ function renderBottomPerformers(doors) {
   const notVisitedRecently = notVisitedRecentlyAll.slice(0, 10);
   const neverVisited = doors.filter(d => !d.visited).slice(0, 10);
 
-  const rowHtml = (d, extra) => `<tr onclick="openDoorDetail('${esc(d.key)}')">
+  const rowHtml = (d, extra) => `<tr class="pick-row" title="Click to select · double-click to open this store" ondblclick="openDoorDetail('${esc(d.key)}')">
     <td>${escHtml(d.chain)}</td><td>${escHtml(d.address)}, ${escHtml(d.city)} ${escHtml(d.state)}</td>
     <td>${d.latestScore!==null&&d.latestScore!==undefined ? `<span class="badge ${d.latestScore<=1?'badge-critical':d.latestScore<=2?'badge-warn':'badge-good'}">${d.latestScore}/4</span>` : '<span class="badge badge-muted">—</span>'}</td>
     <td>${escHtml(extra)}</td>
@@ -3507,17 +3512,28 @@ function doorsTableChangePage(tableId, delta) {
 // Paginates through the FULL door list rather than silently truncating it -- a chain like Wawa
 // (1,315 doors) previously only ever showed its first 100-300 doors with no way to reach the
 // rest, and no visible total, which read as "the list is missing stores" (it was).
-// pickMode (Stores tab only): hovering highlights a row, one click SELECTS it (stays highlighted), a double
-// click CHOOSES the store (opens its detail panel and flies to it on the map). Without it (Overview) a single
-// click opens the store straight away, as before.
-let doorsTableSel = {};
-function doorsTablePick(tr, tableId, key) {
-  doorsTableSel[tableId] = key;
-  tr.closest('tbody').querySelectorAll('tr.row-sel').forEach(r => r.classList.remove('row-sel'));
-  tr.classList.add('row-sel');
+// ── Shared row picking (2026-11-06, whole dashboard) ─────────────────────────────────────────────────────
+// Every list/table row you choose from is a `.pick-row`: hovering highlights it, ONE click selects it (it stays
+// highlighted), a DOUBLE click chooses it (the row's own ondblclick: open the store, report, chain, ...).
+// A row may carry data-pg (group) + data-pk (key) so its selection survives a re-render via PICK_SEL;
+// pickClassFor() gives the ' row-sel' class back when the renderer rebuilds the rows.
+const PICK_SEL = {};
+function pickClassFor(group, key) { return PICK_SEL[group] === key ? ' row-sel' : ''; }
+function pickSelectRow(row) {
+  const host = row.parentElement;
+  host.querySelectorAll(':scope > .pick-row.row-sel').forEach(r => r.classList.remove('row-sel'));
+  host.querySelectorAll(':scope > .pick-row input[data-pickbox]').forEach(c => { c.checked = false; });
+  row.classList.add('row-sel');
+  const box = row.querySelector('input[data-pickbox]'); if (box) box.checked = true;
+  if (row.dataset.pg) PICK_SEL[row.dataset.pg] = row.dataset.pk;
 }
+document.addEventListener('click', e => {
+  const row = e.target.closest && e.target.closest('.pick-row'); if (!row) return;
+  if (e.target.closest('a,button,select,textarea,label,summary,input:not([data-pickbox])')) return; // controls inside a row keep their own job
+  pickSelectRow(row);
+});
 function doorsTableChoose(key, mapContainerId) { openDoorDetail(key); highlightOnChainMap(key, mapContainerId); }
-function renderDoorsTable(doors, mapContainerId, tableId, pickMode) {
+function renderDoorsTable(doors, mapContainerId, tableId) {
   tableId = tableId || mapContainerId || 'doors-table-default';
   const state = doorsTableSort[tableId] || { col: 'score', dir: 'asc' };
   const sorted = [...doors].sort((a,b) => compareDoorsForSort(a, b, state.col, state.dir));
@@ -3542,12 +3558,10 @@ function renderDoorsTable(doors, mapContainerId, tableId, pickMode) {
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">
       <strong style="color:var(--text);">${fmtNum(doors.length)}</strong> total stores &middot;
       <span style="color:var(--green);">${fmtNum(visitedCount)} visited</span> &middot;
-      <span>${fmtNum(notVisitedCount)} not visited</span>${pickMode ? ' &middot; <span>click a row to select it, double-click to choose that store</span>' : ''}
+      <span>${fmtNum(notVisitedCount)} not visited</span> &middot; <span>click a row to select it, double-click to choose that store</span>
     </div>
-    <table class="ranked-table${pickMode ? ' door-pick' : ''}"><thead><tr>${headerHtml}</tr></thead>
-    <tbody>${pageRows.map(d => (pickMode
-      ? `<tr class="door-row${doorsTableSel[tableId] === d.key ? ' row-sel' : ''}" title="Click to select · double-click to open this store" onclick="doorsTablePick(this,'${tableId}','${esc(d.key)}')" ondblclick="doorsTableChoose('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''})">`
-      : `<tr onclick="openDoorDetail('${esc(d.key)}'); highlightOnChainMap('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''});">`) + `
+    <table class="ranked-table"><thead><tr>${headerHtml}</tr></thead>
+    <tbody>${pageRows.map(d => `<tr class="pick-row${pickClassFor(tableId, d.key)}" data-pg="${tableId}" data-pk="${escHtml(d.key)}" title="Click to select · double-click to open this store" ondblclick="doorsTableChoose('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''})">
       <td>${escHtml(d.address)}</td><td>${escHtml(d.city)}</td><td>${escHtml(d.state)}</td>
       <td>${d.visited ? '<span class="badge badge-good">Visited</span>' : '<span class="badge badge-muted">Not visited</span>'}</td>
       <td>${d.latestScore!==null&&d.latestScore!==undefined ? d.latestScore+'/4' : '—'}</td>
@@ -7157,11 +7171,11 @@ function renderUnderperformingChains() {
       </span>
     </div>
     <table class="ranked-table"><thead><tr><th>Chain</th><th>Doors</th><th>Avg Score</th><th>Sales Change</th><th></th></tr></thead>
-    <tbody>${rows.map(r => `<tr onclick="ovJumpToChain('${esc(r.chain)}')">
+    <tbody>${rows.map(r => `<tr class="pick-row" title="Click to select · double-click to open this chain" ondblclick="ovJumpToChain('${esc(r.chain)}')">
       <td>${escHtml(r.chain)}</td><td>${fmtNum(r.total)}</td>
       <td><span class="badge ${r.avgScore===null?'badge-muted':r.avgScore<1.5?'badge-critical':r.avgScore<upThreshold?'badge-warn':'badge-muted'}">${fmtScore(r.avgScore)}</span></td>
       <td>${r.changePct===null?'—':`<span style="color:${r.changePct<0?'var(--red)':'var(--green)'}">${r.changePct>=0?'▲':'▼'} ${Math.abs(r.changePct).toFixed(1)}%</span>`}</td>
-      <td style="color:var(--orange);">View →</td>
+      <td style="color:var(--orange);">Double-click to view</td>
     </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted)">No chains below threshold — nice.</td></tr>'}</tbody></table>
   `;
 }
@@ -7249,7 +7263,7 @@ function renderChainMapAndTable(doors, containerId) {
   return `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div>
-        <div class="section-title">Stores (click a row to highlight on map)</div>
+        <div class="section-title">Stores (click to select, double-click to open and show on map)</div>
         ${renderDoorsTable(doors, containerId, 'overview-chain')}
       </div>
       <div>
@@ -8601,7 +8615,7 @@ function renderStoresTab() {
 
   const mapSectionBody = cpMapView
     ? `<div id="cp-chain-map" style="height:320px;border-radius:10px;overflow:hidden;border:1px solid var(--border);"></div>`
-    : renderDoorsTable(doors, 'cp-chain-map', 'stores-main', true);
+    : renderDoorsTable(doors, 'cp-chain-map', 'stores-main');
 
   const actionsForChain = loadActions().filter(a => doors.some(d => d.key === a.doorKey));
 
@@ -9316,7 +9330,6 @@ init();
 #view-cmcc .cm-chcard{background:#fff;border:1px solid #dcd9d0;border-left:4px solid #4472c4;border-radius:8px;padding:9px 11px;cursor:pointer;display:flex;flex-direction:column;gap:3px;font-size:12px;color:#555;transition:box-shadow .12s;}
 #view-cmcc .cm-chcard:hover{box-shadow:0 2px 8px rgba(0,0,0,.14);background:#f6f8fc;}
 #view-cmcc .cm-chcard b{font-size:13px;color:#141413;}
-#view-cmcc tr.cm-sel td{background:#eaf0fb;}
 #view-cmcc .cm-insp-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;font-size:12px;}
 #view-cmcc .cm-insp-bar input[type=text]{font-size:12px;padding:4px 6px;border:1px solid #cfd3da;border-radius:5px;min-width:200px;}
 #cm-insp{position:fixed;inset:0;z-index:99990;background:rgba(20,20,19,.72);display:none;align-items:center;justify-content:center;}
@@ -9754,7 +9767,7 @@ function velocityHtml(C) {
   const vd = C.doors.filter(m => m.vel && m.vel.latest != null);
   const rank = vd.filter(m => !m.vel.stale);
   const top = rank.slice().sort((a, b) => b.vel.latest - a.vel.latest).slice(0, 8), low = rank.filter(m => m.vel.latest > 0).sort((a, b) => a.vel.latest - b.vel.latest).slice(0, 8);
-  const r = (m, v) => `<div onclick="CM.report('store','${encK(m.key)}')"><span>${H(m.chain)} · ${H(m.address)}, ${H(m.state)}</span><b>${fmt1(m.vel.latest)} u/wk</b></div>`;
+  const r = (m, v) => `<div class="pick-row" title="Click to select · double-click to open the OnePager" ondblclick="CM.report('store','${encK(m.key)}')"><span>${H(m.chain)} · ${H(m.address)}, ${H(m.state)}</span><b>${fmt1(m.vel.latest)} u/wk</b></div>`;
   const cnt = { up: 0, monitor: 0, down: 0, none: 0 }; C.doors.forEach(m => { cnt[(m.vel ? m.vel.cls : 'none')]++; });
   // chain-level monthly trend across the filtered doors (mean of each door's weekly velocity per month)
   const bym = {}; vd.forEach(m => m.series.forEach(x => { (bym[x.mk] = bym[x.mk] || []).push(x.v); }));
@@ -9819,15 +9832,15 @@ function inspectHtml(M) {
   } else {
     const all = inspStores(M, I.chain), q = I.q.trim().toLowerCase(), list = q ? all.filter(m => (doorAddr(m) + ' ' + doorLabel(m)).toLowerCase().includes(q)) : all;
     const pages = Math.max(1, Math.ceil(list.length / INSP_PAGE)); I.page = Math.min(I.page, pages - 1);
-    const rows = list.slice(I.page * INSP_PAGE, I.page * INSP_PAGE + INSP_PAGE).map(m => { const s = doorScore(m), on = I.door === m.key, k = encK(m.key);
-      return `<tr class="cm-click ${on ? 'cm-sel' : ''}" onclick="CM.inspPick('${k}')"><td><input type="checkbox" ${on ? 'checked' : ''} onclick="event.stopPropagation();CM.inspPick('${k}')" title="Tick to preview this store"></td><td><b>${H(doorLabel(m))}</b></td><td>${H(doorAddr(m))}</td><td>${healthChip(s)}</td><td>${H(healthTxt(s))}</td></tr>`; }).join('');
+    const rows = list.slice(I.page * INSP_PAGE, I.page * INSP_PAGE + INSP_PAGE).map(m => { const s = doorScore(m), sel = pickClassFor('cm-insp', m.key), k = encK(m.key);
+      return `<tr class="cm-click pick-row${sel}" data-pg="cm-insp" data-pk="${H(m.key)}" title="Click to select · double-click (or tick the box) to open the Store Condition Overview" ondblclick="CM.inspPick('${k}')"><td><input type="checkbox" data-pickbox ${sel ? 'checked' : ''} onclick="event.stopPropagation();CM.inspPick('${k}')" title="Tick to open this store's Store Condition Overview"></td><td><b>${H(doorLabel(m))}</b></td><td>${H(doorAddr(m))}</td><td>${healthChip(s)}</td><td>${H(healthTxt(s))}</td></tr>`; }).join('');
     const scored = all.filter(m => doorScore(m) !== null).length;
     sub = `Step 2 · ${H(I.chain)} · ${fmtNum(all.length)} stores, lowest health score first`;
     body = `<div class="cm-insp-bar"><button class="cm-btn" onclick="CM.inspChains()">‹ All chains</button><b style="font-size:14px">${H(I.chain)}</b><span class="cm-note">${fmtNum(scored)} of ${fmtNum(all.length)} stores have a health score; stores without one are listed last.</span>
         <label>Find a store <input type="text" value="${H(I.q)}" placeholder="address or city, then Enter" onchange="CM.inspQ(this.value.trim())"></label></div>
       <div style="overflow-x:auto"><table class="cm-t"><thead><tr><th style="width:34px"></th><th>Store / door</th><th>Complete address</th><th>Health score</th><th>Health status</th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="cm-empty">No stores match that search.</td></tr>'}</tbody></table></div>
       ${pages > 1 ? `<div class="cm-pager"><button class="cm-btn sm" ${I.page <= 0 ? 'disabled' : ''} onclick="CM.inspPage(-1)">‹ Prev</button> Page ${I.page + 1} of ${pages} · ${fmtNum(list.length)} stores <button class="cm-btn sm" ${I.page >= pages - 1 ? 'disabled' : ''} onclick="CM.inspPage(1)">Next ›</button></div>` : ''}
-      <div class="cm-note">Tick a store to open its Store Condition Overview (Before / After photographs), then choose BACK to return to this list or NEXT for the full OnePager.</div>`;
+      <div class="cm-note">Click a store to select it, then double-click it (or tick its box) to open its Store Condition Overview (Before / After photographs), then choose BACK to return to this list or NEXT for the full OnePager.</div>`;
   }
   return `<div class="cm-sec" id="cm-inspect"><h2>Store inspection <small>${sub}</small></h2><div class="cm-body">${body}</div></div>`;
 }
@@ -9836,9 +9849,9 @@ CM.inspRender = () => { const el = $('cm-inspect'); if (!el) return; ensure(); c
 CM.inspCq = v => { CM.ui.insp.cq = v; CM.inspRender(); };
 CM.inspQ = v => { CM.ui.insp.q = v; CM.ui.insp.page = 0; CM.inspRender(); };
 CM.inspPage = d => { const I = CM.ui.insp; I.page = Math.max(0, I.page + d); CM.inspRender(); };
-CM.inspChain = k => { Object.assign(CM.ui.insp, { chain: decK(k), door: '', page: 0, q: '' }); CM.inspRender(); CM.jump('cm-inspect'); };
-CM.inspChains = () => { CM.inspClose(); Object.assign(CM.ui.insp, { chain: '', door: '', page: 0, q: '' }); CM.inspRender(); };
-CM.inspPick = k => { CM.ui.insp.door = decK(k); CM.inspRender(); CM.inspOverview(); };
+CM.inspChain = k => { Object.assign(CM.ui.insp, { chain: decK(k), door: '', page: 0, q: '' }); PICK_SEL['cm-insp'] = ''; CM.inspRender(); CM.jump('cm-inspect'); };
+CM.inspChains = () => { CM.inspClose(); Object.assign(CM.ui.insp, { chain: '', door: '', page: 0, q: '' }); PICK_SEL['cm-insp'] = ''; CM.inspRender(); };
+CM.inspPick = k => { CM.ui.insp.door = decK(k); PICK_SEL['cm-insp'] = CM.ui.insp.door; CM.inspRender(); CM.inspOverview(); };
 CM.inspClose = () => { const el = $('cm-insp'); if (el) el.style.display = 'none'; };
 CM.inspBack = () => { CM.inspClose(); CM.inspRender(); };
 CM.inspNext = () => { const k = CM.ui.insp.door; if (k) CM.report('store', encK(k)); }; // the OnePager overlay (z-index above this one) opens on top; its Close returns here
@@ -9873,7 +9886,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('cm-insp
 function evalsHtml(C) {
   const pg = Math.min(CM.ui.pEval, Math.max(0, Math.ceil(C.evals.length / PAGE) - 1)), rows = C.evals.slice(pg * PAGE, pg * PAGE + PAGE).map(e => {
     const m = C.M.byKey.get(e.doorKey), v = e.v;
-    return `<tr class="cm-click" onclick="CM.report('store','${encK(e.doorKey)}')"><td>${fmtD(e.ts)}</td><td>${H(e.srcLabel)}</td><td>${H(m.chain)}</td><td>${H(m.state)}</td><td>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${H(e.reviewer || '—')}</td>
+    return `<tr class="cm-click pick-row" title="Click to select · double-click to open the OnePager" ondblclick="CM.report('store','${encK(e.doorKey)}')"><td>${fmtD(e.ts)}</td><td>${H(e.srcLabel)}</td><td>${H(m.chain)}</td><td>${H(m.state)}</td><td>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${H(e.reviewer || '—')}</td>
       <td>${e.submitted ? '<b style="color:#2f855a">Submitted</b>' : '<span class="cm-gr">Pending</span>'}</td><td>${v ? yn(v.present) : '—'}</td><td>${v ? yn(v.visible) : '—'}</td><td>${v ? yn(v.strip) : '—'}</td><td>${v ? yn(v.stripOk) : '—'}</td><td>${v && v.facings != null ? v.facings : '—'}</td><td>${v && v.empty != null ? v.empty : '—'}</td>
       <td>${H(e.skuSummary || '—')}</td><td>${H(e.popSummary || '—')}</td><td>${H(e.inventory || '—')}</td><td>${H(((e.recommendation ? e.recommendation + (e.notes ? ' · ' : '') : '') + (e.notes || '')).slice(0, 160)) || '—'}</td></tr>`;
   }).join('');
@@ -9890,7 +9903,7 @@ function issuesHtml(C) {
   // Same basis as the KPI card: doors with a Medium+ missing-SKU finding / evaluated doors in the current filters.
   const K = kpis(C), skuShare = ` · ${fmtNum(K.missingSkuDoors)} doors with a Medium+ missing SKU (${K.evaluatedDoors ? (K.missingSkuDoors / K.evaluatedDoors * 100).toFixed(1) + '%' : '—'} of ${fmtNum(K.evaluatedDoors)} evaluated)`;
   const rows = list.slice(pg * PAGE, pg * PAGE + PAGE).map(i => { const m = C.M.byKey.get(i.doorKey);
-    return `<tr class="cm-click" onclick="CM.report('store','${encK(i.doorKey)}')"><td>${sevChip(i.severity)}</td><td>${stChip(i.status)}</td><td>${H(i.cat)}</td><td>${H(i.label)}${i.skuLabel ? '<br><b>' + H(i.skuLabel) + '</b>' : ''}<div class="cm-gr" style="font-size:10.5px">${H(i.detail || '')}</div></td>
+    return `<tr class="cm-click pick-row" title="Click to select · double-click to open the OnePager" ondblclick="CM.report('store','${encK(i.doorKey)}')"><td>${sevChip(i.severity)}</td><td>${stChip(i.status)}</td><td>${H(i.cat)}</td><td>${H(i.label)}${i.skuLabel ? '<br><b>' + H(i.skuLabel) + '</b>' : ''}<div class="cm-gr" style="font-size:10.5px">${H(i.detail || '')}</div></td>
       <td>${H(m.chain)}</td><td>${H(m.state)}</td><td>${H(m.address)}${m.city ? ', ' + H(m.city) : ''}</td><td>${fmtI(i.first, i.origin)}</td><td>${fmtI(i.last, i.origin)}</td><td>${i.count}</td><td><span class="cm-tag">${i.origin === 'review' ? 'Reviewer evaluation' : i.origin === 'report' ? 'Visit report' : i.origin === 'comment' ? 'Evaluator comment' : 'Sales data'}</span><div class="cm-gr" style="font-size:10.5px">${H(i.src)}</div></td></tr>`; }).join('');
   return `<div class="cm-sec" id="cm-issues"><h2>Automatic issue detection <small>${fmtNum(list.length)} ${CM.f.istatus || (CM.f.kpi === 'resolved' ? 'Resolved' : 'active')} issues across ${fmtNum(new Set(list.map(i => i.doorKey)).size)} doors</small></h2><div class="cm-body">
     <div style="margin-bottom:8px">${Object.keys(byCat).map(c => `<span class="cm-tag" style="margin-right:6px;cursor:pointer" onclick="CM.set('cat','${H(c)}')">${H(c)}: <b>${byCat[c]}</b>${c === 'Missing SKU' ? `<span title="Doors with a Medium+ missing-SKU finding as a share of evaluated doors (doors with at least one evaluation), within the current filters"> <b style="color:#c00000">${skuShare.slice(1)}</b></span>` : ''}</span>`).join('')}</div>
@@ -9930,7 +9943,7 @@ function actionsHtml(C) {
   const rows = list.slice(pg * PAGE, pg * PAGE + PAGE).map(x => {
     const k = encK(x.key), dis = ed ? '' : 'disabled';
     const hist = CM.ui.hist[x.key] ? `<tr><td colspan="13"><div class="cm-hist"><b>Why:</b> ${H(x.why || '—')}<br><b>History:</b> ${(x.history || []).map(h => `${fmtD(Date.parse(h.at))} · ${H(h.by)} · ${H(h.what)}`).join('<br>') || 'No changes recorded yet.'}<br><b>Comments:</b> ${(x.comments || []).map(c => `${fmtD(Date.parse(c.at))} · ${H(c.by)}: ${H(c.text)}`).join('<br>') || 'None.'}</div></td></tr>` : '';
-    return `<tr><td>${sevChip(x.severity)}</td><td>${H(x.chain)}</td><td>${H(x.state)}</td><td class="cm-click" onclick="CM.report('store','${encK(x.doorKey)}')" style="cursor:pointer;color:#1f4e9c">${H(x.store)}</td><td>${H(x.label)}<div class="cm-gr" style="font-size:10.5px">${H(x.detail || '')}</div></td><td><span class="cm-tag">${H(x.source)}</span></td><td>${H(x.recommended)}</td>
+    return `<tr class="pick-row" title="Click to select · double-click to open the OnePager" ondblclick="if(!event.target.closest('input,select,textarea,button,a,label'))CM.report('store','${encK(x.doorKey)}')"><td>${sevChip(x.severity)}</td><td>${H(x.chain)}</td><td>${H(x.state)}</td><td>${H(x.store)}</td><td>${H(x.label)}<div class="cm-gr" style="font-size:10.5px">${H(x.detail || '')}</div></td><td><span class="cm-tag">${H(x.source)}</span></td><td>${H(x.recommended)}</td>
       <td><input class="cm-act-in" ${dis} value="${H(x.assigned)}" placeholder="Category manager" onchange="CM.actSave('${k}',{assigned:this.value.trim()})"></td><td>${fmtI(x.identified, x.source)}</td><td><input class="cm-act-in" type="date" ${dis} value="${H(x.target)}" onchange="CM.actSave('${k}',{target:this.value})" style="max-width:118px"></td>
       <td><select class="cm-act-in" ${dis} onchange="CM.actSave('${k}',{status:this.value})">${ACT_STATUS.map(s => `<option ${x.status === s ? 'selected' : ''}>${s}</option>`).join('')}${ACT_STATUS.includes(x.status) ? '' : `<option selected>${H(x.status)}</option>`}</select>${!x.active && x.issueStatus === 'Resolved' && OPEN_STATUS.includes(x.status) ? '<div class="cm-gr" style="font-size:10px">Issue no longer reported — verify &amp; close</div>' : ''}</td>
       <td><button class="cm-btn sm" ${dis} onclick="CM.actComment('${k}')">+ Comment</button> <button class="cm-btn sm" onclick="CM.actHist('${k}')">History (${(x.history || []).length + (x.comments || []).length})</button></td><td>${stChip(x.issueStatus)}</td></tr>${hist}`;
