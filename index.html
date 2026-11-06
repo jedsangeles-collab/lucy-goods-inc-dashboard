@@ -1624,6 +1624,11 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .ranked-table th{text-align:left;padding:8px 10px;color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;}
 .ranked-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
 .ranked-table tr:hover td{background:var(--surface2);cursor:pointer;}
+/* Stores tab (pickMode): clear hover highlight, a persistent selected row, no text selection on double-click */
+.ranked-table.door-pick tbody tr.door-row{user-select:none;}
+.ranked-table.door-pick tbody tr.door-row:hover td{background:var(--blue-dim);}
+.ranked-table.door-pick tbody tr.door-row.row-sel td{background:#2563EB33;font-weight:600;}
+.ranked-table.door-pick tbody tr.door-row.row-sel td:first-child{box-shadow:inset 3px 0 0 var(--blue);}
 .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
 .badge-critical{background:var(--red-dim);color:var(--red);}
 .badge-warn{background:var(--yellow-dim);color:var(--yellow);}
@@ -3502,7 +3507,17 @@ function doorsTableChangePage(tableId, delta) {
 // Paginates through the FULL door list rather than silently truncating it -- a chain like Wawa
 // (1,315 doors) previously only ever showed its first 100-300 doors with no way to reach the
 // rest, and no visible total, which read as "the list is missing stores" (it was).
-function renderDoorsTable(doors, mapContainerId, tableId) {
+// pickMode (Stores tab only): hovering highlights a row, one click SELECTS it (stays highlighted), a double
+// click CHOOSES the store (opens its detail panel and flies to it on the map). Without it (Overview) a single
+// click opens the store straight away, as before.
+let doorsTableSel = {};
+function doorsTablePick(tr, tableId, key) {
+  doorsTableSel[tableId] = key;
+  tr.closest('tbody').querySelectorAll('tr.row-sel').forEach(r => r.classList.remove('row-sel'));
+  tr.classList.add('row-sel');
+}
+function doorsTableChoose(key, mapContainerId) { openDoorDetail(key); highlightOnChainMap(key, mapContainerId); }
+function renderDoorsTable(doors, mapContainerId, tableId, pickMode) {
   tableId = tableId || mapContainerId || 'doors-table-default';
   const state = doorsTableSort[tableId] || { col: 'score', dir: 'asc' };
   const sorted = [...doors].sort((a,b) => compareDoorsForSort(a, b, state.col, state.dir));
@@ -3527,10 +3542,12 @@ function renderDoorsTable(doors, mapContainerId, tableId) {
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">
       <strong style="color:var(--text);">${fmtNum(doors.length)}</strong> total stores &middot;
       <span style="color:var(--green);">${fmtNum(visitedCount)} visited</span> &middot;
-      <span>${fmtNum(notVisitedCount)} not visited</span>
+      <span>${fmtNum(notVisitedCount)} not visited</span>${pickMode ? ' &middot; <span>click a row to select it, double-click to choose that store</span>' : ''}
     </div>
-    <table class="ranked-table"><thead><tr>${headerHtml}</tr></thead>
-    <tbody>${pageRows.map(d => `<tr onclick="openDoorDetail('${esc(d.key)}'); highlightOnChainMap('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''});">
+    <table class="ranked-table${pickMode ? ' door-pick' : ''}"><thead><tr>${headerHtml}</tr></thead>
+    <tbody>${pageRows.map(d => (pickMode
+      ? `<tr class="door-row${doorsTableSel[tableId] === d.key ? ' row-sel' : ''}" title="Click to select · double-click to open this store" onclick="doorsTablePick(this,'${tableId}','${esc(d.key)}')" ondblclick="doorsTableChoose('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''})">`
+      : `<tr onclick="openDoorDetail('${esc(d.key)}'); highlightOnChainMap('${esc(d.key)}'${mapContainerId?`,'${esc(mapContainerId)}'`:''});">`) + `
       <td>${escHtml(d.address)}</td><td>${escHtml(d.city)}</td><td>${escHtml(d.state)}</td>
       <td>${d.visited ? '<span class="badge badge-good">Visited</span>' : '<span class="badge badge-muted">Not visited</span>'}</td>
       <td>${d.latestScore!==null&&d.latestScore!==undefined ? d.latestScore+'/4' : '—'}</td>
@@ -8584,7 +8601,7 @@ function renderStoresTab() {
 
   const mapSectionBody = cpMapView
     ? `<div id="cp-chain-map" style="height:320px;border-radius:10px;overflow:hidden;border:1px solid var(--border);"></div>`
-    : renderDoorsTable(doors, 'cp-chain-map', 'stores-main');
+    : renderDoorsTable(doors, 'cp-chain-map', 'stores-main', true);
 
   const actionsForChain = loadActions().filter(a => doors.some(d => d.key === a.doorKey));
 
