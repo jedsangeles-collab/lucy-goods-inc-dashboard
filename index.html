@@ -2599,7 +2599,7 @@ tr.pick-row.row-sel td:first-child,div.pick-row.row-sel{box-shadow:inset 3px 0 0
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <span class="lb-close">✕</span>
   <label class="lb-zoom-toggle" onclick="event.stopPropagation()">
-    <input type="checkbox" id="lb-zoom-checkbox" onchange="toggleMagnifierEnabled(this.checked)"> 🔍 Zoom on hover
+    <input type="checkbox" id="lb-zoom-checkbox" onchange="toggleMagnifierEnabled(this.checked)"> <span id="lb-zoom-label">🔍 Zoom on hover</span>
   </label>
   <span class="lb-nav prev" id="lb-prev" onclick="event.stopPropagation();lbNav(-1);">‹</span>
   <img id="lb-img" src="file:///C:/Users/dgsul/Downloads/lucy_dashboard_v2_6.html" alt="">
@@ -3191,6 +3191,10 @@ function openLightbox(url, urls, index, labels) {
   lbPhotoIndex = Number.isInteger(index) ? index : Math.max(0, lbPhotoUrls.indexOf(url));
   if (lbPhotoIndex < 0) lbPhotoIndex = 0;
   const lbImg = document.getElementById('lb-img');
+  // The four Visit Review tabs get a 5x magnifier (2x the old 2.5x); every other tab keeps 2.5x. The viewer itself is full-screen everywhere.
+  const review = ['civisitreview', 'eileenvisitreview', 'extravisitreview', 'highwayreview'].includes(currentTab);
+  magZoomLevel = review ? 5 : 2.5;
+  const zl = document.getElementById('lb-zoom-label'); if (zl) zl.textContent = review ? '🔍 Zoom on hover (5×)' : '🔍 Zoom on hover';
   lbImg.src = lbPhotoUrls[lbPhotoIndex];
   attachMagnifierTo(lbImg);
   document.getElementById('lightbox').classList.add('open');
@@ -3258,13 +3262,14 @@ function attachMagnifierTo(img) {
 function showMagLens(img) {
   const lens = ensureMagLens();
   lens.style.backgroundImage = `url("${img.currentSrc || img.src}")`;
-  lens.style.display = 'block';
+  // not shown yet: moveMagLens() displays it at the pointer, so no stray lens flashes in the corner when the viewer opens under a still mouse
 }
 
 function moveMagLens(img, e) {
   const lens = ensureMagLens();
   const rect = img.getBoundingClientRect();
   const lensSize = 160;
+  lens.style.display = 'block';
   const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
   const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
   lens.style.left = (e.clientX - lensSize/2) + 'px';
