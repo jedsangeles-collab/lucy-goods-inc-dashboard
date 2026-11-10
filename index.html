@@ -1232,6 +1232,23 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 #view-civisitreview .civdate-cell.civdate-in-range, #view-eileenvisitreview .civdate-cell.civdate-in-range, #view-highwayreview .civdate-cell.civdate-in-range, #view-reviewersummary .civdate-cell.civdate-in-range, #view-extravisitreview .civdate-cell.civdate-in-range{background:#e3f0ff;border-radius:0;}
 #view-civisitreview .civdate-cell.civdate-range-start, #view-eileenvisitreview .civdate-cell.civdate-range-start, #view-highwayreview .civdate-cell.civdate-range-start, #view-reviewersummary .civdate-cell.civdate-range-start,
 #view-civisitreview .civdate-cell.civdate-range-end, #view-eileenvisitreview .civdate-cell.civdate-range-end, #view-highwayreview .civdate-cell.civdate-range-end, #view-reviewersummary .civdate-cell.civdate-range-end, #view-extravisitreview .civdate-cell.civdate-range-end{background:#1a5fa0;color:#fff;font-weight:600;}
+/* Date picker additions (2026-11-11): month picker, month/year jump lists, clickable range chip. Shared by the four Visit Review tabs.
+   The range-start highlight is global now: the old rule listed every tab except Extra, so on Extra the first date you clicked showed no highlight. */
+.civdate-cell.civdate-range-start,.civdate-cell.civdate-range-end{background:#1a5fa0 !important;color:#fff !important;font-weight:600;}
+.civdate-picker{width:260px !important;}
+.civdate-tabs{display:flex;gap:4px;margin-bottom:8px;background:#f0efe9;border-radius:7px;padding:2px;}
+.civdate-tab{flex:1;text-align:center;font-size:12px;font-weight:600;padding:4px 0;border-radius:5px;cursor:pointer;color:#666;user-select:none;}
+.civdate-tab.on{background:#fff;color:#1a5fa0;box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.civdate-jumps{display:flex;gap:4px;}
+.civdate-jump{font-size:12px;font-weight:600;padding:3px 4px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#1a1a18;cursor:pointer;}
+.civdate-mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0;}
+.civdate-mcell{text-align:center;font-size:13px;font-weight:600;padding:9px 0;border-radius:8px;cursor:pointer;color:#1a1a18;background:#f6f5f1;user-select:none;}
+.civdate-mcell:hover{background:#e3f0ff;}
+.civdate-mcell.on{background:#1a5fa0;color:#fff;}
+.civdate-chip{cursor:pointer;}
+.civdate-chip:hover{background:#cfe4ff !important;}
+.civdate-clear{cursor:pointer;font-size:12px;color:#a02020;padding:2px 5px;border-radius:4px;user-select:none;}
+.civdate-clear:hover{background:#f3dede;}
 #view-civisitreview .civdate-picker-footer, #view-eileenvisitreview .civdate-picker-footer, #view-highwayreview .civdate-picker-footer, #view-reviewersummary .civdate-picker-footer, #view-extravisitreview .civdate-picker-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
 #view-civisitreview .civdate-range-label, #view-eileenvisitreview .civdate-range-label, #view-highwayreview .civdate-range-label, #view-reviewersummary .civdate-range-label, #view-extravisitreview .civdate-range-label{font-size:11px;color:#666;}
 #view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar, #view-highwayreview .civr-bulk-bar, #view-reviewersummary .civr-bulk-bar, #view-extravisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
@@ -5180,7 +5197,7 @@ function civMatchesDateFilter(vd, filters) {
   if (filters.dateFilter === 'today') return dOnly === civTodayDateOnly();
   if (filters.dateFilter === 'last7') return dOnly >= civDateNDaysAgo(6) && dOnly <= civTodayDateOnly();
   if (filters.dateFilter === 'last30') return dOnly >= civDateNDaysAgo(29) && dOnly <= civTodayDateOnly();
-  if (filters.dateFilter === 'custom') {
+  if (filters.dateFilter === 'custom' || filters.dateFilter === 'month') { // 'month' = a whole calendar month picked in the month picker; both are a from/to range
     if (!filters.dateFrom) return true; // picker opened but nothing confirmed yet -- don't filter
     return dOnly >= filters.dateFrom && dOnly <= (filters.dateTo || filters.dateFrom);
   }
@@ -5190,13 +5207,22 @@ function civMatchesDateFilter(vd, filters) {
 // Calendar picker state -- open/pending-selection UI state, deliberately separate from `filters`
 // (which only holds the last CONFIRMED date filter) so opening the picker or clicking around
 // inside it never changes what's actually being filtered until Apply is clicked.
-function civDatePickerBlank() { return { open:false, month:null, pendingFrom:null, pendingTo:null }; }
+// mode: 'day' (date / date-range calendar) or 'month' (12-month grid for one year); month = the month the day calendar shows, year = the year the month grid shows
+function civDatePickerBlank() { return { open:false, mode:'day', month:null, year:null, pendingFrom:null, pendingTo:null }; }
+function civMonthRange(y, m) { const last = new Date(y, m, 0).getDate(), mm = String(m).padStart(2,'0'); return [`${y}-${mm}-01`, `${y}-${mm}-${String(last).padStart(2,'0')}`]; }
+function civIsWholeMonth(from, to) { if (!from || !to || from.slice(0,7) !== to.slice(0,7)) return false; const r = civMonthRange(+from.slice(0,4), +from.slice(5,7)); return from === r[0] && to === r[1]; }
+function civDateRangeLabel(from, to) {
+  if (!to) to = from;
+  if (civIsWholeMonth(from, to)) return new Date(+from.slice(0,4), +from.slice(5,7) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return from === to ? from : `${from} – ${to}`;
+}
 
 function civSetDateFilterShared(filters, picker, val, rerender) {
   filters.dateFilter = val;
-  if (val === 'custom') {
-    picker.open = true;
-    if (!picker.month) picker.month = civTodayDateOnly().slice(0,7);
+  if (val === 'custom' || val === 'month') {
+    picker.open = true; picker.mode = val === 'month' ? 'month' : 'day';
+    const base = filters.dateFrom || civTodayDateOnly();
+    picker.month = base.slice(0,7); picker.year = base.slice(0,4); // open on the confirmed range (or today), not wherever it was browsed last
     picker.pendingFrom = filters.dateFrom; picker.pendingTo = filters.dateTo;
   } else {
     picker.open = false; picker.pendingFrom = null; picker.pendingTo = null;
@@ -5206,7 +5232,9 @@ function civSetDateFilterShared(filters, picker, val, rerender) {
 }
 function civDatePickerOpenShared(filters, picker, rerender) {
   picker.open = true;
-  if (!picker.month) picker.month = (filters.dateFrom || civTodayDateOnly()).slice(0,7);
+  picker.mode = filters.dateFilter === 'month' ? 'month' : 'day';
+  const base = filters.dateFrom || civTodayDateOnly();
+  picker.month = base.slice(0,7); picker.year = base.slice(0,4);
   picker.pendingFrom = filters.dateFrom; picker.pendingTo = filters.dateTo;
   rerender();
 }
@@ -5232,17 +5260,54 @@ function civDatePickerApplyShared(filters, picker, rerender) {
   if (!picker.pendingFrom) return;
   filters.dateFrom = picker.pendingFrom;
   filters.dateTo = picker.pendingTo || picker.pendingFrom;
-  filters.dateFilter = 'custom';
+  filters.dateFilter = civIsWholeMonth(filters.dateFrom, filters.dateTo) ? 'month' : 'custom'; // a range that is exactly one calendar month reads (and selects) as "Month"
   picker.open = false;
   rerender();
 }
 function civDatePickerCancelShared(filters, picker, rerender) {
   picker.open = false;
-  if (filters.dateFilter === 'custom' && !filters.dateFrom) filters.dateFilter = 'all';
+  if ((filters.dateFilter === 'custom' || filters.dateFilter === 'month') && !filters.dateFrom) filters.dateFilter = 'all';
   rerender();
 }
 
+const CIV_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+// Years offered in the jump list: the dashboard's data starts in 2025; always include the year being shown
+function civDateYearOptions(sel) {
+  const ys = []; for (let yy = 2025; yy <= new Date().getFullYear() + 1; yy++) ys.push(yy);
+  if (!ys.includes(+sel)) { ys.push(+sel); ys.sort((a, b) => a - b); }
+  return ys.map(yy => `<option value="${yy}" ${yy === +sel ? 'selected' : ''}>${yy}</option>`).join('');
+}
+function civDatePickerTabsHtml(prefix, picker) {
+  return `<div class="civdate-tabs"><span class="civdate-tab ${picker.mode === 'month' ? '' : 'on'}" onclick="civDatePickerMode('${prefix}','day')">Date</span><span class="civdate-tab ${picker.mode === 'month' ? 'on' : ''}" onclick="civDatePickerMode('${prefix}','month')">Month</span></div>`;
+}
+// Month picker: a 12-month grid for one year; clicking a month selects that WHOLE calendar month (Apply confirms it)
+function civDateMonthGridHtml(prefix, picker) {
+  const yr = +picker.year, whole = civIsWholeMonth(picker.pendingFrom, picker.pendingTo || picker.pendingFrom);
+  const cells = CIV_MONTH_NAMES.map((name, i) => {
+    const r = civMonthRange(yr, i + 1), on = whole && picker.pendingFrom === r[0];
+    return `<div class="civdate-mcell ${on ? 'on' : ''}" onclick="civDatePickerPickMonth('${prefix}',${i + 1})">${name.slice(0, 3)}</div>`;
+  }).join('');
+  const rangeLabel = picker.pendingFrom ? civDateRangeLabel(picker.pendingFrom, picker.pendingTo) : 'Select a month';
+  return `<div class="civdate-picker" data-prefix="${prefix}">
+    ${civDatePickerTabsHtml(prefix, picker)}
+    <div class="civdate-picker-header">
+      <span class="civdate-nav" onclick="civDatePickerYear('${prefix}',-1)">‹</span>
+      <select class="civdate-jump" onchange="civDatePickerYearSet('${prefix}',this.value)">${civDateYearOptions(yr)}</select>
+      <span class="civdate-nav" onclick="civDatePickerYear('${prefix}',1)">›</span>
+    </div>
+    <div class="civdate-mgrid">${cells}</div>
+    <div class="civdate-picker-footer">
+      <span class="civdate-range-label">${escHtml(rangeLabel)}</span>
+      <div>
+        <button class="civr-flag-btn" onclick="${prefix}DatePickerCancel()">Cancel</button>
+        <button class="civr-submit-btn" style="padding:5px 14px;font-size:11px;" ${picker.pendingFrom ? '' : 'disabled'} onclick="${prefix}DatePickerApply()">Apply</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 function civDatePickerCalendarHtml(prefix, picker) {
+  if (picker.mode === 'month') return civDateMonthGridHtml(prefix, picker);
   const [y, m] = picker.month.split('-').map(Number);
   const first = new Date(y, m - 1, 1);
   const startDow = first.getDay();
@@ -5261,10 +5326,14 @@ function civDatePickerCalendarHtml(prefix, picker) {
   const rangeLabel = picker.pendingFrom
     ? (picker.pendingTo ? `${picker.pendingFrom} to ${picker.pendingTo}` : `${picker.pendingFrom} (click an end date, or Apply for a single day)`)
     : 'Select a date';
-  return `<div class="civdate-picker">
+  return `<div class="civdate-picker" data-prefix="${prefix}">
+    ${civDatePickerTabsHtml(prefix, picker)}
     <div class="civdate-picker-header">
       <span class="civdate-nav" onclick="${prefix}DatePickerNav(-1)">‹</span>
-      <span class="civdate-month-label">${escHtml(monthLabel)}</span>
+      <span class="civdate-jumps">
+        <select class="civdate-jump" id="${prefix}-dp-m" onchange="civDatePickerJump('${prefix}',document.getElementById('${prefix}-dp-m').value,document.getElementById('${prefix}-dp-y').value)">${CIV_MONTH_NAMES.map((n, i) => `<option value="${i + 1}" ${i + 1 === m ? 'selected' : ''}>${n.slice(0, 3)}</option>`).join('')}</select>
+        <select class="civdate-jump" id="${prefix}-dp-y" onchange="civDatePickerJump('${prefix}',document.getElementById('${prefix}-dp-m').value,document.getElementById('${prefix}-dp-y').value)">${civDateYearOptions(y)}</select>
+      </span>
       <span class="civdate-nav" onclick="${prefix}DatePickerNav(1)">›</span>
     </div>
     <div class="civdate-grid civdate-dow-row">
@@ -5274,6 +5343,7 @@ function civDatePickerCalendarHtml(prefix, picker) {
     <div class="civdate-picker-footer">
       <span class="civdate-range-label">${escHtml(rangeLabel)}</span>
       <div>
+        <button class="civr-flag-btn" title="Select the whole month being shown" onclick="civDatePickerWholeMonth('${prefix}')">Whole month</button>
         <button class="civr-flag-btn" onclick="${prefix}DatePickerCancel()">Cancel</button>
         <button class="civr-submit-btn" style="padding:5px 14px;font-size:11px;" ${picker.pendingFrom?'':'disabled'} onclick="${prefix}DatePickerApply()">Apply</button>
       </div>
@@ -5281,10 +5351,27 @@ function civDatePickerCalendarHtml(prefix, picker) {
   </div>`;
 }
 
+// Prefix-based helpers for the picker's extra controls. Each tab owns its own filters / picker / render / page variables;
+// these lazy lookups let one set of functions serve all four (and survive the tab resetting its picker object).
+const CIV_DATE_CTX = {
+  civr:  () => ({ f: civrFilters,  p: civrDatePicker,  render: renderCiVisitReview,   resetPage: () => { civrPage = 0; } }),
+  eivr:  () => ({ f: eivrFilters,  p: eivrDatePicker,  render: renderEileenVisitReview, resetPage: () => { eivrPage = 0; } }),
+  extra: () => ({ f: extraFilters, p: extraDatePicker, render: renderExtraVisitReview,  resetPage: () => { extraPage = 0; } }),
+  hwr:   () => ({ f: hwrFilters,   p: hwrDatePicker,   render: renderHighwayReview,     resetPage: () => { hwrPage = 0; } })
+};
+function civDatePickerMode(prefix, mode) { const c = CIV_DATE_CTX[prefix](); c.p.mode = mode; c.p.year = c.p.month.slice(0,4); c.render(); }
+function civDatePickerJump(prefix, mo, yr) { const c = CIV_DATE_CTX[prefix](); c.p.month = `${yr}-${String(mo).padStart(2,'0')}`; c.render(); }
+function civDatePickerYear(prefix, dir) { const c = CIV_DATE_CTX[prefix](); c.p.year = String(+c.p.year + dir); c.p.month = c.p.year + c.p.month.slice(4); c.render(); }
+function civDatePickerYearSet(prefix, yr) { const c = CIV_DATE_CTX[prefix](); c.p.year = String(yr); c.p.month = c.p.year + c.p.month.slice(4); c.render(); }
+function civDatePickerPickMonth(prefix, mo) { const c = CIV_DATE_CTX[prefix](), r = civMonthRange(+c.p.year, mo); c.p.pendingFrom = r[0]; c.p.pendingTo = r[1]; c.p.month = r[0].slice(0,7); c.render(); }
+function civDatePickerWholeMonth(prefix) { const c = CIV_DATE_CTX[prefix](), [y, m] = c.p.month.split('-').map(Number), r = civMonthRange(y, m); c.p.pendingFrom = r[0]; c.p.pendingTo = r[1]; c.render(); }
+function civDateClear(prefix) { const c = CIV_DATE_CTX[prefix](); c.resetPage(); civSetDateFilterShared(c.f, c.p, 'all', c.render); }
+
 function civDateFilterControlHtml(prefix, filters, picker) {
   let displayText = '';
-  if (filters.dateFilter === 'custom' && filters.dateFrom) {
-    displayText = (filters.dateTo && filters.dateTo !== filters.dateFrom) ? `${filters.dateFrom} – ${filters.dateTo}` : filters.dateFrom;
+  const ranged = (filters.dateFilter === 'custom' || filters.dateFilter === 'month');
+  if (ranged && filters.dateFrom) {
+    displayText = civDateRangeLabel(filters.dateFrom, filters.dateTo);
   } else if (filters.dateFilter === 'today') {
     displayText = civTodayDateOnly();
   } else if (filters.dateFilter === 'last7') {
@@ -5300,19 +5387,23 @@ function civDateFilterControlHtml(prefix, filters, picker) {
       <option value="last7" ${filters.dateFilter==='last7'?'selected':''}>Last 7 Days</option>
       <option value="last30" ${filters.dateFilter==='last30'?'selected':''}>Last 30 Days</option>
       <option value="custom" ${filters.dateFilter==='custom'?'selected':''}>Custom Date</option>
+      <option value="month" ${filters.dateFilter==='month'?'selected':''}>Month</option>
     </select>
-    ${displayText ? `<span class="civdate-display" ${filters.dateFilter==='custom'?`onclick="${prefix}DatePickerOpen()" style="cursor:pointer;"`:''}>${escHtml(displayText)}</span>` : ''}
+    ${ranged
+      // a confirmed range / month is a button: click to change it, ✕ to clear it (re-picking "Custom Date" in the dropdown can't fire when it is already selected)
+      ? `<span class="civdate-display civdate-chip" title="Click to change the date or month" onclick="${prefix}DatePickerOpen()">📅 ${escHtml(displayText || (filters.dateFilter === 'month' ? 'Pick a month' : 'Pick dates'))} ✎</span><span class="civdate-clear" title="Clear the date filter" onclick="civDateClear('${prefix}')">✕</span>`
+      : (displayText ? `<span class="civdate-display">${escHtml(displayText)}</span>` : '')}
     ${picker.open ? civDatePickerCalendarHtml(prefix, picker) : ''}
   </span>`;
 }
 
 let civrFilters = Object.assign({ chain:'', status:'', source:'', needsProduct:'', repOos:'', productThere:'', flagged:'' }, civDateFilterBlank());
 let civrDatePicker = civDatePickerBlank();
-function civrSetDateFilter(val) { civSetDateFilterShared(civrFilters, civrDatePicker, val, renderCiVisitReview); civrPage = 0; }
+function civrSetDateFilter(val) { civrPage = 0; civSetDateFilterShared(civrFilters, civrDatePicker, val, renderCiVisitReview); } // page reset BEFORE the redraw: it used to run after, so the list drew from the old page (e.g. only the last few cards on "page 2")
 function civrDatePickerOpen() { civDatePickerOpenShared(civrFilters, civrDatePicker, renderCiVisitReview); }
 function civrDatePickerClickDay(d) { civDatePickerClickDayShared(civrDatePicker, d, renderCiVisitReview); }
 function civrDatePickerNav(dir) { civDatePickerNavShared(civrDatePicker, dir, renderCiVisitReview); }
-function civrDatePickerApply() { civDatePickerApplyShared(civrFilters, civrDatePicker, renderCiVisitReview); civrPage = 0; }
+function civrDatePickerApply() { civrPage = 0; civDatePickerApplyShared(civrFilters, civrDatePicker, renderCiVisitReview); }
 function civrDatePickerCancel() { civDatePickerCancelShared(civrFilters, civrDatePicker, renderCiVisitReview); }
 let civrPage = 0;
 const CIVR_PAGE_SIZE = 10; // 10 cards per page on every Visit Review tab (was 6, the reference prototype's PER_PAGE)
@@ -5910,11 +6001,11 @@ function eivSetDecisionOverride(id, value, src = 'eileen') {
 
 let eivrFilters = Object.assign({ chain:'', status:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
 let eivrDatePicker = civDatePickerBlank();
-function eivrSetDateFilter(val) { civSetDateFilterShared(eivrFilters, eivrDatePicker, val, renderEileenVisitReview); eivrPage = 0; }
+function eivrSetDateFilter(val) { eivrPage = 0; civSetDateFilterShared(eivrFilters, eivrDatePicker, val, renderEileenVisitReview); }
 function eivrDatePickerOpen() { civDatePickerOpenShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); }
 function eivrDatePickerClickDay(d) { civDatePickerClickDayShared(eivrDatePicker, d, renderEileenVisitReview); }
 function eivrDatePickerNav(dir) { civDatePickerNavShared(eivrDatePicker, dir, renderEileenVisitReview); }
-function eivrDatePickerApply() { civDatePickerApplyShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); eivrPage = 0; }
+function eivrDatePickerApply() { eivrPage = 0; civDatePickerApplyShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); }
 function eivrDatePickerCancel() { civDatePickerCancelShared(eivrFilters, eivrDatePicker, renderEileenVisitReview); }
 let eivrPage = 0;
 const EIVR_PAGE_SIZE = 10;
@@ -6258,11 +6349,11 @@ const EXTRA_PAGE_SIZE = 10;
 const EXTRA_JUMP_PAGES = Math.round(50 / EXTRA_PAGE_SIZE);
 let extraBulkMsg = '';
 
-function extraSetDateFilter(val) { civSetDateFilterShared(extraFilters, extraDatePicker, val, renderExtraVisitReview); extraPage = 0; }
+function extraSetDateFilter(val) { extraPage = 0; civSetDateFilterShared(extraFilters, extraDatePicker, val, renderExtraVisitReview); }
 function extraDatePickerOpen() { civDatePickerOpenShared(extraFilters, extraDatePicker, renderExtraVisitReview); }
 function extraDatePickerClickDay(d) { civDatePickerClickDayShared(extraDatePicker, d, renderExtraVisitReview); }
 function extraDatePickerNav(dir) { civDatePickerNavShared(extraDatePicker, dir, renderExtraVisitReview); }
-function extraDatePickerApply() { civDatePickerApplyShared(extraFilters, extraDatePicker, renderExtraVisitReview); extraPage = 0; }
+function extraDatePickerApply() { extraPage = 0; civDatePickerApplyShared(extraFilters, extraDatePicker, renderExtraVisitReview); }
 function extraDatePickerCancel() { civDatePickerCancelShared(extraFilters, extraDatePicker, renderExtraVisitReview); }
 
 function extraSetFilter(key, val) { extraFilters[key] = val; extraPage = 0; extraBulkMsg = ''; renderExtraVisitReview(); }
@@ -6506,11 +6597,11 @@ function renderExtraVisitReview() {
 // ══════════════════════════════════════════════════════════════════════════
 let hwrFilters = Object.assign({ chain:'', status:'', tobaccoReset:'', needsProduct:'', productThere:'', flagged:'' }, civDateFilterBlank());
 let hwrDatePicker = civDatePickerBlank();
-function hwrSetDateFilter(val) { civSetDateFilterShared(hwrFilters, hwrDatePicker, val, renderHighwayReview); hwrPage = 0; }
+function hwrSetDateFilter(val) { hwrPage = 0; civSetDateFilterShared(hwrFilters, hwrDatePicker, val, renderHighwayReview); }
 function hwrDatePickerOpen() { civDatePickerOpenShared(hwrFilters, hwrDatePicker, renderHighwayReview); }
 function hwrDatePickerClickDay(d) { civDatePickerClickDayShared(hwrDatePicker, d, renderHighwayReview); }
 function hwrDatePickerNav(dir) { civDatePickerNavShared(hwrDatePicker, dir, renderHighwayReview); }
-function hwrDatePickerApply() { civDatePickerApplyShared(hwrFilters, hwrDatePicker, renderHighwayReview); hwrPage = 0; }
+function hwrDatePickerApply() { hwrPage = 0; civDatePickerApplyShared(hwrFilters, hwrDatePicker, renderHighwayReview); }
 function hwrDatePickerCancel() { civDatePickerCancelShared(hwrFilters, hwrDatePicker, renderHighwayReview); }
 let hwrPage = 0;
 const HWR_PAGE_SIZE = 10;
