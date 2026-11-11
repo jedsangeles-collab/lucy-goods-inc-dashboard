@@ -1252,12 +1252,13 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 
 /* Eileen mobile review (2026-11-11): Missing facings | Shelf strip condition, promotion banner, Decision, Submit. Big touch targets, stacks on phones. */
 .eiv-review{padding:12px 16px 16px;border-top:1px solid #e0ddd6;background:#fcfbf8;}
-.eiv-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;}
+.eiv-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 18px;align-items:start;}
 .eiv-block{min-width:0;}
+.eiv-col{display:flex;flex-direction:column;gap:12px;min-width:0;}
 .eiv-h{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px;}
-.eiv-nums{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.eiv-nums{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;}
 .eiv-num,.eiv-opt{font-family:inherit;border:1.5px solid #cfd3da;background:#fff;color:#1a1a18;border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .1s,border-color .1s;}
-.eiv-num{min-height:48px;font-size:18px;font-weight:700;}
+.eiv-num{min-height:34px;font-size:14px;font-weight:700;border-radius:8px;padding:0;}
 .eiv-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
 .eiv-opt{min-height:52px;padding:6px 8px;font-size:13px;font-weight:600;line-height:1.2;}
 .eiv-num:hover:not(:disabled),.eiv-opt:hover:not(:disabled){border-color:#1a5fa0;background:#eef5fd;}
@@ -1271,26 +1272,32 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .eiv-promo b{font-size:17px;color:#14355a;word-break:break-word;}
 .eiv-promo small{font-size:11px;color:#5b6b7d;}
 .eiv-promo.none{display:block;background:#f4f2ec;border-color:#e0ddd6;color:#666;font-size:12px;}
-.eiv-decision{margin-top:14px;padding-top:12px;border-top:1px dashed #d9d6cc;}
-.eiv-decision-select{width:100%;max-width:340px;min-height:40px;font-size:14px;}
-.eiv-notes{display:flex;align-items:center;gap:8px;margin-top:12px;}
-.eiv-notes .civr-notes-input{flex:1;min-width:0;min-height:40px;font-size:14px;}
+.eiv-decision,.eiv-sub{padding-top:10px;border-top:1px dashed #d9d6cc;}
+.eiv-decision-select{width:100%;min-height:32px;font-size:13px;}
+.eiv-notes{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.eiv-notes .civr-notes-input{flex:1;min-width:0;min-height:32px;font-size:13px;}
 .eiv-msg{margin-top:12px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;}
 .eiv-msg.error{background:#fdecea;color:#8a1c14;border:1px solid #f3b8b3;}
 .eiv-msg.ok{background:#e6f4ec;color:#1f6b43;border:1px solid #b7dcc7;}
 .eiv-msg.warn{background:#fff4d6;color:#6b5500;border:1px solid #ecd48a;font-weight:500;}
 .eiv-by{margin-top:10px;font-size:12px;color:#666;}
-.eiv-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
-.eiv-submit{display:block;width:100%;margin-top:12px;min-height:54px;font-family:inherit;font-size:17px;font-weight:700;letter-spacing:.08em;color:#fff;background:#1a5fa0;border:none;border-radius:12px;cursor:pointer;touch-action:manipulation;}
+.eiv-sub{display:flex;flex-direction:column;gap:8px;}
+.eiv-sub .eiv-msg,.eiv-sub .eiv-by{margin-top:0;}
+.eiv-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.eiv-submit{display:block;width:100%;min-height:42px;font-family:inherit;font-size:14px;font-weight:700;letter-spacing:.06em;color:#fff;background:#1a5fa0;border:none;border-radius:10px;cursor:pointer;touch-action:manipulation;}
 .eiv-submit:hover:not(:disabled){background:#144d88;}
 .eiv-submit:disabled{background:#9db8d1;cursor:default;}
 .eiv-submit.done{background:#2f855a;}
 @media (max-width:720px){
-  .eiv-two{grid-template-columns:1fr;gap:18px;}
-  .eiv-num{min-height:52px;font-size:20px;}
-  .eiv-opt{min-height:56px;font-size:14px;}
+  .eiv-grid{grid-template-columns:1fr;gap:16px;}
+  .eiv-col{display:contents;} /* phone: the two columns dissolve into one stack, re-ordered: facings, strip, decision, submit */
+  .eiv-facings{order:1;} .eiv-strip{order:2;} .eiv-decision{order:3;} .eiv-sub{order:4;}
+  .eiv-nums{grid-template-columns:repeat(5,1fr);gap:6px;}
+  .eiv-num{min-height:48px;font-size:18px;}
+  .eiv-opt{min-height:52px;font-size:14px;}
   .eiv-review{padding:12px 12px 16px;}
-  .eiv-decision-select{max-width:none;}
+  .eiv-decision-select{min-height:44px;font-size:14px;}
+  .eiv-submit{min-height:50px;font-size:16px;}
   .eiv-notes{flex-direction:column;align-items:stretch;gap:4px;}
   /* the rest of the Eileen tab on a phone: header / filters / photos fit the width, no sideways scrolling */
   #view-eileenvisitreview .civr-header{padding:10px 12px;position:static;} /* not sticky on a phone: the wrapped export buttons would cover half the screen */
@@ -6462,19 +6469,15 @@ function eivrVerdictBarHtml(rec, draft, status) {
   const thresholdStatusLabel = dec.vel.avg === null ? 'N/A (no data)' : (dec.meetsThreshold ? 'Meets Threshold' : 'Below Threshold');
   const m = EIV_MSG[rec.id];
   const reviewer = locked && draft.reviewedBy ? `<div class="eiv-by">Submitted by <b>${escHtml(draft.reviewedBy)}</b>${draft.reviewedAt ? ' · ' + escHtml(fmtSubmittedAt(draft.reviewedAt)) : ''}</div>` : '';
+  // 2x2 grid: [Missing facings | promotion + Shelf strip condition] over [Decision + notes | Flag + SUBMIT]. One column on a phone, in that same order, so SUBMIT is still last.
   return `<div class="eiv-review">
-    <div class="eiv-two">
-      <div class="eiv-block">
+    <div class="eiv-grid">
+     <div class="eiv-col">
+      <div class="eiv-block eiv-facings">
         <div class="eiv-h">Missing facings</div>
         <div class="eiv-nums" role="group" aria-label="Missing facings">${[0,1,2,3,4,5,6,7,8].map(n => `<button class="eiv-num ${facings === n ? 'on' : ''}" ${dis} aria-pressed="${facings === n}" onclick="eivSetFacings(${rec.id}, ${n})">${n}</button>`).join('')}</div>
       </div>
-      <div class="eiv-block">
-        ${eivPromoBlockHtml(rec, draft, locked)}
-        <div class="eiv-h">Shelf strip condition</div>
-        <div class="eiv-opts${m && m.type === 'error' && !cond ? ' eiv-need' : ''}" role="group" aria-label="Shelf strip condition">${EIV_STRIP_OPTIONS.map(o => `<button class="eiv-opt eiv-opt-${o.key} ${cond === o.key ? 'on' : ''}" ${dis} aria-pressed="${cond === o.key}" onclick="eivSetCondition(${rec.id}, '${o.key}')">${o.label}</button>`).join('')}</div>
-      </div>
-    </div>
-    <div class="eiv-decision">
+      <div class="eiv-block eiv-decision">
       <div class="eiv-h">Decision</div>
       <select class="civr-select eiv-decision-select" ${dis} onchange="eivSetDecisionOverride(${rec.id}, this.value)">
         <option value="no_action_needed" ${finalDecision==='no_action_needed'?'selected':''}>No Action Needed</option>
@@ -6485,19 +6488,30 @@ function eivrVerdictBarHtml(rec, draft, status) {
       <div class="civr-vq-pre">Threshold: 60 units/wk &middot; ${thresholdStatusLabel}</div>
       <div class="civr-vq-pre" style="font-style:italic;">System Rec: ${EIV_DECISION_LABELS[dec.recommendation]}</div>
       <span class="civr-tbtn ${decisionStatus==='manual_override'?'civr-on-na':'civr-on-yes'}" style="pointer-events:none; display:inline-block; margin-top:2px;">${decisionStatus==='manual_override'?'Manually Overridden':'Automatic'}</span>
+      <div class="eiv-notes">
+        <span class="civr-notes-label">Quick notes</span>
+        <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" ${dis} onchange="civSetNote('eileen', ${rec.id}, this.value)" oninput="civSetNote('eileen', ${rec.id}, this.value)">
+      </div>
+      </div>
+     </div>
+     <div class="eiv-col">
+      <div class="eiv-block eiv-strip">
+        ${eivPromoBlockHtml(rec, draft, locked)}
+        <div class="eiv-h">Shelf strip condition</div>
+        <div class="eiv-opts${m && m.type === 'error' && !cond ? ' eiv-need' : ''}" role="group" aria-label="Shelf strip condition">${EIV_STRIP_OPTIONS.map(o => `<button class="eiv-opt eiv-opt-${o.key} ${cond === o.key ? 'on' : ''}" ${dis} aria-pressed="${cond === o.key}" onclick="eivSetCondition(${rec.id}, '${o.key}')">${o.label}</button>`).join('')}</div>
+      </div>
+      <div class="eiv-block eiv-sub">
+        ${m ? `<div class="eiv-msg ${m.type}" role="alert">${escHtml(m.text)}</div>` : ''}
+        ${!canEdit ? '<div class="eiv-msg warn">Read-only: sign in with an editor account to submit reviews.</div>' : ''}
+        ${reviewer}
+        <div class="eiv-actions">
+          <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag('eileen', ${rec.id})">⚑ Flag</button>
+          ${isDirty && canEdit && !locked ? `<button class="civr-flag-btn" onclick="civDiscardChanges('eileen', ${rec.id})">Discard</button>` : ''}
+        </div>
+        <button class="eiv-submit ${locked?'done':''}" ${(!canEdit || locked || busy) ? 'disabled' : ''} onclick="eivSubmit(${rec.id})">${locked ? 'Submitted ✓' : busy ? 'Submitting…' : 'SUBMIT'}</button>
+      </div>
+     </div>
     </div>
-    <div class="eiv-notes">
-      <span class="civr-notes-label">Quick notes</span>
-      <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" ${dis} onchange="civSetNote('eileen', ${rec.id}, this.value)" oninput="civSetNote('eileen', ${rec.id}, this.value)">
-    </div>
-    ${m ? `<div class="eiv-msg ${m.type}" role="alert">${escHtml(m.text)}</div>` : ''}
-    ${!canEdit ? '<div class="eiv-msg warn">Read-only: sign in with an editor account to submit reviews.</div>' : ''}
-    ${reviewer}
-    <div class="eiv-actions">
-      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag('eileen', ${rec.id})">⚑ Flag</button>
-      ${isDirty && canEdit && !locked ? `<button class="civr-flag-btn" onclick="civDiscardChanges('eileen', ${rec.id})">Discard</button>` : ''}
-    </div>
-    <button class="eiv-submit ${locked?'done':''}" ${(!canEdit || locked || busy) ? 'disabled' : ''} onclick="eivSubmit(${rec.id})">${locked ? 'Submitted ✓' : busy ? 'Submitting…' : 'SUBMIT'}</button>
   </div>`;
 }
 
