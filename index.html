@@ -1249,6 +1249,79 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
 .civdate-chip:hover{background:#cfe4ff !important;}
 .civdate-clear{cursor:pointer;font-size:12px;color:#a02020;padding:2px 5px;border-radius:4px;user-select:none;}
 .civdate-clear:hover{background:#f3dede;}
+
+/* Eileen mobile review (2026-11-11): Missing facings | Shelf strip condition, promotion banner, Decision, Submit. Big touch targets, stacks on phones. */
+.eiv-review{padding:12px 16px 16px;border-top:1px solid #e0ddd6;background:#fcfbf8;}
+.eiv-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;}
+.eiv-block{min-width:0;}
+.eiv-h{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px;}
+.eiv-nums{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.eiv-num,.eiv-opt{font-family:inherit;border:1.5px solid #cfd3da;background:#fff;color:#1a1a18;border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .1s,border-color .1s;}
+.eiv-num{min-height:48px;font-size:18px;font-weight:700;}
+.eiv-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.eiv-opt{min-height:52px;padding:6px 8px;font-size:13px;font-weight:600;line-height:1.2;}
+.eiv-num:hover:not(:disabled),.eiv-opt:hover:not(:disabled){border-color:#1a5fa0;background:#eef5fd;}
+.eiv-num.on{background:#1a5fa0;border-color:#1a5fa0;color:#fff;}
+.eiv-opt.on{color:#fff;border-color:transparent;}
+.eiv-opt-correct.on{background:#2f855a;} .eiv-opt-incorrect.on{background:#c9760a;} .eiv-opt-missing.on{background:#b3261e;} .eiv-opt-not_found.on{background:#555;}
+.eiv-num:disabled,.eiv-opt:disabled{cursor:default;opacity:.75;} .eiv-num.on:disabled,.eiv-opt.on:disabled{opacity:1;}
+.eiv-need{outline:2px solid #b3261e;outline-offset:3px;border-radius:12px;}
+.eiv-promo{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;background:#e8f1fb;border:1px solid #c5d9ef;border-radius:10px;padding:8px 10px;margin-bottom:10px;}
+.eiv-promo-tag{font-size:10px;font-weight:700;color:#1a5fa0;text-transform:uppercase;letter-spacing:.05em;}
+.eiv-promo b{font-size:17px;color:#14355a;word-break:break-word;}
+.eiv-promo small{font-size:11px;color:#5b6b7d;}
+.eiv-promo.none{display:block;background:#f4f2ec;border-color:#e0ddd6;color:#666;font-size:12px;}
+.eiv-decision{margin-top:14px;padding-top:12px;border-top:1px dashed #d9d6cc;}
+.eiv-decision-select{width:100%;max-width:340px;min-height:40px;font-size:14px;}
+.eiv-notes{display:flex;align-items:center;gap:8px;margin-top:12px;}
+.eiv-notes .civr-notes-input{flex:1;min-width:0;min-height:40px;font-size:14px;}
+.eiv-msg{margin-top:12px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;}
+.eiv-msg.error{background:#fdecea;color:#8a1c14;border:1px solid #f3b8b3;}
+.eiv-msg.ok{background:#e6f4ec;color:#1f6b43;border:1px solid #b7dcc7;}
+.eiv-msg.warn{background:#fff4d6;color:#6b5500;border:1px solid #ecd48a;font-weight:500;}
+.eiv-by{margin-top:10px;font-size:12px;color:#666;}
+.eiv-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.eiv-submit{display:block;width:100%;margin-top:12px;min-height:54px;font-family:inherit;font-size:17px;font-weight:700;letter-spacing:.08em;color:#fff;background:#1a5fa0;border:none;border-radius:12px;cursor:pointer;touch-action:manipulation;}
+.eiv-submit:hover:not(:disabled){background:#144d88;}
+.eiv-submit:disabled{background:#9db8d1;cursor:default;}
+.eiv-submit.done{background:#2f855a;}
+@media (max-width:720px){
+  .eiv-two{grid-template-columns:1fr;gap:18px;}
+  .eiv-num{min-height:52px;font-size:20px;}
+  .eiv-opt{min-height:56px;font-size:14px;}
+  .eiv-review{padding:12px 12px 16px;}
+  .eiv-decision-select{max-width:none;}
+  .eiv-notes{flex-direction:column;align-items:stretch;gap:4px;}
+  /* the rest of the Eileen tab on a phone: header / filters / photos fit the width, no sideways scrolling */
+  #view-eileenvisitreview .civr-header{padding:10px 12px;position:static;} /* not sticky on a phone: the wrapped export buttons would cover half the screen */
+  #view-eileenvisitreview .civr-photo-wrap:has(.civr-no-photo){aspect-ratio:auto;min-height:52px;} /* an empty photo slot is a slim strip, not a big blank box */
+  #view-eileenvisitreview .civr-header > div{width:100%;}
+  #view-eileenvisitreview .civr-header > div:last-child{flex-wrap:wrap;}
+  #view-eileenvisitreview .civr-export-btn{flex:1 1 46%;padding:9px 8px;}
+  #view-eileenvisitreview .civr-progress-bar{width:100%;flex:1;}
+  #view-eileenvisitreview .civauth-dash{flex-direction:column;align-items:stretch;gap:8px;}
+  #view-eileenvisitreview .civauth-dash-stats,#view-eileenvisitreview .civauth-dash-actions{flex-wrap:wrap;}
+  #view-eileenvisitreview .civr-stats-bar{flex-wrap:wrap;}
+  #view-eileenvisitreview .civr-stat{flex:1 1 30%;}
+  /* filters: each label + dropdown shares one row (a plain stack made the filter bar taller than the screen) */
+  #view-eileenvisitreview .civr-filters{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center;padding:10px 12px;}
+  #view-eileenvisitreview .civr-filters .civr-select{width:100%;min-width:0 !important;}
+  #view-eileenvisitreview .civr-filters .search-box{width:100%;min-width:0 !important;}
+  #view-eileenvisitreview .civr-filters .civdate-filter-wrap,#view-eileenvisitreview .civr-filters .search-box,#view-eileenvisitreview .civr-filters .civr-reset{grid-column:1 / -1;}
+  #view-eileenvisitreview .civdate-filter-wrap{display:flex;}
+  #view-eileenvisitreview .civdate-filter-wrap .civr-select{flex:1;}
+  #view-eileenvisitreview .civdate-picker{position:fixed;left:12px;right:12px;top:auto;bottom:12px;width:auto !important;}
+  /* photos: one photo fills the width, two sit side by side (Before | After), three = two + one full-width; empty slots are dropped once there is a photo */
+  #view-eileenvisitreview .civr-photos-row{grid-template-columns:repeat(2,1fr);}
+  #view-eileenvisitreview .civr-photos-row .civr-photo-col:nth-child(3){grid-column:1 / -1;}
+  #view-eileenvisitreview .eiv-photos.eiv-n1 .civr-photos-row{grid-template-columns:1fr;}
+  #view-eileenvisitreview .eiv-photos.eiv-n1 .civr-photo-col:has(.civr-no-photo),#view-eileenvisitreview .eiv-photos.eiv-n2 .civr-photo-col:has(.civr-no-photo){display:none;}
+  #view-eileenvisitreview .eiv-photos.eiv-n0 .civr-photo-col:nth-child(n+2){display:none;}
+  #view-eileenvisitreview .eiv-photos.eiv-n0 .civr-photos-row{grid-template-columns:1fr;}
+  #view-eileenvisitreview .civr-card-head,#view-eileenvisitreview .civr-card-body{padding-left:12px;padding-right:12px;}
+  #view-eileenvisitreview .civr-badges{flex-wrap:wrap;}
+  #view-eileenvisitreview .civr-pager{flex-wrap:wrap;gap:8px;}
+}
 #view-civisitreview .civdate-picker-footer, #view-eileenvisitreview .civdate-picker-footer, #view-highwayreview .civdate-picker-footer, #view-reviewersummary .civdate-picker-footer, #view-extravisitreview .civdate-picker-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
 #view-civisitreview .civdate-range-label, #view-eileenvisitreview .civdate-range-label, #view-highwayreview .civdate-range-label, #view-reviewersummary .civdate-range-label, #view-extravisitreview .civdate-range-label{font-size:11px;color:#666;}
 #view-civisitreview .civr-bulk-bar, #view-eileenvisitreview .civr-bulk-bar, #view-highwayreview .civr-bulk-bar, #view-reviewersummary .civr-bulk-bar, #view-extravisitreview .civr-bulk-bar{background:#fff8e8;border-bottom:1px solid #e8d080;padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
@@ -1570,7 +1643,7 @@ tr:hover td{background:var(--surface2);cursor:pointer;}
   align-items:center;justify-content:center;
 }
 .lightbox.open{display:flex;}
-.lightbox img{max-width:90vw;max-height:90vh;border-radius:12px;}
+.lightbox img{max-width:90vw;max-height:90vh;border-radius:12px;touch-action:none;transform-origin:center center;}
 .lb-close{position:absolute;top:20px;right:20px;color:#fff;font-size:28px;cursor:pointer;}
 .lb-zoom-toggle{
   position:absolute;top:20px;left:20px;color:#fff;font-size:12px;
@@ -2613,7 +2686,7 @@ tr.pick-row.row-sel td:first-child,div.pick-row.row-sel{box-shadow:inset 3px 0 0
 </div>
 
 <!-- LIGHTBOX -->
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+<div class="lightbox" id="lightbox" onclick="lbBackdropClick(event)">
   <span class="lb-close">✕</span>
   <label class="lb-zoom-toggle" onclick="event.stopPropagation()">
     <input type="checkbox" id="lb-zoom-checkbox" onchange="toggleMagnifierEnabled(this.checked)"> <span id="lb-zoom-label">🔍 Zoom on hover</span>
@@ -3212,8 +3285,10 @@ function openLightbox(url, urls, index, labels) {
   const review = ['civisitreview', 'eileenvisitreview', 'extravisitreview', 'highwayreview'].includes(currentTab);
   magZoomLevel = review ? 5 : 2.5;
   const zl = document.getElementById('lb-zoom-label'); if (zl) zl.textContent = review ? '🔍 Zoom on hover (5×)' : '🔍 Zoom on hover';
+  lbResetZoom();
   lbImg.src = lbPhotoUrls[lbPhotoIndex];
   attachMagnifierTo(lbImg);
+  attachLbTouch(lbImg);
   document.getElementById('lightbox').classList.add('open');
   const cb = document.getElementById('lb-zoom-checkbox');
   if (cb) cb.checked = magnifierEnabled;
@@ -3224,6 +3299,7 @@ function lbNav(delta) {
   if (lbPhotoUrls.length < 2) return;
   lbPhotoIndex = (lbPhotoIndex + delta + lbPhotoUrls.length) % lbPhotoUrls.length;
   const lbImg = document.getElementById('lb-img');
+  lbResetZoom();
   lbImg.src = lbPhotoUrls[lbPhotoIndex];
   attachMagnifierTo(lbImg);
   renderLightboxNav();
@@ -3242,7 +3318,53 @@ function renderLightboxNav() {
     counter.textContent = label ? (multi ? `${label} · ${pos}` : label) : (multi ? pos : '');
   }
 }
-function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); hideMagLens(); civrUpdateScrollFab(); }
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); hideMagLens(); lbResetZoom(); civrUpdateScrollFab(); }
+
+// Touch gestures for the photo viewer (phones / tablets): swipe left-right = previous / next photo, pinch or double-tap = zoom, drag = pan when
+// zoomed. A tap on the photo no longer closes it once touch is in use (tap the dark area or the X); desktop clicking is unchanged. A gesture also
+// swallows the click the browser synthesises after it, so a swipe or pinch can't close the viewer.
+let lbZoom = { z: 1, x: 0, y: 0 }, lbTouchMode = false, lbGestureAt = 0;
+function lbApplyZoom() { const i = document.getElementById('lb-img'); if (i) i.style.transform = lbZoom.z === 1 && !lbZoom.x && !lbZoom.y ? '' : `translate(${lbZoom.x}px,${lbZoom.y}px) scale(${lbZoom.z})`; }
+function lbResetZoom() { lbZoom = { z: 1, x: 0, y: 0 }; lbApplyZoom(); }
+function lbBackdropClick(e) {
+  if (Date.now() - lbGestureAt < 450) return;
+  if (lbTouchMode && e.target && e.target.id === 'lb-img') return;
+  closeLightbox();
+}
+function attachLbTouch(img) {
+  if (!img || img.dataset.touchAttached) return;
+  img.dataset.touchAttached = '1';
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  let start = null, pinch = null, lastTap = 0;
+  img.addEventListener('touchstart', e => {
+    lbTouchMode = true; hideMagLens();
+    if (e.touches.length === 2) { pinch = { d: dist(e.touches), z: lbZoom.z }; start = null; }
+    else if (e.touches.length === 1) { const t = e.touches[0]; start = { x: t.clientX, y: t.clientY, px: lbZoom.x, py: lbZoom.y, moved: false }; }
+  }, { passive: true });
+  img.addEventListener('touchmove', e => {
+    if (pinch && e.touches.length === 2) {
+      e.preventDefault(); lbZoom.z = Math.min(6, Math.max(1, pinch.z * dist(e.touches) / pinch.d));
+      if (lbZoom.z === 1) { lbZoom.x = 0; lbZoom.y = 0; }
+      lbApplyZoom(); lbGestureAt = Date.now();
+    } else if (start && e.touches.length === 1) {
+      const t = e.touches[0], dx = t.clientX - start.x, dy = t.clientY - start.y;
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) start.moved = true;
+      if (lbZoom.z > 1) { e.preventDefault(); lbZoom.x = start.px + dx; lbZoom.y = start.py + dy; lbApplyZoom(); lbGestureAt = Date.now(); }
+    }
+  }, { passive: false });
+  img.addEventListener('touchend', e => {
+    if (pinch) { if (e.touches.length < 2) pinch = null; lbGestureAt = Date.now(); return; }
+    if (!start) return;
+    const t = e.changedTouches[0], dx = t.clientX - start.x, dy = t.clientY - start.y;
+    if (lbZoom.z === 1 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) { lbGestureAt = Date.now(); lbNav(dx < 0 ? 1 : -1); start = null; return; } // swipe
+    if (!start.moved) {
+      const now = Date.now();
+      if (now - lastTap < 300) { lbZoom = lbZoom.z > 1 ? { z: 1, x: 0, y: 0 } : { z: 2.5, x: 0, y: 0 }; lbApplyZoom(); lbGestureAt = now; lastTap = 0; } // double-tap
+      else lastTap = now;
+    }
+    start = null;
+  }, { passive: true });
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 // PHOTO MAGNIFIER (circular zoom-on-hover) -- lightbox (detailed image view) ONLY.
@@ -3271,8 +3393,8 @@ function toggleMagnifierEnabled(v) {
 function attachMagnifierTo(img) {
   if (!img || img.dataset.magAttached) return;
   img.dataset.magAttached = '1';
-  img.addEventListener('mouseenter', () => { if (magnifierEnabled) showMagLens(img); });
-  img.addEventListener('mousemove', (e) => { if (magnifierEnabled) moveMagLens(img, e); });
+  img.addEventListener('mouseenter', () => { if (magnifierEnabled && !lbTouchMode) showMagLens(img); });
+  img.addEventListener('mousemove', (e) => { if (magnifierEnabled && !lbTouchMode) moveMagLens(img, e); });
   img.addEventListener('mouseleave', hideMagLens);
 }
 
@@ -4157,6 +4279,10 @@ let EIV_ALL_REPORTS = [];
 // verdicts ride the SHARED report_status/report_verdicts caches under that src, exactly like Eileen.
 let HIGHWAY = [];
 let HIGHWAY_ALL_REPORTS = [];
+// Promo calendar (chain_promotions table, load_chain_promotions.ps1): [{ chain, monthStart:'YYYY-MM-DD', promoCode, note }]. Empty until that migration + load have run.
+let CHAIN_PROMOS = [];
+// true once report_verdicts has the Eileen mobile-review columns (migrate_eileen_mobile_review.sql); until then those extras are simply not saved.
+let EIV_COLS_READY = false;
 
 // Rebuilds every in-memory index/derived array that depends on CI/EILEEN/DOORS being populated.
 // These used to be synchronous top-level statements (safe when data was always already embedded
@@ -4238,13 +4364,10 @@ function getReportVerdict(rec) {
   if (cached) return cached;
   return civBlankVerdictSnapshot(rec.src);
 }
-function setReportVerdict(rec, verdict) {
-  const updatedAt = new Date().toISOString();
-  REPORT_VERDICT_CACHE[reportKey(rec)] = Object.assign({}, verdict, { updatedAt });
-  if (usingEmbeddedSnapshot) {
-    localStorage.setItem('lucyReportVerdicts_v1', JSON.stringify(REPORT_VERDICT_CACHE));
-    return;
-  }
+// The report_verdicts row for one review. Shared by setReportVerdict (fire-and-forget saves) and eivPersist (Eileen Submit, which waits for the
+// database so it can report a failure), so both always write exactly the same thing. For Eileen it also records, at save time and only once the
+// columns exist (EIV_COLS_READY): the shelf strip condition, a SNAPSHOT of the promotion shown, the reviewer, and the visit's chain / address.
+function reportVerdictRow(rec, verdict, updatedAt, extras) {
   // CI, poppromo and Eileen all write the same 8 Standard Fields for Review columns.
   // POP Marketing Check (poppromo) also writes its 4 Before answers (migrate_before_review_fields.sql); every other src leaves those columns untouched.
   const row = Object.assign({ src: rec.src, report_id: rec.id }, stdReviewToDb(verdict), rec.src === 'poppromo' ? stdBeforeToDb(verdict) : {}, { notes: verdict.notes, flag: verdict.flag, updated_at: updatedAt });
@@ -4262,7 +4385,18 @@ function setReportVerdict(rec, verdict) {
       decision_decided_by: civCurrentUser() ? civCurrentUser().fullName : null
     });
   }
-  sb.from('report_verdicts').upsert(row).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
+  if (rec.src === 'eileen' && EIV_COLS_READY && extras) Object.assign(row, extras.db);
+  return row;
+}
+function setReportVerdict(rec, verdict) {
+  const updatedAt = new Date().toISOString();
+  const extras = rec.src === 'eileen' ? eivReviewExtras(rec, verdict, updatedAt) : null;
+  REPORT_VERDICT_CACHE[reportKey(rec)] = Object.assign({}, verdict, extras ? extras.camel : {}, { updatedAt });
+  if (usingEmbeddedSnapshot) {
+    localStorage.setItem('lucyReportVerdicts_v1', JSON.stringify(REPORT_VERDICT_CACHE));
+    return;
+  }
+  sb.from('report_verdicts').upsert(reportVerdictRow(rec, verdict, updatedAt, extras)).then(({ error }) => { if (error) console.error('report_verdicts upsert failed', error); });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -5102,6 +5236,7 @@ function civToggleFlag(src, id) {
 }
 function civSubmitVerdict(src, id) {
   if (!civCanEdit()) return;
+  if (src === 'eileen') { eivSubmit(id); return; } // Eileen has its own validated, wait-for-the-database submit (also what "Save Changes" uses)
   const rec = { src, id };
   const draft = civDraftVerdict(rec);
   setReportVerdict(rec, draft);
@@ -5999,6 +6134,161 @@ function eivSetDecisionOverride(id, value, src = 'eileen') {
 }
 
 
+// ══════════════════════════════════════════════════════════════════════════
+// EILEEN MOBILE REVIEW (2026-11-11): Missing facings 0-8 + Shelf strip condition + the chain's active promotion + Decision + Submit.
+// It writes the SAME report_verdicts fields every other report uses, so filters, the Decision engine, exports and history keep working:
+//   Missing facings     -> facingsEmptyCount (0-8, 0 by default)
+//   Shelf strip condition -> shelfStripPresent / shelfStripCorrect / productPresent  (+ shelf_strip_condition once its column exists)
+//        Correct, in place    = strip present + correct          Incorrect shelf strip = strip present + NOT correct
+//        Missing shelf strip  = strip not present (correct = N/A) Lucy not found      = product there = No (correct = N/A)
+// The old Product there? / visible / facings-with-product / needs-product questions are no longer asked on Eileen cards (their saved values stay).
+// ══════════════════════════════════════════════════════════════════════════
+const EIV_STRIP_OPTIONS = [
+  { key: 'correct',   label: 'Correct, in place' },
+  { key: 'incorrect', label: 'Incorrect shelf strip' },
+  { key: 'missing',   label: 'Missing shelf strip' },
+  { key: 'not_found', label: 'Lucy not found' }
+];
+const EIV_STRIP_LABEL = Object.fromEntries(EIV_STRIP_OPTIONS.map(o => [o.key, o.label]));
+// The saved explicit condition wins; reviews saved by the older form are read back from the fields they did save.
+function eivConditionOf(d) {
+  if (d.shelfStripCondition) return d.shelfStripCondition;
+  if (d.productPresent === false) return 'not_found';
+  if (d.shelfStripPresent === false) return 'missing';
+  if (d.shelfStripPresent === true && d.shelfStripCorrect === false) return 'incorrect';
+  if (d.shelfStripPresent === true && d.shelfStripCorrect === true) return 'correct';
+  return null;
+}
+function eivApplyCondition(d, key) {
+  d.shelfStripCondition = key;
+  if (key !== 'not_found' && d.productPresent === false) d.productPresent = null; // switching away from "Lucy not found" clears its product-there = No
+  if (key === 'correct')   { d.shelfStripPresent = true;  d.shelfStripCorrect = true; }
+  if (key === 'incorrect') { d.shelfStripPresent = true;  d.shelfStripCorrect = false; }
+  if (key === 'missing')   { d.shelfStripPresent = false; d.shelfStripCorrect = 'na'; }
+  if (key === 'not_found') { d.productPresent = false;    d.shelfStripPresent = null; d.shelfStripCorrect = 'na'; }
+}
+
+// ── the chain's active promotion ────────────────────────────────────────────────────────────────────────
+// A chain's CURRENT promotion = the latest calendar month that has started. It stays current until the next month is ingested, so October's
+// promotion keeps showing in November until a November column is loaded. Matching is by chain only (normalised name + the few explicit aliases
+// below), never fuzzy, so one chain's promotion can't land on another. Circle K is split into three calendar chains: a Circle K visit is only
+// given a promotion when its exact address + state matches a store of exactly one of them; otherwise it shows "not configured".
+const EIV_PROMO_ALIAS = { DANDYMINIMART: 'DANDY', CHESTNUT: 'CHESTNUTMARKET', KRIST: 'KRISTOIL' }; // Eileen chain labels -> the calendar's chain (normChain form)
+const EIV_CK_SUBCHAINS = ['Circle K Coastal Carolinas', 'Circle K Florida', 'Circle K South Atlantic'];
+let EIV_CK_INDEX = { n: -1, map: {} };
+function eivCkSubchain(rec) {
+  if (EIV_CK_INDEX.n !== DOORS.length) {
+    const map = {};
+    DOORS.forEach(d => { if (EIV_CK_SUBCHAINS.includes(d.chain)) { const k = normChain(d.address) + '|' + d.state; (map[k] = map[k] || new Set()).add(d.chain); } });
+    EIV_CK_INDEX = { n: DOORS.length, map };
+  }
+  const s = EIV_CK_INDEX.map[normChain(rec.a) + '|' + rec.st];
+  return s && s.size === 1 ? [...s][0] : null;
+}
+function eivPromoMonthLabel(ms) {
+  if (!ms) return '';
+  const d = new Date(+ms.slice(0, 4), +ms.slice(5, 7) - 1, 1);
+  return d.toLocaleDateString('en-US', { month: 'short' }) + " '" + String(d.getFullYear()).slice(2);
+}
+function eivActivePromo(rec) {
+  const label = rec.ch || 'this chain';
+  let key = normChain(rec.ch);
+  if (EIV_PROMO_ALIAS[key]) key = EIV_PROMO_ALIAS[key];
+  if (key === 'CIRCLEK') { const sub = eivCkSubchain(rec); if (!sub) return { status: 'unresolved', chain: label }; key = normChain(sub); }
+  const rows = CHAIN_PROMOS.filter(p => normChain(p.chain) === key).sort((a, b) => a.monthStart < b.monthStart ? -1 : 1);
+  const started = rows.filter(p => p.monthStart <= civTodayDateOnly());
+  if (!started.length) return { status: 'unconfigured', chain: label };
+  const cur = started[started.length - 1], code = String(cur.promoCode || '').trim();
+  if (!code || /^na$/i.test(code)) return { status: 'none', chain: cur.chain, month: cur.monthStart };
+  return { status: 'active', chain: cur.chain, month: cur.monthStart, code };
+}
+// What a submit records beside the answers: the condition, a snapshot of the promotion shown, who and when, and the visit's chain / address.
+// camel = the in-memory verdict cache; db = the report_verdicts columns (only written once migrate_eileen_mobile_review.sql has run).
+function eivReviewExtras(rec, verdict, at) {
+  const p = eivActivePromo(rec), pm = p.status === 'active' ? p : null, u = civCurrentUser(), cond = eivConditionOf(verdict);
+  const camel = { shelfStripCondition: cond, promoChain: pm ? pm.chain : null, promoMonth: pm ? pm.month : null, promoCode: pm ? pm.code : null, reviewedBy: u ? u.fullName : null, reviewedAt: at };
+  return { camel, db: { shelf_strip_condition: cond, promo_chain: camel.promoChain, promo_month: camel.promoMonth, promo_code: camel.promoCode,
+    reviewed_by: camel.reviewedBy, reviewed_at: at, review_chain: rec.ch || null, review_address: rec.a || null } };
+}
+// "Visit 2 of 4" = this visit's place among all Eileen visits to the same store (matched door, else chain + address), oldest first.
+let EIV_SEQ = { n: -1, map: {} };
+function eivVisitSeq(rec) {
+  if (EIV_SEQ.n !== EILEEN.length) {
+    const g = {};
+    EILEEN.forEach(r => { const d = reportDoor(r), k = d ? d.key : normChain(r.ch) + '|' + normChain(r.a); (g[k] = g[k] || []).push(r); });
+    const map = {};
+    Object.keys(g).forEach(k => g[k].sort((a, b) => String(a.vd).localeCompare(String(b.vd)) || a.id - b.id).forEach((r, i) => { map[r.id] = { n: i + 1, of: g[k].length }; }));
+    EIV_SEQ = { n: EILEEN.length, map };
+  }
+  return EIV_SEQ.map[rec.id] || { n: 1, of: 1 };
+}
+
+// ── answers ───────────────────────────────────────────────────────────────────────────────────────────
+const EIV_SUBMITTING = new Set(); // reportKeys whose Submit is in flight -- the duplicate-submit lock
+const EIV_MSG = {};               // per visit id: { type: 'error' | 'ok', text } shown above the Submit button
+function eivSetMsg(id, type, text) { EIV_MSG[id] = { type, text }; }
+function eivSetFacings(id, n) {
+  if (!civCanEdit()) return;
+  const rec = { src: 'eileen', id }, draft = civDraftVerdict(rec), prev = draft.facingsEmptyCount;
+  draft.facingsEmptyCount = n;
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'facingsEmptyCount', previous_value: prev == null ? null : String(prev), new_value: String(n) });
+  delete EIV_MSG[id]; civRerenderActive();
+}
+function eivSetCondition(id, key) {
+  if (!civCanEdit()) return;
+  const rec = { src: 'eileen', id }, draft = civDraftVerdict(rec), prev = eivConditionOf(draft);
+  eivApplyCondition(draft, key);
+  civDirtySet.add(reportKey(rec));
+  civLogAudit('edit', { chain: civReportChain('eileen', id), door_key: civReportDoorKey('eileen', id), report_id: id, field: 'shelfStripCondition', previous_value: prev, new_value: key });
+  delete EIV_MSG[id]; civRerenderActive();
+}
+// Saves one Eileen review and WAITS for the database (unlike setReportVerdict's fire-and-forget), so the caller can tell the reviewer it failed.
+// Returns null on success, or the error. Both writes are upserts on (src, report_id): retrying after a failure, or a double tap that slips past
+// the lock, rewrites the same row, never a second one. The local cache only changes once the save has really succeeded.
+async function eivPersist(rec, verdict) {
+  if (usingEmbeddedSnapshot) { setReportVerdict(rec, verdict); setReportStatus(rec, 'Reviewed'); return null; } // Artifact build: this browser's own storage
+  const updatedAt = new Date().toISOString(), extras = eivReviewExtras(rec, verdict, updatedAt);
+  const v = await sb.from('report_verdicts').upsert(reportVerdictRow(rec, verdict, updatedAt, extras));
+  if (v.error) return v.error;
+  const s = await sb.from('report_status').upsert({ src: rec.src, report_id: rec.id, status: 'Reviewed', updated_at: updatedAt });
+  if (s.error) return s.error;
+  REPORT_VERDICT_CACHE[reportKey(rec)] = Object.assign({}, verdict, extras.camel, { updatedAt });
+  REPORT_STATUS_CACHE[reportKey(rec)] = { status: 'Reviewed', updatedAt };
+  return null;
+}
+async function eivSubmit(id) {
+  const rec = EILEEN.find(r => r.id === id), key = reportKey({ src: 'eileen', id });
+  if (!rec || !civCanEdit() || EIV_SUBMITTING.has(key) || getReportStatus(rec) === 'Reviewed') return; // no permission / already sending / already submitted
+  const draft = civDraftVerdict(rec);
+  // Required: a shelf strip condition. Missing facings always has a value (0 unless changed), and must be a whole number 0-8.
+  const facings = draft.facingsEmptyCount == null ? 0 : draft.facingsEmptyCount, problems = [];
+  if (!eivConditionOf(draft)) problems.push('Choose a shelf strip condition.');
+  if (!Number.isInteger(facings) || facings < 0 || facings > 8) problems.push('Missing facings must be a number from 0 to 8.');
+  if (problems.length) {
+    eivSetMsg(id, 'error', problems.join(' ')); civRerenderActive();
+    const card = document.getElementById('eivr-card-' + id); if (card) card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return;
+  }
+  draft.facingsEmptyCount = facings; // the default 0 becomes an explicit, saved answer
+  EIV_SUBMITTING.add(key); delete EIV_MSG[id]; civRerenderActive();
+  let err = null;
+  try { err = await eivPersist(rec, draft); } catch (e) { err = e; }
+  EIV_SUBMITTING.delete(key);
+  if (err) {
+    console.error('Eileen review submit failed', err);
+    eivSetMsg(id, 'error', 'Could not submit: ' + ((err && err.message) || 'network problem') + '. Your selections are kept. Tap Submit to try again.');
+    civRerenderActive(); return;
+  }
+  const versionSnapshot = Object.assign({}, draft, { src: 'eileen', velocitySnapshot: civrVelocitySnapshot(rec) });
+  delete CIV_VERDICT_DRAFT[key]; civDirtySet.delete(key);
+  civSaveVersion(id, versionSnapshot).then(version => {
+    civLogAudit('save', { chain: rec.ch, door_key: civReportDoorKey('eileen', id), report_id: id, version_id: version ? version.id : null });
+  });
+  eivSetMsg(id, 'ok', '✓ Review submitted at ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+  civRerenderActive();
+}
+
 let eivrFilters = Object.assign({ chain:'', status:'', shelfStripPresent:'', shelfStripCorrect:'', flagged:'' }, civDateFilterBlank());
 let eivrDatePicker = civDatePickerBlank();
 function eivrSetDateFilter(val) { eivrPage = 0; civSetDateFilterShared(eivrFilters, eivrDatePicker, val, renderEileenVisitReview); }
@@ -6089,9 +6379,13 @@ function eivrStats() {
 function eivrBulkSubmit() {
   if (!civCanEdit()) return;
   const list = eivrFilteredReports();
-  const unsubmitted = list.filter(r => getReportStatus(r) !== 'Reviewed');
+  const pending = list.filter(r => getReportStatus(r) !== 'Reviewed');
+  // same rule as the single Submit: a review needs a shelf strip condition, so ones without it are skipped (and counted), not saved blank
+  const unsubmitted = pending.filter(r => eivConditionOf(civDraftVerdict(r)));
+  const skipped = pending.length - unsubmitted.length;
   unsubmitted.forEach(r => {
     const draft = civDraftVerdict(r);
+    if (draft.facingsEmptyCount == null) draft.facingsEmptyCount = 0; // the preselected 0
     setReportVerdict(r, draft);
     setReportStatus(r, 'Reviewed');
     const versionSnapshot = Object.assign({}, draft, { src: r.src });
@@ -6100,22 +6394,43 @@ function eivrBulkSubmit() {
       civLogAudit('save', { chain: r.ch, door_key: civReportDoorKey(r.src, r.id), report_id: r.id, version_id: version ? version.id : null });
     });
   });
-  eivrBulkMsg = unsubmitted.length ? `✓ ${unsubmitted.length} report${unsubmitted.length===1?'':'s'} submitted` : 'All filtered reports are already submitted.';
+  eivrBulkMsg = (unsubmitted.length ? `✓ ${unsubmitted.length} report${unsubmitted.length===1?'':'s'} submitted` : (pending.length ? 'Nothing submitted.' : 'All filtered reports are already submitted.'))
+    + (skipped ? ` · ${skipped} skipped: choose a shelf strip condition first.` : '');
   renderEileenVisitReview();
 }
 
 function eivrBadgesHtml(rec, status) {
-  let badges = `<span class="civr-badge civr-b-source-eileen">Eileen Visit</span>`;
+  const seq = eivVisitSeq(rec);
+  let badges = `<span class="civr-badge civr-b-source-eileen">Eileen Visit</span><span class="civr-badge">${escHtml(rec.ch || '—')}</span><span class="civr-badge">Visit ${seq.n} of ${seq.of}</span><span class="civr-badge">Visit ID ${escHtml(String(rec.id))}</span>`;
   if (status === 'Reviewed') badges += `<span class="civr-badge civr-b-lock">✓ Submitted</span>`;
   return badges;
 }
 
 const EIV_DECISION_LABELS = { no_action_needed: 'No Action Needed', send_shelf_strip: 'Send Shelf Strip', customer_impact_visit: 'Customer Impact Visit' };
+// What the reviewer judges the shelf strip AGAINST: the chain's active promotion (live), or -- once submitted -- the snapshot saved with the review,
+// so a later calendar upload never rewrites an old review.
+function eivPromoBlockHtml(rec, draft, locked) {
+  const tag = t => `<span class="eiv-promo-tag">${t}</span>`;
+  if (locked) {
+    if (draft.promoCode) return `<div class="eiv-promo">${tag('Promotion when submitted')}<b>${escHtml(draft.promoCode)}</b><small>${escHtml(draft.promoChain || rec.ch || '')}${draft.promoMonth ? ' · ' + escHtml(eivPromoMonthLabel(draft.promoMonth)) : ''}</small></div>`;
+    return `<div class="eiv-promo none">${draft.reviewedAt ? 'No active promotion was configured for ' + escHtml(rec.ch || 'this chain') + ' when this was submitted.' : 'Submitted before promotions were tracked.'}</div>`;
+  }
+  const p = eivActivePromo(rec);
+  if (p.status === 'active') return `<div class="eiv-promo">${tag('Active promotion')}<b>${escHtml(p.code)}</b><small>${escHtml(p.chain)} · ${escHtml(eivPromoMonthLabel(p.month))}</small></div>`;
+  const why = p.status === 'unresolved' ? ' This Circle K store is not matched to CK Coastal, CK S. Atl. or CK Florida.' : '';
+  return `<div class="eiv-promo none">No active promotion has been configured for ${escHtml(p.chain)}.${why}</div>`;
+}
+
+// The Eileen review block, top to bottom: Missing facings (left) | active promotion above the Shelf strip condition (right); then Decision, quick notes,
+// any error / confirmation, Flag / Discard, and SUBMIT last (full width, at the bottom of the card -- never replaced by auto-save).
 function eivrVerdictBarHtml(rec, draft, status) {
   const locked = status === 'Reviewed';
   const canEdit = civCanEdit();
-  const dis = canEdit ? '' : 'disabled';
-  const isDirty = civDirtySet.has(reportKey(rec));
+  const dis = (canEdit && !locked) ? '' : 'disabled'; // a submitted review is read-only until Undo, so it can't be overwritten by accident
+  const key = reportKey(rec), busy = EIV_SUBMITTING.has(key);
+  const isDirty = civDirtySet.has(key);
+  const fv = draft.facingsEmptyCount, facings = (fv === null || fv === undefined) ? (locked ? null : 0) : fv; // 0 is preselected on a new review
+  const cond = eivConditionOf(draft);
   const dec = eivComputeSystemRecommendation(rec, draft);
   const finalDecision = draft.decisionOverride || dec.recommendation;
   const decisionStatus = (draft.decisionOverride && draft.decisionOverride !== dec.recommendation) ? 'manual_override' : 'automatic';
@@ -6123,11 +6438,23 @@ function eivrVerdictBarHtml(rec, draft, status) {
     ? `${dec.vel.monthsUsed}-Month Avg Velocity: ${dec.vel.avg.toFixed(1)} units/wk (${civFmtMonthLabel(dec.vel.periodStart)} – ${civFmtMonthLabel(dec.vel.periodEnd)})`
     : 'No sales history on file';
   const thresholdStatusLabel = dec.vel.avg === null ? 'N/A (no data)' : (dec.meetsThreshold ? 'Meets Threshold' : 'Below Threshold');
-  return `<div class="civr-verdict-bar">
-    ${stdReviewFieldsHtml(draft, dis, civStdCall('eileen', rec.id))}
-    <div class="civr-vq">
-      <div class="civr-vq-label">Decision</div>
-      <select class="civr-select" ${dis} onchange="eivSetDecisionOverride(${rec.id}, this.value)">
+  const m = EIV_MSG[rec.id];
+  const reviewer = locked && draft.reviewedBy ? `<div class="eiv-by">Submitted by <b>${escHtml(draft.reviewedBy)}</b>${draft.reviewedAt ? ' · ' + escHtml(fmtSubmittedAt(draft.reviewedAt)) : ''}</div>` : '';
+  return `<div class="eiv-review">
+    <div class="eiv-two">
+      <div class="eiv-block">
+        <div class="eiv-h">Missing facings</div>
+        <div class="eiv-nums" role="group" aria-label="Missing facings">${[0,1,2,3,4,5,6,7,8].map(n => `<button class="eiv-num ${facings === n ? 'on' : ''}" ${dis} aria-pressed="${facings === n}" onclick="eivSetFacings(${rec.id}, ${n})">${n}</button>`).join('')}</div>
+      </div>
+      <div class="eiv-block">
+        ${eivPromoBlockHtml(rec, draft, locked)}
+        <div class="eiv-h">Shelf strip condition</div>
+        <div class="eiv-opts${m && m.type === 'error' && !cond ? ' eiv-need' : ''}" role="group" aria-label="Shelf strip condition">${EIV_STRIP_OPTIONS.map(o => `<button class="eiv-opt eiv-opt-${o.key} ${cond === o.key ? 'on' : ''}" ${dis} aria-pressed="${cond === o.key}" onclick="eivSetCondition(${rec.id}, '${o.key}')">${o.label}</button>`).join('')}</div>
+      </div>
+    </div>
+    <div class="eiv-decision">
+      <div class="eiv-h">Decision</div>
+      <select class="civr-select eiv-decision-select" ${dis} onchange="eivSetDecisionOverride(${rec.id}, this.value)">
         <option value="no_action_needed" ${finalDecision==='no_action_needed'?'selected':''}>No Action Needed</option>
         <option value="send_shelf_strip" ${finalDecision==='send_shelf_strip'?'selected':''}>Send Shelf Strip</option>
         <option value="customer_impact_visit" ${finalDecision==='customer_impact_visit'?'selected':''}>Customer Impact Visit</option>
@@ -6137,15 +6464,18 @@ function eivrVerdictBarHtml(rec, draft, status) {
       <div class="civr-vq-pre" style="font-style:italic;">System Rec: ${EIV_DECISION_LABELS[dec.recommendation]}</div>
       <span class="civr-tbtn ${decisionStatus==='manual_override'?'civr-on-na':'civr-on-yes'}" style="pointer-events:none; display:inline-block; margin-top:2px;">${decisionStatus==='manual_override'?'Manually Overridden':'Automatic'}</span>
     </div>
-    <div class="civr-submit-col">
-      <button class="civr-submit-btn ${locked?'civr-submit-done':''}" ${dis} onclick="civSubmitVerdict('eileen', ${rec.id})">${locked?'Submitted ✓':'Submit ✓'}</button>
-      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag('eileen', ${rec.id})">⚑ Flag</button>
-      ${isDirty && canEdit ? `<button class="civr-flag-btn" onclick="civDiscardChanges('eileen', ${rec.id})">Discard</button>` : ''}
+    <div class="eiv-notes">
+      <span class="civr-notes-label">Quick notes</span>
+      <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" ${dis} onchange="civSetNote('eileen', ${rec.id}, this.value)" oninput="civSetNote('eileen', ${rec.id}, this.value)">
     </div>
-  </div>
-  <div class="civr-notes-bar">
-    <span class="civr-notes-label">Quick notes</span>
-    <input type="text" class="civr-notes-input" placeholder="Add a note…" value="${esc(draft.notes||'')}" ${dis} onchange="civSetNote('eileen', ${rec.id}, this.value)" oninput="civSetNote('eileen', ${rec.id}, this.value)">
+    ${m ? `<div class="eiv-msg ${m.type}" role="alert">${escHtml(m.text)}</div>` : ''}
+    ${!canEdit ? '<div class="eiv-msg warn">Read-only: sign in with an editor account to submit reviews.</div>' : ''}
+    ${reviewer}
+    <div class="eiv-actions">
+      <button class="civr-flag-btn ${draft.flag?'civr-flagged':''}" ${dis} onclick="civToggleFlag('eileen', ${rec.id})">⚑ Flag</button>
+      ${isDirty && canEdit && !locked ? `<button class="civr-flag-btn" onclick="civDiscardChanges('eileen', ${rec.id})">Discard</button>` : ''}
+    </div>
+    <button class="eiv-submit ${locked?'done':''}" ${(!canEdit || locked || busy) ? 'disabled' : ''} onclick="eivSubmit(${rec.id})">${locked ? 'Submitted ✓' : busy ? 'Submitting…' : 'SUBMIT'}</button>
   </div>`;
 }
 
@@ -6161,7 +6491,7 @@ function eivrCardHtml(rec) {
     </div>
   </div>
   <div class="civr-card-body">
-    ${civrPhotosHtml(rec)}
+    <div class="eiv-photos eiv-n${Math.min((Array.isArray(rec.ph) ? rec.ph.length : 0), 3)}">${civrPhotosHtml(rec)}</div>
     ${civrVelocityHtml(rec)}
   </div>
   ${eivrVerdictBarHtml(rec, draft, status)}
@@ -6178,6 +6508,9 @@ function eivrExportCSV(range, scope) {
     const decisionStatus = (draft.decisionOverride && draft.decisionOverride !== dec.recommendation) ? 'Manually Overridden' : 'Automatic';
     return {
       Store: rec.a||'', City: rec.ci||'', State: rec.st||'', Chain: rec.ch||'', VisitDate: rec.vd||rec.month||'',
+      VisitID: rec.id, VisitNumber: (s => `${s.n} of ${s.of}`)(eivVisitSeq(rec)),
+      ShelfStripCondition: EIV_STRIP_LABEL[eivConditionOf(draft)]||'', MissingFacings: draft.facingsEmptyCount == null ? '' : draft.facingsEmptyCount,
+      ActivePromotion: draft.promoCode||'', PromotionMonth: draft.promoMonth ? eivPromoMonthLabel(draft.promoMonth) : '', ReviewedBy: draft.reviewedBy||'',
       ...stdReviewCsvCols(draft),
       Decision: EIV_DECISION_LABELS[finalDecision]||'', SystemRecommendation: EIV_DECISION_LABELS[dec.recommendation]||'', DecisionStatus: decisionStatus,
       Notes: draft.notes||'', Flagged: draft.flag?'Yes':'No',
@@ -9230,6 +9563,7 @@ async function loadAllData() {
     CHAIN_PROGRAMS = snap.CHAIN_PROGRAMS || []; // absent from older snapshots until the next artifact rebuild -- degrades to "Not Tracked" everywhere, never an error
     EXTRA_VISITS = snap.EXTRA_VISITS || []; // same "absent from older snapshots" degradation as CHAIN_PROGRAMS above
     HIGHWAY = snap.HIGHWAY || []; // same degradation: absent from older snapshots -> empty Highway Partners Reviews tab, never an error
+    CHAIN_PROMOS = snap.CHAIN_PROMOS || []; // absent until the promo calendar has been loaded -> every chain shows "no active promotion configured"
     buildDerivedIndexes();
     // No live Supabase connection on this build -- Actions/Report Status fall back to this
     // browser's own localStorage, same as the whole dashboard did before this migration.
@@ -9306,6 +9640,21 @@ async function loadAllData() {
     HIGHWAY = []; buildHighwayIndex();
   }
 
+  // Promo calendar + the "are the new report_verdicts columns there yet?" probe: same rule as Extra / Highway above -- own try/catch,
+  // outside the main Promise.all, so a missing table or column can never empty the dashboard (it just means "not configured").
+  try {
+    const promoRows = await sbFetchAll('chain_promotions', 'chain');
+    CHAIN_PROMOS = promoRows.map(p => ({ chain: p.chain, monthStart: String(p.month_start || '').slice(0, 10), promoCode: p.promo_code, note: p.note }));
+  } catch (err) {
+    console.error('Promo calendar load failed (Eileen review shows "no active promotion configured" until migrate_eileen_mobile_review.sql is run and the calendar is loaded):', err);
+    CHAIN_PROMOS = [];
+  }
+  try {
+    const probe = await sb.from('report_verdicts').select('shelf_strip_condition,promo_chain,promo_month,promo_code,reviewed_by,reviewed_at,review_chain,review_address').limit(1);
+    EIV_COLS_READY = !probe.error;
+    if (probe.error) console.warn('report_verdicts is missing the Eileen mobile-review columns -- run migrate_eileen_mobile_review.sql. Reviews still save; the promotion snapshot / reviewer / chain / address fields are skipped until then.');
+  } catch (err) { EIV_COLS_READY = false; }
+
   ACTIONS_CACHE = actionsRows.map(a => ({
     id: a.id, doorKey: a.door_key, chain: a.chain, type: a.type, priority: a.priority,
     dueDate: a.due_date, assignedRep: a.assigned_rep, notes: a.notes, status: a.status, createdAt: a.created_at,
@@ -9325,6 +9674,10 @@ async function loadAllData() {
     REPORT_VERDICT_CACHE[rv.src + '|' + rv.report_id] = Object.assign(stdReviewFromDb(rv),
       rv.src === 'poppromo' ? stdBeforeFromDb(rv) : {},
       (rv.src === 'eileen' || rv.src === 'highway') ? { decisionOverride: rv.decision_status === 'manual_override' ? rv.decision : null } : {},
+      // Eileen mobile review: the saved condition + the promotion snapshot / reviewer it was judged against. decision_decided_by (saved on every
+      // Eileen submit since the Decision field existed) is the reviewer fallback for reviews that pre-date reviewed_by.
+      rv.src === 'eileen' ? { shelfStripCondition: rv.shelf_strip_condition || null, promoChain: rv.promo_chain || null, promoMonth: rv.promo_month ? String(rv.promo_month).slice(0, 10) : null,
+        promoCode: rv.promo_code || null, reviewedBy: rv.reviewed_by || rv.decision_decided_by || null, reviewedAt: rv.reviewed_at || null } : {},
       { notes: rv.notes || '', flag: !!rv.flag, updatedAt: rv.updated_at });
   });
 }
