@@ -3288,10 +3288,10 @@ function openLightbox(url, urls, index, labels) {
   lbPhotoIndex = Number.isInteger(index) ? index : Math.max(0, lbPhotoUrls.indexOf(url));
   if (lbPhotoIndex < 0) lbPhotoIndex = 0;
   const lbImg = document.getElementById('lb-img');
-  // The four Visit Review tabs get a 5x magnifier (2x the old 2.5x); every other tab keeps 2.5x. The viewer itself is full-screen everywhere.
+  // The four Visit Review tabs get a 3x magnifier (was 5x, which was too strong; the original was 2.5x); every other tab keeps 2.5x. The viewer itself is full-screen everywhere.
   const review = ['civisitreview', 'eileenvisitreview', 'extravisitreview', 'highwayreview'].includes(currentTab);
-  magZoomLevel = review ? 5 : 2.5;
-  const zl = document.getElementById('lb-zoom-label'); if (zl) zl.textContent = review ? '🔍 Zoom on hover (5×)' : '🔍 Zoom on hover';
+  magZoomLevel = review ? 3 : 2.5;
+  const zl = document.getElementById('lb-zoom-label'); if (zl) zl.textContent = review ? '🔍 Zoom on hover (3×)' : '🔍 Zoom on hover';
   lbResetZoom();
   lbImg.src = lbPhotoUrls[lbPhotoIndex];
   attachMagnifierTo(lbImg);
