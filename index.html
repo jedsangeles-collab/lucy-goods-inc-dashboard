@@ -5074,16 +5074,31 @@ function renderCivModal() {
 // once the tab's own internal scroll container has been scrolled down -- the page itself never
 // scrolls (body is 100vh/overflow:hidden by design), each tab's view panel scrolls within itself,
 // so #view-civisitreview (not window) is the element both buttons act on.
+// 2026-11-11: now on EVERY tab, with a "↓ Down" button beside "↑ Top". Each button shows only when there is more than a screenful to scroll in
+// that direction (Top once you are 300px down, Down while 300px or more remains below), so short pages and the Map show neither.
+// Which element scrolls differs by tab -- most tabs scroll their own #view-<tab> panel, but some (Chains, Map side panels) scroll an inner box --
+// so the buttons act on FAB_SCROLLER: the tab's panel when it scrolls, else its largest scrolling inner box, and whichever big box the user
+// last scrolled. Scroll events don't bubble, hence the capture listener.
+let FAB_SCROLLER = null, FAB_SIG = '';
+function fabIsScroller(el) { const o = getComputedStyle(el).overflowY; return (o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 40; }
+function fabFindScroller() {
+  const v = document.getElementById('view-' + currentTab); if (!v) return null;
+  if (fabIsScroller(v)) return v;
+  let best = null, bh = 0;
+  v.querySelectorAll('div,section,main,aside,ul').forEach(el => { const h = el.clientHeight; if (h > 150 && h > bh && fabIsScroller(el)) { best = el; bh = h; } });
+  return best;
+}
 function civrScrollFabInit() {
-  ['view-civisitreview', 'view-eileenvisitreview', 'view-highwayreview'].forEach(id => {
-    const container = document.getElementById(id);
-    if (container) container.addEventListener('scroll', civrUpdateScrollFab);
-  });
+  document.addEventListener('scroll', e => {
+    const t = e.target, v = document.getElementById('view-' + currentTab);
+    if (!(t instanceof Element) || !v || !(t === v || v.contains(t))) return;
+    if (t.clientHeight >= v.clientHeight * 0.6 && fabIsScroller(t)) FAB_SCROLLER = t; // the big box being scrolled, not a small table inside a card
+    civrUpdateScrollFab();
+  }, true);
+  setInterval(civrUpdateScrollFab, 1000); // page height changes after a re-render / late data / photos loading: keep the buttons honest (it only redraws when something changed)
 }
-function civrScrollToTop() {
-  const container = document.getElementById('view-' + currentTab);
-  if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
-}
+function civrScrollToTop() { if (FAB_SCROLLER) FAB_SCROLLER.scrollTo({ top: 0, behavior: 'smooth' }); }
+function civrScrollToBottom() { if (FAB_SCROLLER) FAB_SCROLLER.scrollTo({ top: FAB_SCROLLER.scrollHeight, behavior: 'smooth' }); }
 function civrFabBack() {
   const lightbox = document.getElementById('lightbox');
   if (lightbox && lightbox.classList.contains('open')) { closeLightbox(); return; }
@@ -5092,15 +5107,22 @@ function civrFabBack() {
 function civrUpdateScrollFab() {
   const el = document.getElementById('civr-scroll-fab');
   if (!el) return;
-  if (currentTab !== 'civisitreview' && currentTab !== 'eileenvisitreview' && currentTab !== 'highwayreview') { el.innerHTML = ''; return; }
-  const container = document.getElementById('view-' + currentTab);
+  const v = document.getElementById('view-' + currentTab);
+  // (re)find the scroller after a tab switch, or when the remembered one was re-rendered away / stopped scrolling
+  if (!FAB_SCROLLER || !v || !(FAB_SCROLLER === v || v.contains(FAB_SCROLLER)) || FAB_SCROLLER.scrollHeight <= FAB_SCROLLER.clientHeight + 1) FAB_SCROLLER = fabFindScroller();
+  const sc = FAB_SCROLLER;
   const lightbox = document.getElementById('lightbox');
   const showBack = !!civModalOpen || !!(lightbox && lightbox.classList.contains('open'));
-  const showTop = !!container && container.scrollTop > 300;
-  if (!showBack && !showTop) { el.innerHTML = ''; return; }
+  const showTop = !!sc && sc.scrollTop > 300;
+  const showDown = !!sc && (sc.scrollHeight - sc.clientHeight - sc.scrollTop) > 300;
+  const sig = [currentTab, showBack, showTop, showDown].join('|');
+  if (sig === FAB_SIG) return; // nothing changed: don't rebuild the buttons (avoids flicker)
+  FAB_SIG = sig;
+  if (!showBack && !showTop && !showDown) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="civr-fab-group">
     ${showBack ? `<button class="civr-fab civr-fab-back" onclick="civrFabBack()">← Back</button>` : ''}
     ${showTop ? `<button class="civr-fab civr-fab-top" onclick="civrScrollToTop()">↑ Top</button>` : ''}
+    ${showDown ? `<button class="civr-fab civr-fab-top" onclick="civrScrollToBottom()">↓ Down</button>` : ''}
   </div>`;
 }
 
