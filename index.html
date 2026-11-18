@@ -3288,11 +3288,16 @@ function openLightbox(url, urls, index, labels) {
   lbPhotoIndex = Number.isInteger(index) ? index : Math.max(0, lbPhotoUrls.indexOf(url));
   if (lbPhotoIndex < 0) lbPhotoIndex = 0;
   const lbImg = document.getElementById('lb-img');
-  // The four Visit Review tabs get a 3x magnifier (was 5x, which was too strong; the original was 2.5x); every other tab keeps 2.5x. The viewer itself is full-screen everywhere.
+  // The four Visit Review tabs (2026-11-17): on a mouse/desktop the photo opens ALREADY ZOOMED (LB_REVIEW_OPEN_ZOOM, drag to pan) and the
+  // magnifier lens adds a further 2x on top of what is on screen. Phones/touch keep fit-to-screen (swipe = next photo needs z===1).
+  // Every other tab keeps the plain full-screen viewer + 2.5x lens.
   const review = ['civisitreview', 'eileenvisitreview', 'extravisitreview', 'highwayreview'].includes(currentTab);
-  magZoomLevel = review ? 3 : 2.5;
-  const zl = document.getElementById('lb-zoom-label'); if (zl) zl.textContent = review ? '🔍 Zoom on hover (3×)' : '🔍 Zoom on hover';
+  const finePointer = !lbTouchMode && !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  lbBaseZoom = review && finePointer ? LB_REVIEW_OPEN_ZOOM : 1;
+  magZoomLevel = review ? 2 : 2.5;
+  const zl = document.getElementById('lb-zoom-label'); if (zl) zl.textContent = review ? (lbBaseZoom > 1 ? '🔍 Opens zoomed ' + LB_REVIEW_OPEN_ZOOM + '× · hover lens 2× · drag to move' : '🔍 Zoom on hover (2×)') : '🔍 Zoom on hover';
   lbResetZoom();
+  attachLbDrag(lbImg);
   lbImg.src = lbPhotoUrls[lbPhotoIndex];
   attachMagnifierTo(lbImg);
   attachLbTouch(lbImg);
@@ -3331,8 +3336,33 @@ function closeLightbox() { document.getElementById('lightbox').classList.remove(
 // zoomed. A tap on the photo no longer closes it once touch is in use (tap the dark area or the X); desktop clicking is unchanged. A gesture also
 // swallows the click the browser synthesises after it, so a swipe or pinch can't close the viewer.
 let lbZoom = { z: 1, x: 0, y: 0 }, lbTouchMode = false, lbGestureAt = 0;
+const LB_REVIEW_OPEN_ZOOM = 2;   // photo size on opening in the four Visit Review tabs (mouse/desktop), relative to fit-to-screen
+let lbBaseZoom = 1;              // the zoom the current photo opens at (1 = fit to screen)
 function lbApplyZoom() { const i = document.getElementById('lb-img'); if (i) i.style.transform = lbZoom.z === 1 && !lbZoom.x && !lbZoom.y ? '' : `translate(${lbZoom.x}px,${lbZoom.y}px) scale(${lbZoom.z})`; }
-function lbResetZoom() { lbZoom = { z: 1, x: 0, y: 0 }; lbApplyZoom(); }
+function lbResetZoom() { lbZoom = { z: lbBaseZoom, x: 0, y: 0 }; lbApplyZoom(); }
+// Mouse drag-to-pan for a photo that opens zoomed (desktop). A drag hides the lens and swallows the click the browser fires afterwards, so panning never closes the viewer.
+function attachLbDrag(img) {
+  if (!img || img.dataset.dragAttached) return;
+  img.dataset.dragAttached = '1';
+  let d = null;
+  img.addEventListener('mousedown', e => {
+    if (e.button !== 0 || lbZoom.z <= 1) return;
+    d = { x: e.clientX, y: e.clientY, px: lbZoom.x, py: lbZoom.y, moved: false };
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!d) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (!d.moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+    d.moved = true; hideMagLens(); img.style.cursor = 'grabbing';
+    lbZoom.x = d.px + dx; lbZoom.y = d.py + dy; lbApplyZoom();
+  });
+  window.addEventListener('mouseup', () => {
+    if (!d) return;
+    if (d.moved) lbGestureAt = Date.now();
+    d = null; img.style.cursor = '';
+  });
+}
 function lbBackdropClick(e) {
   if (Date.now() - lbGestureAt < 450) return;
   if (lbTouchMode && e.target && e.target.id === 'lb-img') return;
@@ -3366,7 +3396,7 @@ function attachLbTouch(img) {
     if (lbZoom.z === 1 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) { lbGestureAt = Date.now(); lbNav(dx < 0 ? 1 : -1); start = null; return; } // swipe
     if (!start.moved) {
       const now = Date.now();
-      if (now - lastTap < 300) { lbZoom = lbZoom.z > 1 ? { z: 1, x: 0, y: 0 } : { z: 2.5, x: 0, y: 0 }; lbApplyZoom(); lbGestureAt = now; lastTap = 0; } // double-tap
+      if (now - lastTap < 300) { lbZoom = lbZoom.z > 1 ? { z: 1, x: 0, y: 0 } : { z: 2.5, x: 0, y: 0 }; lbApplyZoom(); lbGestureAt = now; lastTap = 0; } // double-tap (touch only; touch never opens pre-zoomed)
       else lastTap = now;
     }
     start = null;
