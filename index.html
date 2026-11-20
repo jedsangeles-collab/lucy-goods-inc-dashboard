@@ -1821,6 +1821,7 @@ tr.pick-row.row-sel td:first-child,div.pick-row.row-sel{box-shadow:inset 3px 0 0
     <div class="tab" onclick="switchTab(&#39;extravisitreview&#39;)" id="tab-extravisitreview"><span class="tab-icon">📝</span> Extra</div>
     <div class="tab" onclick="switchTab(&#39;highwayreview&#39;)" id="tab-highwayreview"><span class="tab-icon">🛣</span> Highway Partners</div>
     <div class="tab" onclick="switchTab(&#39;reviewersummary&#39;)" id="tab-reviewersummary"><span class="tab-icon">📊</span> Reviewer&#39;s Summary</div>
+    <div class="tab" onclick="switchTab(&#39;backupexport&#39;)" id="tab-backupexport"><span class="tab-icon">💾</span> Backup &amp; Export</div>
   </div>
   <div class="topbar-right">
     <div class="recency-filter">
@@ -2617,6 +2618,11 @@ tr.pick-row.row-sel td:first-child,div.pick-row.row-sel{box-shadow:inset 3px 0 0
       <div id="rs-main"></div>
     </div>
 
+    <!-- BACKUP & EXPORT VIEW -->
+    <div id="view-backupexport" style="display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:0;">
+      <div id="bx-main"></div>
+    </div>
+
 
     <!-- Shared across every tab (not nested inside any single view's display:none toggle) --
          civr-scroll-fab is scoped to CI Visit Review + Eileen Visit Review specifically via
@@ -3235,7 +3241,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  const views = ['overview','cmcc','map','chains','stores','civisitreview','eileenvisitreview','extravisitreview','highwayreview','reviewersummary'];
+  const views = ['overview','cmcc','map','chains','stores','civisitreview','eileenvisitreview','extravisitreview','highwayreview','reviewersummary','backupexport'];
   views.forEach(v => { document.getElementById('view-'+v).style.display = (tab===v) ? 'flex' : 'none'; });
   currentTab = tab;
   if (tab === 'cmcc') renderCmcc();
@@ -3244,6 +3250,7 @@ function switchTab(tab) {
   if (tab === 'extravisitreview') renderExtraVisitReview();
   if (tab === 'highwayreview') renderHighwayReview();
   if (tab === 'reviewersummary') { renderReviewerSummary(); rsLoad(); }
+  if (tab === 'backupexport') renderBackupExport();
   if (tab === 'map' && !leafletMap) initMap();
   if (tab === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
   if (tab === 'overview') renderOverview();
@@ -5254,6 +5261,7 @@ function civRerenderActive() {
   else if (currentTab === 'extravisitreview') renderExtraVisitReview();
   else if (currentTab === 'highwayreview') renderHighwayReview();
   else if (currentTab === 'reviewersummary') { renderReviewerSummary(); if (rsVersions === null && civCurrentUser()) rsLoad(); }
+  else if (currentTab === 'backupexport') renderBackupExport();
 }
 
 function civSetVerdictAnswer(src, id, field, value) {
@@ -10802,4 +10810,372 @@ CM.exportXlsx = function (kind, enc) {
 
 </script>
 <!-- CMCC:END -->
+<!-- BX:START -->
+<style>
+#view-backupexport .civr-header{background:#fff;border-bottom:1px solid #e0ddd6;padding:14px 24px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+#view-backupexport .civr-header h1{font-size:17px;font-weight:600;color:#1a1a18;margin:0;}
+#view-backupexport .civr-progress-wrap{display:flex;align-items:center;gap:8px;margin-top:5px;}
+#view-backupexport .civr-progress-text{font-size:12px;color:#888;}
+#view-backupexport .bx-wrap{padding:20px 24px;display:flex;flex-direction:column;gap:16px;max-width:1100px;}
+#view-backupexport .bx-card{background:#fff;border:1px solid #e0ddd6;border-radius:10px;padding:16px 18px;}
+#view-backupexport .bx-card h2{font-size:14px;font-weight:600;color:#1a1a18;margin:0 0 8px;}
+#view-backupexport .bx-muted{font-size:12px;color:#777;line-height:1.5;}
+#view-backupexport .bx-opts{display:flex;flex-direction:column;gap:6px;margin-top:8px;font-size:13px;color:#333;}
+#view-backupexport .bx-opts label{display:flex;gap:8px;align-items:flex-start;cursor:pointer;}
+#view-backupexport .bx-groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px 18px;margin-top:8px;font-size:13px;}
+#view-backupexport .bx-go{font-size:14px;padding:10px 22px;border-radius:8px;border:none;background:#00A67E;color:#fff;font-weight:600;cursor:pointer;}
+#view-backupexport .bx-go:disabled{background:#9bcfc0;cursor:default;}
+#view-backupexport .bx-bar{height:8px;background:#e0ddd6;border-radius:4px;overflow:hidden;margin:10px 0 6px;}
+#view-backupexport .bx-fill{height:100%;background:#00A67E;transition:width .2s;}
+#view-backupexport table.bx-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+#view-backupexport .bx-tbl th{text-align:left;color:#999;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid #e0ddd6;}
+#view-backupexport .bx-tbl td{padding:5px 8px;border-bottom:1px solid #f0efe8;}
+#view-backupexport .bx-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;}
+#view-backupexport .bx-ok{color:#1a7a1a;font-weight:600;}
+#view-backupexport .bx-bad{color:#b03020;font-weight:600;}
+#view-backupexport .bx-wait{color:#999;}
+#view-backupexport .bx-run{color:#1a5fa0;font-weight:600;}
+</style>
+<script>
+// ── BACKUP & EXPORT TAB (2026-11-20) ─────────────────────────────────────────────
+// Downloads every dashboard table from Supabase as ONE zip, laid out like Dan's 2026-11-16 SSOT handoff
+// package (01_stores ... 07_plans), with a README + MANIFEST (row counts checked against the database).
+// Photos are exported as the URLs stored in each visit row, not as image files.
+// user_profiles (logins) is deliberately excluded. Built entirely in the browser: paged Supabase reads
+// (ordered by primary key so pages never skip/duplicate) + a small DEFLATE zip writer (CompressionStream).
+// The button is shown to admins and to the names in BX_ALLOWED_NAMES only -- a UI gate; RLS still lets any
+// signed-in user read these tables.
+const BX_ALLOWED_NAMES = ['dan sullivan'];
+const BX_GROUPS = [
+  { f: '01_stores',     label: 'Stores & chains' },
+  { f: '02_sales',      label: 'Sales' },
+  { f: '03_promos',     label: 'Promos & programs' },
+  { f: '04_visits',     label: 'Visits (all providers)' },
+  { f: '05_reviews',    label: 'Reviews, history & audit log' },
+  { f: '06_pop_metric', label: 'POP metric' },
+  { f: '07_plans',      label: 'Visit plans' },
+  { f: '09_provenance', label: 'Handoff provenance & conflicts' }
+];
+const BX_TABLES = [
+  { t: 'doors',                 f: '01_stores',     key: ['key'],               d: 'Every door (store) the dashboard tracks, with chain, address, coordinates and status' },
+  { t: 'store_roster',          f: '01_stores',     key: ['store_key'],         d: 'Store list from the 2026-11-16 handoff (store_key = chain|store number)' },
+  { t: 'chains',                f: '01_stores',     key: ['chain'],             d: 'Chain-level summary used by the Chains / Overview tabs' },
+  { t: 'chain_info',            f: '01_stores',     key: ['chain'],             d: 'Chain facts from the handoff (owners, door counts, notes)' },
+  { t: 'chain_alias',           f: '01_stores',     key: ['chain_as_written'],  d: 'Chain-name crosswalk: every spelling -> dashboard chain name' },
+  { t: 'sales',                 f: '02_sales',      key: ['chain'],             d: 'Chain-level sales summary' },
+  { t: 'sales_monthly',         f: '02_sales',      key: ['chain', 'month'],    d: 'Units by chain by month' },
+  { t: 'door_sales_monthly',    f: '02_sales',      key: ['door_key', 'month'], d: 'Units by door (store) by month' },
+  { t: 'chain_month_model',     f: '02_sales',      key: ['chain', 'month'],    d: "Dan's chain x month economics model (handoff)" },
+  { t: 'chain_promotions',      f: '03_promos',     key: ['chain', 'month_start'], d: 'Promo calendar by chain and month (promo_period, load_source)' },
+  { t: 'chain_programs',        f: '03_promos',     key: ['chain', 'cycle'],    d: 'POP program completion by chain and cycle' },
+  { t: 'promo_reference',       f: '03_promos',     key: ['source_file', 'row_no'], d: 'Reference promo rows from the handoff source files' },
+  { t: 'visits',                f: '04_visits',     key: ['src', 'id'],         d: 'Store visits from every provider; src column = ci / eileen / clarks / poppromo / ... ; ph = photo URLs' },
+  { t: 'door_visits',           f: '04_visits',     key: ['id'],                d: 'Door-level visit observations (POP kit, shelf strip, facings, photos, photo categories)' },
+  { t: 'extra_visits',          f: '04_visits',     key: ['id'],                d: 'Extra / internal-rep visits (Josh, Brendan Hawaii, ...)' },
+  { t: 'highway_visits',        f: '04_visits',     key: ['id'],                d: 'Highway Partners visits (Sheetz, Wawa, ...)' },
+  { t: 'ci_missed_stores',      f: '04_visits',     key: ['report_month', 'custom_id'], d: 'Customer Impact stores that were missed, by report month' },
+  { t: 'visit_enrichment',      f: '04_visits',     key: ['src', 'visit_id'],   d: 'Extra fields on visits added from the handoff' },
+  { t: 'report_status',         f: '05_reviews',    key: ['src', 'report_id'],  d: 'Review status per visit (CI / Eileen / Highway)' },
+  { t: 'report_verdicts',       f: '05_reviews',    key: ['src', 'report_id'],  d: 'Review answers per visit (CI / Eileen / Highway)' },
+  { t: 'extra_report_status',   f: '05_reviews',    key: ['visit_id'],          d: 'Review status per Extra visit' },
+  { t: 'extra_report_verdicts', f: '05_reviews',    key: ['visit_id'],          d: 'Review answers per Extra visit' },
+  { t: 'civ_report_versions',   f: '05_reviews',    key: ['id'],                d: 'Full version history of every saved review (snapshot JSON)' },
+  { t: 'civ_audit_log',         f: '05_reviews',    key: ['id'],                d: 'Append-only activity log (who did what, when)' },
+  { t: 'actions',               f: '05_reviews',    key: ['id'],                d: 'Command Center / Action Center items' },
+  { t: 'reviews',               f: '05_reviews',    key: ['id'],                d: 'Legacy reviews table' },
+  { t: 'pop_metric_obs',        f: '06_pop_metric', key: ['source', 'visit_id'], d: 'Store Visit POP metric: how each visit counts' },
+  { t: 'visit_plan',            f: '07_plans',      key: ['plan', 'row_no'],    d: 'Visit plans (December plan, routes)' },
+  { t: 'handoff_provenance',    f: '09_provenance', key: ['table_name', 'row_key', 'action', 'load_source'], d: 'Which rows each handoff load inserted / enriched' },
+  { t: 'handoff_conflicts',     f: '09_provenance', key: ['id'],                d: 'Conflicts found during the handoff load (ours kept, theirs recorded)' }
+];
+
+let bxGroupsOn = Object.fromEntries(BX_GROUPS.map(g => [g.f, true]));
+let bxIncludeJson = true, bxIncludeApp = true;
+let bxRunning = false, bxState = null, bxLast = null;
+
+function bxAllowed() {
+  const u = civCurrentUser();
+  if (!u) return false;
+  return u.role === 'admin' || BX_ALLOWED_NAMES.includes(String(u.fullName || '').trim().toLowerCase());
+}
+
+function renderBackupExport() {
+  const el = document.getElementById('bx-main');
+  if (!el) return;
+  const head = `<div class="civr-header"><div><h1>Backup &amp; Export</h1>
+      <div class="civr-progress-wrap"><span class="civr-progress-text">Download the whole dashboard (every table) as one zip, laid out like the 2026-11-16 handoff package</span></div>
+      ${civCurrentUser() ? `<div class="civauth-identity">Logged in as: <strong>${escHtml(civCurrentUser().fullName)}</strong> (${escHtml(civCurrentUser().role)}) <span class="civauth-signout" onclick="civSignOut()">Log out</span></div>` : ''}
+    </div></div>`;
+  if (usingEmbeddedSnapshot) {
+    el.innerHTML = `${renderCivReadOnlyBanner()}<div class="civr-header"><div><h1>Backup &amp; Export</h1></div></div>
+      <div class="bx-wrap"><div class="bx-card"><div class="bx-muted">This Claude Artifact preview can't download files or reach the live database.
+      Open the live dashboard on GitHub Pages and log in to export the full backup zip.</div></div></div>`;
+    return;
+  }
+  const gate = civAuthGateHtml('Backup & Export', 'bxauth');
+  if (gate) { el.innerHTML = gate; return; }
+  if (!bxAllowed()) {
+    el.innerHTML = head + `<div class="bx-wrap"><div class="bx-card"><div class="bx-muted">The full backup export is limited to dashboard admins and Dan Sullivan. Ask an admin if you need a copy.</div></div></div>`;
+    return;
+  }
+  const groupBoxes = BX_GROUPS.map(g => {
+    const n = BX_TABLES.filter(x => x.f === g.f).length;
+    return `<label><input type="checkbox" ${bxGroupsOn[g.f] ? 'checked' : ''} ${bxRunning ? 'disabled' : ''} onchange="bxToggleGroup('${g.f}', this.checked)"> <span><strong>${g.f}</strong> &middot; ${escHtml(g.label)} <span class="bx-muted">(${n} table${n === 1 ? '' : 's'})</span></span></label>`;
+  }).join('');
+  let prog = '';
+  if (bxState) {
+    const s = bxState;
+    const pct = s.total ? Math.round(s.done / s.total * 100) : 0;
+    const rows = s.items.map(it => {
+      const st = it.status === 'done' ? (it.mismatch ? `<span class="bx-bad">count mismatch</span>` : `<span class="bx-ok">✓</span>`)
+        : it.status === 'error' ? `<span class="bx-bad" title="${escHtml(it.error || '')}">error</span>`
+        : it.status === 'running' ? `<span class="bx-run">downloading…</span>` : `<span class="bx-wait">waiting</span>`;
+      return `<tr><td>${escHtml(it.f)}/${escHtml(it.t)}.csv</td><td class="num">${it.rows == null ? '' : fmtNum(it.rows)}</td><td class="num">${it.expected == null ? '' : fmtNum(it.expected)}</td><td>${st}${it.error ? ' <span class="bx-muted">' + escHtml(it.error) + '</span>' : ''}</td></tr>`;
+    }).join('');
+    prog = `<div class="bx-card"><h2>${escHtml(s.phase)}</h2>
+      <div class="bx-bar"><div class="bx-fill" style="width:${pct}%"></div></div>
+      <div class="bx-muted">${s.done} of ${s.total} tables &middot; ${fmtNum(s.rowsDone)} rows${s.zipBytes ? ' &middot; zip ' + (s.zipBytes / 1048576).toFixed(1) + ' MB' : ''}${s.elapsed ? ' &middot; ' + s.elapsed + ' s' : ''}</div>
+      <table class="bx-tbl" style="margin-top:10px;"><thead><tr><th>File</th><th style="text-align:right">Rows exported</th><th style="text-align:right">Rows in database</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  el.innerHTML = head + `<div class="bx-wrap">
+    <div class="bx-card"><h2>What goes in the zip</h2>
+      <div class="bx-muted">One CSV per table, in the same folders as Dan's handoff package, plus <strong>00_README.md</strong> and <strong>MANIFEST.csv</strong>
+      (row counts exported vs. in the database, primary keys, descriptions). Photos are included as the photo URLs stored on each visit, not as image files.
+      Logins (user_profiles) are never exported.</div>
+      <div class="bx-groups">${groupBoxes}</div>
+      <div class="bx-opts">
+        <label><input type="checkbox" ${bxIncludeJson ? 'checked' : ''} ${bxRunning ? 'disabled' : ''} onchange="bxIncludeJson=this.checked"> <span>Also include a <strong>json/</strong> copy of every table <span class="bx-muted">(exact types and nested fields, for reloading the data later)</span></span></label>
+        <label><input type="checkbox" ${bxIncludeApp ? 'checked' : ''} ${bxRunning ? 'disabled' : ''} onchange="bxIncludeApp=this.checked"> <span>Include the dashboard page itself <span class="bx-muted">(10_dashboard_app/dashboard.html)</span></span></label>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <button class="bx-go" ${bxRunning ? 'disabled' : ''} onclick="bxExport()">${bxRunning ? 'Exporting…' : '⬇ Export full dashboard (.zip)'}</button>
+        ${bxLast ? `<span class="bx-muted">Last export: ${escHtml(bxLast)}</span>` : ''}
+      </div>
+    </div>${prog}</div>`;
+}
+
+function bxToggleGroup(f, on) { bxGroupsOn[f] = on; }
+
+async function bxFetchTable(spec, item) {
+  const page = 1000;
+  let from = 0, rows = [];
+  while (true) {
+    let q = sb.from(spec.t).select('*', from === 0 ? { count: 'exact' } : undefined);
+    spec.key.forEach(k => { q = q.order(k, { ascending: true }); });
+    const { data, error, count } = await q.range(from, from + page - 1);
+    if (error) throw new Error(error.message);
+    if (from === 0 && typeof count === 'number') item.expected = count;
+    rows = rows.concat(data || []);
+    item.rows = rows.length;
+    bxRender();
+    if (!data || data.length < page) break;
+    from += page;
+  }
+  return rows;
+}
+
+function bxCsv(rows) {
+  const cols = [], seen = new Set();
+  rows.forEach(r => Object.keys(r).forEach(k => { if (!seen.has(k)) { seen.add(k); cols.push(k); } }));
+  const cell = v => {
+    if (v === null || v === undefined) return '';
+    const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const out = [cols.map(cell).join(',')];
+  rows.forEach(r => out.push(cols.map(c => cell(r[c])).join(',')));
+  return { text: '﻿' + out.join('\r\n') + '\r\n', cols };
+}
+
+function bxCrc32(bytes) {
+  if (!bxCrc32.t) {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; }
+    bxCrc32.t = t;
+  }
+  const t = bxCrc32.t;
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = t[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+async function bxDeflate(bytes) {
+  if (typeof CompressionStream === 'undefined') return null;
+  try {
+    const cs = new CompressionStream('deflate-raw');
+    const buf = await new Response(new Blob([bytes]).stream().pipeThrough(cs)).arrayBuffer();
+    return new Uint8Array(buf);
+  } catch (e) { return null; }
+}
+
+// ZIP writer: DEFLATE (method 8) when the browser has CompressionStream, else STORE; UTF-8 names (flag bit 11).
+async function bxBuildZip(files, onStep) {
+  const enc = new TextEncoder();
+  const now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const parts = [], central = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const raw = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+    const crc = bxCrc32(raw);
+    const comp = await bxDeflate(raw);
+    const useDeflate = comp && comp.length < raw.length;
+    const body = useDeflate ? comp : raw;
+    const method = useDeflate ? 8 : 0;
+    const lh = new Uint8Array(30 + name.length), lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true); lv.setUint16(6, 0x0800, true); lv.setUint16(8, method, true);
+    lv.setUint16(10, dosTime, true); lv.setUint16(12, dosDate, true); lv.setUint32(14, crc, true);
+    lv.setUint32(18, body.length, true); lv.setUint32(22, raw.length, true); lv.setUint16(26, name.length, true); lv.setUint16(28, 0, true);
+    lh.set(name, 30);
+    parts.push(lh, body);
+    const ch = new Uint8Array(46 + name.length), cv = new DataView(ch.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true); cv.setUint16(10, method, true);
+    cv.setUint16(12, dosTime, true); cv.setUint16(14, dosDate, true); cv.setUint32(16, crc, true);
+    cv.setUint32(20, body.length, true); cv.setUint32(24, raw.length, true); cv.setUint16(28, name.length, true);
+    cv.setUint16(30, 0, true); cv.setUint16(32, 0, true); cv.setUint16(34, 0, true); cv.setUint16(36, 0, true); cv.setUint32(38, 0, true); cv.setUint32(42, offset, true);
+    ch.set(name, 46);
+    central.push(ch);
+    offset += lh.length + body.length;
+    if (onStep) onStep(offset);
+  }
+  const csize = central.reduce((s, p) => s + p.length, 0);
+  const eo = new Uint8Array(22), ev = new DataView(eo.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+  ev.setUint32(12, csize, true); ev.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, eo], { type: 'application/zip' });
+}
+
+let bxRenderPending = false;
+function bxRender() {
+  if (currentTab !== 'backupexport' || bxRenderPending) return;
+  bxRenderPending = true;
+  requestAnimationFrame(() => { bxRenderPending = false; renderBackupExport(); });
+}
+
+async function bxExport() {
+  if (bxRunning || !bxAllowed() || usingEmbeddedSnapshot) return;
+  const specs = BX_TABLES.filter(x => bxGroupsOn[x.f]);
+  if (!specs.length) { alert('Pick at least one folder to export.'); return; }
+  bxRunning = true;
+  const t0 = Date.now();
+  const u = civCurrentUser();
+  const items = specs.map(s => ({ t: s.t, f: s.f, status: 'waiting', rows: null, expected: null, error: null, mismatch: false }));
+  bxState = { phase: 'Downloading tables…', items, total: specs.length, done: 0, rowsDone: 0, zipBytes: 0, elapsed: 0 };
+  renderBackupExport();
+  const results = new Array(specs.length);
+  let next = 0;
+  async function worker() {
+    while (next < specs.length) {
+      const i = next++, spec = specs[i], it = items[i];
+      it.status = 'running'; bxRender();
+      try {
+        const rows = await bxFetchTable(spec, it);
+        it.mismatch = it.expected != null && it.expected !== rows.length;
+        it.status = 'done';
+        results[i] = rows;
+        bxState.rowsDone += rows.length;
+      } catch (e) {
+        it.status = 'error'; it.error = String(e && e.message || e);
+        results[i] = null;
+      }
+      bxState.done++;
+      bxState.elapsed = Math.round((Date.now() - t0) / 1000);
+      bxRender();
+    }
+  }
+  try {
+    await Promise.all([worker(), worker(), worker()]);
+
+    bxState.phase = 'Building zip…'; bxRender();
+    const stamp = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const ymd = `${stamp.getFullYear()}-${pad(stamp.getMonth() + 1)}-${pad(stamp.getDate())}`;
+    const hm = `${pad(stamp.getHours())}${pad(stamp.getMinutes())}`;
+    const root = `Lucy_Dashboard_Export_${ymd}_${hm}/`;
+    const files = [];
+    const manifest = [['folder', 'file', 'table', 'rows_exported', 'rows_in_database', 'counts_match', 'primary_key', 'columns', 'status', 'description']];
+    specs.forEach((spec, i) => {
+      const it = items[i], rows = results[i];
+      if (!rows) {
+        manifest.push([spec.f, '', spec.t, '', it.expected == null ? '' : it.expected, '', spec.key.join('+'), '', 'ERROR: ' + it.error, spec.d]);
+        return;
+      }
+      const csv = bxCsv(rows);
+      files.push({ name: `${root}${spec.f}/${spec.t}.csv`, data: csv.text });
+      if (bxIncludeJson) files.push({ name: `${root}json/${spec.t}.json`, data: JSON.stringify(rows) });
+      manifest.push([spec.f, `${spec.f}/${spec.t}.csv`, spec.t, rows.length, it.expected == null ? '' : it.expected,
+        it.expected == null ? 'unknown' : (it.mismatch ? 'NO' : 'yes'), spec.key.join('+'), csv.cols.join(' | '), 'ok', spec.d]);
+    });
+    let appNote = 'not included (option off)';
+    if (bxIncludeApp) {
+      try {
+        const r = await fetch(location.href.split('#')[0], { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        files.push({ name: `${root}10_dashboard_app/dashboard.html`, data: new Uint8Array(await r.arrayBuffer()) });
+        appNote = 'included: 10_dashboard_app/dashboard.html (the page as served at export time; it reads live data from Supabase when opened online)';
+      } catch (e) { appNote = 'could not be fetched (' + (e.message || e) + ')'; }
+    }
+    const mCsv = manifest.map(r => r.map(v => { const s = v == null ? '' : String(v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\r\n');
+    const okCount = items.filter(x => x.status === 'done').length;
+    const errs = items.filter(x => x.status === 'error');
+    const mism = items.filter(x => x.mismatch);
+    const totalRows = items.reduce((s, x) => s + (x.status === 'done' ? x.rows : 0), 0);
+    const folderLines = BX_GROUPS.filter(g => bxGroupsOn[g.f]).map(g => {
+      const tl = specs.map((s, i) => ({ s, it: items[i] })).filter(o => o.s.f === g.f)
+        .map(o => `  - \`${o.s.t}.csv\` (${o.it.status === 'done' ? o.it.rows.toLocaleString() + ' rows' : 'ERROR'}): ${o.s.d}`).join('\n');
+      return `### ${g.f}: ${g.label}\n${tl}`;
+    }).join('\n\n');
+    const readme = `# LUCY Goods Inc dashboard: full export
+
+Exported: ${stamp.toString()}
+Exported by: ${u ? u.fullName : 'unknown'}
+Source: the live dashboard database (Supabase), read through the dashboard login.
+
+## Summary
+- Tables exported: ${okCount} of ${specs.length}${errs.length ? ` (ERRORS: ${errs.map(x => x.t).join(', ')})` : ''}
+- Rows exported: ${totalRows.toLocaleString()}
+- Row counts that don't match the database count taken at export time: ${mism.length ? mism.map(x => `${x.t} (${x.rows} exported vs ${x.expected})`).join(', ') : 'none'}
+- JSON copy: ${bxIncludeJson ? 'included (json/<table>.json)' : 'not included'}
+- Dashboard page: ${appNote}
+
+## Layout
+The folders follow Dan Sullivan's 2026-11-16 handoff package (01_stores ... 07_plans) so the two can be compared side by side.
+Folder 09_provenance holds the record of what that handoff load added and the conflicts it found.
+
+${folderLines}
+
+## Notes
+- One CSV per database table, UTF-8 with a byte-order mark (opens correctly in Excel). Nested fields (photo lists, review snapshots) are written as JSON text inside the cell.
+- MANIFEST.csv lists every file with rows exported, rows in the database, the primary key and all column names.
+- Photos are included as the photo URLs stored on each visit (for example visits.ph, door_visits.photos). Image files are not in the zip.
+- Store Visit data from every provider is in 04_visits/visits.csv; the \`src\` column says which provider (ci, eileen, ...).
+- Not exported: user_profiles (dashboard logins). Not in the dashboard and so not here: the original raw source files from the handoff (xlsx workbooks, the prospect-visit file).
+- This is a point-in-time copy. The live dashboard keeps changing after this export.
+`;
+    files.unshift({ name: `${root}MANIFEST.csv`, data: '﻿' + mCsv + '\r\n' });
+    files.unshift({ name: `${root}00_README.md`, data: readme });
+    const blob = await bxBuildZip(files, b => { bxState.zipBytes = b; bxRender(); });
+    bxState.zipBytes = blob.size;
+    const fname = `Lucy_Dashboard_Export_${ymd}_${hm}.zip`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    bxState.elapsed = Math.round((Date.now() - t0) / 1000);
+    bxState.phase = errs.length ? `Downloaded ${fname}, but ${errs.length} table${errs.length === 1 ? '' : 's'} failed (see below and the README)` : `Done: ${fname} downloaded`;
+    bxLast = `${stamp.toLocaleString()} · ${totalRows.toLocaleString()} rows · ${(blob.size / 1048576).toFixed(1)} MB`;
+    window.__bxLastExport = { files: files.map(f => f.name), bytes: blob.size, rows: totalRows, errors: errs.map(x => x.t + ': ' + x.error), mismatches: mism.map(x => x.t) };
+    civLogAudit('view', { field: 'backup_export', new_value: JSON.stringify({ tables: okCount, rows: totalRows, bytes: blob.size, errors: errs.length }) });
+  } catch (e) {
+    bxState.phase = 'Export failed: ' + (e && e.message || e);
+    console.error('backup export failed', e);
+  } finally {
+    bxRunning = false;
+    renderBackupExport();
+  }
+}
+</script>
+<!-- BX:END -->
 </body></html>
